@@ -1,6 +1,6 @@
 # Mesha — Community Infrastructure Operator
 
-> A local-first, offline-capable AI assistant for community-owned mesh networks and servers. Built with OpenClaw for LibreMesh/OpenWrt networks and local community services.
+> A local-first, offline-capable AI assistant for managing LibreMesh/OpenWrt community networks and offline-first local servers. Read-only by default, with safety-gated write operations.
 
 [![Status](https://img.shields.io/badge/status-production--ready-success)]()
 [![License](https://img.shields.io/badge/license-MIT-blue)](LICENSE)
@@ -45,47 +45,48 @@ Get Mesha running in under 5 minutes on Linux, macOS, or Windows (WSL2).
 ```bash
 # Required
 git
-nodejs 22+
+bash
+curl
 ssh client
 
 # Recommended
 docker
-tailscale
+docker-compose
 python3
+node.js 18+
 jq
-curl
 ```
 
 ### Install (one command)
 
 ```bash
-# 1. Install OpenClaw CLI
-npm install -g @openclaw/cli
-
-# 2. Clone Mesha workspace
+# Clone Mesha workspace
 git clone https://github.com/ruvnet/mesha.git ~/community-ops/mesha
 cd ~/community-ops/mesha
 
-# 3. Run OpenClaw onboarding for this workspace
-openclaw onboard --workspace .
+# Run one-time setup
+bash scripts/bootstrap.sh --check-only
+
+# Activate the workspace
+bash scripts/activate-workspace.sh
 ```
 
 ### Verify Installation
 
 ```bash
-# Run QA suite
-bash tests/run-all.sh
-
 # Run workspace health check
 bash scripts/doctor.sh
 
-# Confirm OpenClaw CLI is installed
-openclaw --version
+# Run QA suite
+bash tests/run-all.sh
+
+# Check that logs/ and exports/ directories are created
+ls -la logs/ exports/
 ```
 
 **Expected output:** You should see test results similar to:
 ```
-PASS: 218   FAIL: 0   SKIP: 14
+PASS: 217   FAIL: 0   SKIP: 14
 ```
 
 If tests fail, see [docs/troubleshooting.md](docs/troubleshooting.md) for help.
@@ -137,19 +138,13 @@ If tests fail, see [docs/troubleshooting.md](docs/troubleshooting.md) for help.
 sudo apt update && sudo apt upgrade -y
 
 # Install base tools
-sudo apt install -y git curl jq python3 openssh-client
+sudo apt install -y git curl jq python3 openssh-client docker.io docker-compose
 
-# Install Node.js 22
-curl -fsSL https://deb.nodesource.com/setup_22.x | sudo -E bash -
-sudo apt install -y nodejs
-
-# Install OpenClaw
-npm install -g @openclaw/cli
-
-# Clone and onboard
+# Clone and activate
 git clone https://github.com/ruvnet/mesha.git ~/community-ops/mesha
 cd ~/community-ops/mesha
-openclaw onboard --workspace .
+bash scripts/bootstrap.sh --check-only
+bash scripts/activate-workspace.sh
 ```
 
 ### macOS
@@ -159,13 +154,13 @@ openclaw onboard --workspace .
 /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
 
 # Install tools
-brew install git curl jq python3 node@22
-npm install -g @openclaw/cli
+brew install git curl jq python3 docker docker-compose
 
-# Clone and onboard
+# Clone and activate
 git clone https://github.com/ruvnet/mesha.git ~/community-ops/mesha
 cd ~/community-ops/mesha
-openclaw onboard --workspace .
+bash scripts/bootstrap.sh --check-only
+bash scripts/activate-workspace.sh
 ```
 
 ### Windows (WSL2)
@@ -180,44 +175,37 @@ Then inside WSL2:
 ```bash
 # Update and install tools
 sudo apt update && sudo apt upgrade -y
-sudo apt install -y git curl jq python3 openssh-client
+sudo apt install -y git curl jq python3 openssh-client docker.io docker-compose
 
-# Install Node.js 22
-curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.39.7/install.sh | bash
-source ~/.bashrc
-nvm install 22
-nvm use 22
-
-# Install OpenClaw
-npm install -g @openclaw/cli
-
-# Clone and onboard (store in WSL2 filesystem, not /mnt/c/)
+# Clone and activate (store in WSL2 filesystem, not /mnt/c/)
 git clone https://github.com/ruvnet/mesha.git ~/community-ops/mesha
 cd ~/community-ops/mesha
-openclaw onboard --workspace .
+bash scripts/bootstrap.sh --check-only
+bash scripts/activate-workspace.sh
 ```
 
 ### Common Installation Problems
 
 | Problem | Solution |
 |---------|----------|
-| `npm install` fails with `EACCES` | Use `sudo npm install -g @openclaw/cli` or [configure npm prefix](https://docs.npmjs.com/resolving-eacces-permissions-errors) |
-| Node.js version too old | Install Node.js 22+ using [nvm](https://github.com/nvm-sh/nvm) or package manager |
+| `bash scripts/bootstrap.sh` fails with "permission denied" | Run `chmod +x scripts/*.sh tests/*.sh` |
+| Docker socket permission error | Add your user to the docker group: `sudo usermod -aG docker $USER` |
 | WSL2 networking issues | See [docs/troubleshooting.md](docs/troubleshooting.md#wsl2-networking) |
-| Permission denied on scripts | Run `chmod +x tests/*.sh scripts/*.sh` |
+| Tests FAIL on fresh install | This is normal — most failures are "service not running". See docs/troubleshooting.md |
 
 ---
 
 ## Usage
 
-### Start the Operator
+### Start Using Mesha
 
 ```bash
-# Start the OpenClaw gateway for Mesha
-openclaw gateway
+# Workspace is now active. Use the activation prompt from BOOTSTRAP.md:
+cat BOOTSTRAP.md | grep -A 50 "## Activation"
 
-# Connect to chat interface
-# See docs/deployment.md for channel setup
+# Or start with read-only queries:
+bash adapters/mesh/collect-nodes.sh
+bash adapters/server/collect-health.sh
 ```
 
 ### Example Conversations
@@ -443,9 +431,9 @@ MIT License — see [LICENSE](LICENSE) for details.
 
 ## Acknowledgments
 
-Built with OpenClaw — the local-first AI agent platform used by this workspace.
+Designed for community networks around the world who maintain their own infrastructure.
 
-Inspired by community networks around the world who maintain their own infrastructure.
+Built on proven patterns from LibreMesh deployments across Africa, Latin America, and Asia.
 
 ---
 
