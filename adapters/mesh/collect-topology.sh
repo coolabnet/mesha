@@ -1,4 +1,4 @@
-#!/usr/bin/env bash
+#!/usr/bin/env sh
 # adapters/mesh/collect-topology.sh
 #
 # Usage:
@@ -42,12 +42,12 @@
 #
 # Dependencies: ssh, python3 (stdlib only, for JSON construction)
 
-set -euo pipefail
+set -e
 
 # ---------------------------------------------------------------------------
 # Argument validation
 # ---------------------------------------------------------------------------
-if [[ $# -ne 1 ]]; then
+if [ $# -ne 1 ]; then
     echo "Usage: $0 <gateway-ip>" >&2
     exit 1
 fi
@@ -55,7 +55,7 @@ fi
 GATEWAY_IP="$1"
 COLLECTED_AT="$(date -u +"%Y-%m-%dT%H:%M:%SZ")"
 SSH_TIMEOUT=15
-SSH_OPTS=( -o "ConnectTimeout=${SSH_TIMEOUT}" -o StrictHostKeyChecking=no -o BatchMode=yes -o LogLevel=ERROR )
+SSH_OPTS="-o ConnectTimeout=${SSH_TIMEOUT} -o StrictHostKeyChecking=no -o BatchMode=yes -o LogLevel=ERROR"
 
 # ---------------------------------------------------------------------------
 # Helper: emit error JSON and exit 0
@@ -83,14 +83,14 @@ print(json.dumps({
 # ---------------------------------------------------------------------------
 # Connectivity check
 # ---------------------------------------------------------------------------
-if ! ssh "${SSH_OPTS[@]}" root@"$GATEWAY_IP" "true" 2>/dev/null; then
+if ! ssh $SSH_OPTS root@"$GATEWAY_IP" "true" 2>/dev/null; then
     emit_error "SSH connection to gateway ${GATEWAY_IP} failed (timeout=${SSH_TIMEOUT}s)"
 fi
 
 # ---------------------------------------------------------------------------
 # Collect topology data from the gateway in a single SSH session
 # ---------------------------------------------------------------------------
-RAW_TOPO="$(ssh "${SSH_OPTS[@]}" root@"$GATEWAY_IP" bash -s <<'REMOTE_SCRIPT'
+RAW_TOPO="$(ssh $SSH_OPTS root@"$GATEWAY_IP" sh -s <<'REMOTE_SCRIPT'
 
 # --- BMX7 originators table ---
 # `bmx7 -c --originators` lists all known mesh nodes (originators) with

@@ -1,4 +1,4 @@
-#!/usr/bin/env bash
+#!/usr/bin/env sh
 # adapters/server/collect-health.sh
 #
 # Usage:
@@ -44,7 +44,7 @@
 # Dependencies: python3 (stdlib), df, free, uptime (all standard on Linux)
 #               docker (optional — handled gracefully if missing)
 
-set -euo pipefail
+set -e
 
 COLLECTED_AT="$(date -u +"%Y-%m-%dT%H:%M:%SZ")"
 
@@ -116,8 +116,8 @@ print(json.dumps(rows))
 DOCKER_AVAILABLE="false"
 DOCKER_JSON="[]"
 
-if command -v docker &>/dev/null; then
-    if docker info &>/dev/null; then
+if command -v docker >/dev/null 2>&1; then
+    if docker info >/dev/null 2>&1; then
         DOCKER_AVAILABLE="true"
         DOCKER_JSON="$(docker ps -a --format '{{json .}}' 2>/dev/null \
             | python3 -c "
@@ -150,6 +150,13 @@ fi
 python3 - <<PYEOF
 import json
 
+# Convert shell boolean strings to Python booleans
+docker_available = "${DOCKER_AVAILABLE}" == "true"
+
+# Parse JSON strings that were created in the shell
+disk_data = json.loads("""${DISK_JSON}""")
+docker_containers = json.loads("""${DOCKER_JSON}""")
+
 result = {
     "collected_at": "${COLLECTED_AT}",
     "hostname": "${HOSTNAME_VAL}",
@@ -168,10 +175,10 @@ result = {
         "cached_kb": int("${MEM_CACHED}") if "${MEM_CACHED}".isdigit() else 0,
         "buffers_kb": int("${MEM_BUFFERS}") if "${MEM_BUFFERS}".isdigit() else 0,
     },
-    "disk": ${DISK_JSON},
+    "disk": disk_data,
     "docker": {
-        "available": ${DOCKER_AVAILABLE},
-        "containers": ${DOCKER_JSON},
+        "available": docker_available,
+        "containers": docker_containers,
     },
 }
 

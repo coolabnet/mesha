@@ -88,51 +88,51 @@ fi
 # All commands are read-only. Each command block is explained with comments.
 # We run everything in a single SSH session to minimize round-trip overhead.
 # ---------------------------------------------------------------------------
-RAW_DATA="$(ssh "${SSH_OPTS[@]}" root@"$NODE_IP" bash -s <<'REMOTE_SCRIPT'
+RAW_DATA="$(ssh "${SSH_OPTS[@]}" root@"$NODE_IP" sh -s <<'REMOTE_SCRIPT'
 
 # --- Hostname ---
 # uci show: reads the OpenWrt UCI configuration key directly.
 # system.@system[0].hostname is the standard OpenWrt hostname setting.
-HOSTNAME="$(uci get system.@system[0].hostname 2>/dev/null || cat /proc/sys/kernel/hostname)"
+HOSTNAME=$(uci get system.@system[0].hostname 2>/dev/null || cat /proc/sys/kernel/hostname)
 
 # --- Firmware version ---
 # /etc/openwrt_release is the standard file on OpenWrt/LibreMesh that
 # identifies the build, version, and release name.
-FIRMWARE_VERSION="$(grep -o 'DISTRIB_DESCRIPTION=.*' /etc/openwrt_release 2>/dev/null | cut -d'"' -f2 || echo 'unknown')"
+FIRMWARE_VERSION=$(grep -o 'DISTRIB_DESCRIPTION=.*' /etc/openwrt_release 2>/dev/null | cut -d'"' -f2 || echo 'unknown')
 
 # --- Uptime ---
 # /proc/uptime contains two fields: total uptime and idle time in seconds.
 # We read the first field (total uptime, may include decimal) and truncate.
-UPTIME_SECS="$(awk '{printf "%d", $1}' /proc/uptime 2>/dev/null || echo 0)"
+UPTIME_SECS=$(awk '{printf "%d", $1}' /proc/uptime 2>/dev/null || echo 0)
 
 # Convert seconds to human-readable D+H:M:S format for the summary field
-UPTIME_HUMAN="$(awk 'BEGIN{
-    s='"$UPTIME_SECS"';
+UPTIME_HUMAN=$(awk -v uptime="$UPTIME_SECS" 'BEGIN{
+    s=uptime;
     d=int(s/86400); h=int((s%86400)/3600); m=int((s%3600)/60); sec=s%60;
     printf "%dd %dh %dm %ds", d, h, m, sec
-}')"
+}')
 
 # --- Network interfaces ---
 # `ip -j addr show` outputs JSON with all interfaces, addresses, and MACs.
 # We parse it further downstream in Python/jq, but collect raw JSON here.
-IFACE_JSON="$(ip -j addr show 2>/dev/null || echo '[]')"
+IFACE_JSON=$(ip -j addr show 2>/dev/null || echo '[]')
 
 # --- WiFi / radio status ---
 # `iwinfo` is available on OpenWrt/LibreMesh and provides per-radio status.
 # We use the `-d` flag to get detail in a parseable format.
 # `iw dev` gives a more machine-readable alternative; we collect both.
-IWINFO_OUT="$(iwinfo 2>/dev/null | head -80 || echo '')"
+IWINFO_OUT=$(iwinfo 2>/dev/null | head -80 || echo '')
 
 # wifidevice list from UCI gives the configured radios
-RADIOS_RAW="$(uci show wireless 2>/dev/null | grep '\.ssid\|\.channel\|\.band\|\.type' || echo '')"
+RADIOS_RAW=$(uci show wireless 2>/dev/null | grep '\.ssid\|\.channel\|\.band\|\.type' || echo '')
 
 # --- BMX7 mesh neighbors ---
 # BMX7 exposes its neighbor/link table via a Unix socket using `bmx7 -c`
 # The `--links` option lists active mesh links with quality metrics.
-BMX7_LINKS="$(bmx7 -c --links 2>/dev/null | head -60 || echo '')"
+BMX7_LINKS=$(bmx7 -c --links 2>/dev/null | head -60 || echo '')
 
 # Also try babeld if bmx7 is not available or returns empty
-BABEL_NEIGHBORS="$(echo 'dump neighbours' | nc -q1 localhost 33123 2>/dev/null | head -40 || echo '')"
+BABEL_NEIGHBORS=$(echo 'dump neighbours' | nc -q1 localhost 33123 2>/dev/null | head -40 || echo '')
 
 # --- Output everything as a simple key=value blob for parsing ---
 cat <<EOF

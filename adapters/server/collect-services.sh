@@ -1,4 +1,4 @@
-#!/usr/bin/env bash
+#!/usr/bin/env sh
 # adapters/server/collect-services.sh
 #
 # Usage:
@@ -38,14 +38,14 @@
 # Dependencies: python3, pyyaml (python3-yaml), curl (for HTTP checks),
 #               docker (optional)
 
-set -euo pipefail
+set -e
 
 # ---------------------------------------------------------------------------
 # Argument parsing
 # ---------------------------------------------------------------------------
 INVENTORY_FILE="inventories/local-services.yaml"
 
-while [[ $# -gt 0 ]]; do
+while [ $# -gt 0 ]; do
     case "$1" in
         --inventory)
             INVENTORY_FILE="$2"
@@ -65,14 +65,20 @@ done
 # ---------------------------------------------------------------------------
 # Resolve inventory path: support relative (from workspace root) or absolute
 # ---------------------------------------------------------------------------
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 WORKSPACE_ROOT="$(cd "${SCRIPT_DIR}/../.." && pwd)"
 
-if [[ "$INVENTORY_FILE" != /* ]]; then
-    INVENTORY_FILE="${WORKSPACE_ROOT}/${INVENTORY_FILE}"
-fi
+case "$INVENTORY_FILE" in
+    /*)
+        # Already absolute path
+        ;;
+    *)
+        # Relative path, make it absolute
+        INVENTORY_FILE="${WORKSPACE_ROOT}/${INVENTORY_FILE}"
+        ;;
+esac
 
-if [[ ! -f "$INVENTORY_FILE" ]]; then
+if [ ! -f "$INVENTORY_FILE" ]; then
     python3 -c "
 import json
 print(json.dumps([{'name': 'error', 'status': 'unknown', 'detail': 'Inventory file not found: $INVENTORY_FILE', 'last_checked': '$(date -u +"%Y-%m-%dT%H:%M:%SZ")'}], indent=2))
@@ -96,8 +102,8 @@ fi
 # We try /health first (common health endpoint), then fall back to root /.
 # ---------------------------------------------------------------------------
 http_check() {
-    local url="$1"
-    local timeout_sec=5
+    url="$1"
+    timeout_sec=5
 
     # curl writes response code and timing to stdout, errors to /dev/null
     curl -s -o /dev/null \
@@ -111,16 +117,15 @@ http_check() {
 # Returns "running", "exited", "paused", or "not_found"
 # ---------------------------------------------------------------------------
 docker_status() {
-    local container_name="$1"
-    if ! command -v docker &>/dev/null; then
+    container_name="$1"
+    if ! command -v docker >/dev/null 2>&1; then
         echo "docker_unavailable"
         return
     fi
-    if ! docker info &>/dev/null; then
+    if ! docker info >/dev/null 2>&1; then
         echo "docker_unavailable"
         return
     fi
-    local status
     status="$(docker inspect --format='{{.State.Status}}' "$container_name" 2>/dev/null || echo "not_found")"
     echo "$status"
 }
