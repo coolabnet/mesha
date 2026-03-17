@@ -1,0 +1,161 @@
+# desired-state/server/monitoring/prometheus.yml
+#
+# Prometheus scrape configuration for the community server.
+#
+# This file is the desired state — copy it into the Prometheus container
+# config mount path. See skills/server-services/scripts/prometheus/docker-compose.yaml
+# for the volume mount that delivers this file into the container.
+#
+# Scrape targets are derived from:
+#   - desired-state/server/service-catalog.yaml (approved services)
+#   - desired-state/server/reverse-proxy.yaml (health check paths)
+#   - inventories/mesh-nodes.yaml (mesh node hosts)
+# ---------------------------------------------------------------------------
+
+global:
+  scrape_interval: 15s
+  evaluation_interval: 15s
+  scrape_timeout: 10s
+  external_labels:
+    community: "bairro-local"
+    server: "servidor-principal"
+
+# ---------------------------------------------------------------------------
+# Alerting rules
+# ---------------------------------------------------------------------------
+rule_files:
+  - "/etc/prometheus/alerting-rules.yaml"
+
+# ---------------------------------------------------------------------------
+# Alertmanager (placeholder — configure if alertmanager is deployed)
+# ---------------------------------------------------------------------------
+# alerting:
+#   alertmanagers:
+#     - static_configs:
+#         - targets:
+#             - "alertmanager:9093"
+
+# ---------------------------------------------------------------------------
+# Scrape configurations
+# ---------------------------------------------------------------------------
+scrape_configs:
+
+  # -------------------------------------------------------------------------
+  # Prometheus self-monitoring
+  # Source: Prometheus built-in metrics endpoint
+  # -------------------------------------------------------------------------
+  - job_name: "mesha-server"
+    static_configs:
+      - targets:
+          - "localhost:9090"
+        labels:
+          instance: "prometheus"
+          service: "prometheus"
+
+  # -------------------------------------------------------------------------
+  # Node Exporter — host system metrics
+  # Metrics: CPU, memory, disk, network, load average
+  # Container: prom/node-exporter (see prometheus docker-compose.yaml)
+  # -------------------------------------------------------------------------
+  - job_name: "node-exporter"
+    static_configs:
+      - targets:
+          - "servidor.bairro.local:9100"
+        labels:
+          instance: "servidor-principal"
+          service: "node-exporter"
+
+  # -------------------------------------------------------------------------
+  # Caddy reverse proxy metrics
+  # Caddy exposes Prometheus metrics at /metrics when the metrics module is
+  # enabled in the Caddyfile global block:
+  #   {
+  #     metrics
+  #   }
+  # -------------------------------------------------------------------------
+  - job_name: "caddy"
+    metrics_path: "/metrics"
+    static_configs:
+      - targets:
+          - "servidor.bairro.local:2019"
+        labels:
+          instance: "caddy"
+          service: "reverse-proxy"
+
+  # -------------------------------------------------------------------------
+  # Community services health — one target per approved service
+  # Health check paths sourced from reverse-proxy.yaml
+  # Uses the blackbox-style probe via http_sd or direct scrape of /metrics
+  # if services expose Prometheus endpoints.
+  #
+  # For services that do NOT expose /metrics natively, use the built-in
+  # Prometheus "up" metric by scraping the health endpoint and checking
+  # HTTP status codes via a blackbox exporter (see commented section below).
+  #
+  # Current approach: direct HTTP probing via separate blackbox_exporter job.
+  # -------------------------------------------------------------------------
+  - job_name: "community-services"
+    metrics_path: "/probe"
+    params:
+      module:
+        - "http_2xx"
+    static_configs:
+      - targets:
+          # Nextcloud — health check: /status.php
+          - "http://nextcloud_app:80/status.php"
+          # Jellyfin — health check: /health
+          - "http://jellyfin:8096/health"
+          # Kolibri — health check: /api/public/v1/info/
+          - "http://kolibri:8080/api/public/v1/info/"
+          # Homer dashboard — health check: /
+          - "http://homer:8080/"
+          # Grafana — health check: /api/health
+          - "http://grafana:3000/api/health"
+        labels:
+          group: "community-services"
+    relabel_configs:
+      - source_labels: [__address__]
+        target_label: __param_target
+      - source_labels: [__param_target]
+        target_label: instance
+      - target_label: __address__
+        replacement: "blackbox-exporter:9115"
+
+  # -------------------------------------------------------------------------
+  # Mesh gateway nodes — future OpenWrt/LibreMesh Prometheus exporters
+  #
+  # OpenWrt nodes can expose Prometheus metrics via the
+  # prometheus-node-exporter-lua package (available in OpenWrt packages).
+  # Install on each router:
+  #   opkg update && opkg install prometheus-node-exporter-lua
+  #
+  # Default metrics port: 9100
+  # After installation, uncomment and populate the targets list below.
+  #
+  # Example:
+  #   - targets:
+  #       - "lm-escola-telhado.bairro.local:9100"
+  #       - "lm-clinica-antena.bairro.local:9100"
+  #       - "lm-ponto-morro.bairro.local:9100"
+  #       - "lm-associacao-salao.bairro.local:9100"
+  # -------------------------------------------------------------------------
+  # - job_name: "mesh-gateway"
+  #   static_configs:
+  #     - targets:
+  #         # Gateway — escola rooftop (primary uplink)
+  #         # - "lm-escola-telhado.bairro.local:9100"
+  #         # Gateway — clinica antenna (degraded, needs firmware update)
+  #         # - "lm-clinica-antena.bairro.local:9100"
+  #         # Relay — ponto comunitario morro (backbone relay)
+  #         # - "lm-ponto-morro.bairro.local:9100"
+  #         # Leaf — escola corredor (indoor, leaf node)
+  #         # - "lm-escola-corredor.bairro.local:9100"
+  #         # Leaf — associacao salao (community hall)
+  #         # - "lm-associacao-salao.bairro.local:9100"
+  #       labels:
+  #         group: "mesh-nodes"
+  #   relabel_configs:
+  #     - source_labels: [__address__]
+  #       regex: "([^:]+).*"
+  #       target_label: "node_hostname"
+  #       replacement: "${1}"

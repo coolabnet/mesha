@@ -1,0 +1,133 @@
+# desired-state/server/monitoring/alerting-rules.yaml
+#
+# Prometheus alerting rules for the community server.
+#
+# Loaded by Prometheus via the rule_files directive in prometheus.yml.
+# Severity labels: warning | critical
+#
+# All annotations are bilingual (Portuguese / English) to support both
+# community maintainers and external technical support.
+# ---------------------------------------------------------------------------
+
+groups:
+  - name: community-server-alerts
+    interval: 15s
+    rules:
+
+      # -----------------------------------------------------------------------
+      # Disk usage — warning threshold
+      # -----------------------------------------------------------------------
+      - alert: HighDiskUsage
+        expr: >
+          100 - (
+            (node_filesystem_avail_bytes{job="node-exporter", fstype!="tmpfs", fstype!="overlay"}
+            / node_filesystem_size_bytes{job="node-exporter", fstype!="tmpfs", fstype!="overlay"})
+            * 100
+          ) > 85
+        for: 5m
+        labels:
+          severity: warning
+          team: maintainer
+        annotations:
+          summary: "Disco quase cheio em {{ $labels.mountpoint }} / Disk almost full on {{ $labels.mountpoint }}"
+          description: >
+            PT: O disco em {{ $labels.mountpoint }} no servidor {{ $labels.instance }}
+            está com {{ $value | printf "%.1f" }}% de uso. Acima de 85%.
+            Limpe arquivos desnecessários ou expanda o armazenamento.
+            EN: Disk at {{ $labels.mountpoint }} on {{ $labels.instance }}
+            is at {{ $value | printf "%.1f" }}% usage. Above 85% threshold.
+            Clean up unnecessary files or expand storage.
+
+      # -----------------------------------------------------------------------
+      # Disk usage — critical threshold
+      # -----------------------------------------------------------------------
+      - alert: CriticalDiskUsage
+        expr: >
+          100 - (
+            (node_filesystem_avail_bytes{job="node-exporter", fstype!="tmpfs", fstype!="overlay"}
+            / node_filesystem_size_bytes{job="node-exporter", fstype!="tmpfs", fstype!="overlay"})
+            * 100
+          ) > 95
+        for: 1m
+        labels:
+          severity: critical
+          team: maintainer
+        annotations:
+          summary: "CRÍTICO: Disco quase esgotado em {{ $labels.mountpoint }} / CRITICAL: Disk nearly full on {{ $labels.mountpoint }}"
+          description: >
+            PT: URGENTE — O disco em {{ $labels.mountpoint }} no servidor {{ $labels.instance }}
+            está com {{ $value | printf "%.1f" }}% de uso. Acima de 95%.
+            Serviços podem começar a falhar imediatamente.
+            Ação imediata necessária: limpar logs, remover backups antigos ou expandir disco.
+            EN: URGENT — Disk at {{ $labels.mountpoint }} on {{ $labels.instance }}
+            is at {{ $value | printf "%.1f" }}% usage. Above 95% threshold.
+            Services may start failing immediately.
+            Immediate action required: clean logs, remove old backups, or expand disk.
+
+      # -----------------------------------------------------------------------
+      # Community service down
+      # -----------------------------------------------------------------------
+      - alert: ServiceDown
+        expr: >
+          probe_success{job="community-services"} == 0
+        for: 2m
+        labels:
+          severity: critical
+          team: maintainer
+        annotations:
+          summary: "Serviço inacessível: {{ $labels.instance }} / Service unreachable: {{ $labels.instance }}"
+          description: >
+            PT: O serviço {{ $labels.instance }} está inacessível há mais de 2 minutos.
+            Verifique se o container está rodando: docker ps | grep <nome-do-container>
+            Consulte os logs: docker compose -f skills/server-services/scripts/<servico>/docker-compose.yaml logs
+            EN: Service {{ $labels.instance }} has been unreachable for more than 2 minutes.
+            Check if container is running: docker ps | grep <container-name>
+            Check logs: docker compose -f skills/server-services/scripts/<service>/docker-compose.yaml logs
+
+      # -----------------------------------------------------------------------
+      # High memory usage
+      # -----------------------------------------------------------------------
+      - alert: HighMemoryUsage
+        expr: >
+          100 - (
+            (node_memory_MemAvailable_bytes{job="node-exporter"}
+            / node_memory_MemTotal_bytes{job="node-exporter"})
+            * 100
+          ) > 90
+        for: 5m
+        labels:
+          severity: warning
+          team: maintainer
+        annotations:
+          summary: "Memória RAM alta em {{ $labels.instance }} / High RAM usage on {{ $labels.instance }}"
+          description: >
+            PT: O servidor {{ $labels.instance }} está usando {{ $value | printf "%.1f" }}%
+            da memória RAM há mais de 5 minutos. Acima de 90%.
+            Verifique processos com alto consumo: top ou htop via SSH.
+            Reiniciar containers com uso excessivo pode ajudar.
+            EN: Server {{ $labels.instance }} has been using {{ $value | printf "%.1f" }}%
+            of RAM for more than 5 minutes. Above 90% threshold.
+            Check for high-memory processes: top or htop via SSH.
+            Restarting containers with excessive usage may help.
+
+      # -----------------------------------------------------------------------
+      # Node exporter unreachable (server itself may be down or node-exporter stopped)
+      # -----------------------------------------------------------------------
+      - alert: NodeDown
+        expr: >
+          up{job="node-exporter"} == 0
+        for: 1m
+        labels:
+          severity: critical
+          team: maintainer
+        annotations:
+          summary: "Servidor principal inacessível / Primary server unreachable"
+          description: >
+            PT: O node-exporter em {{ $labels.instance }} não está respondendo há mais de 1 minuto.
+            Isso pode indicar que o servidor está desligado, o node-exporter parou,
+            ou há um problema de rede entre o servidor e o Prometheus.
+            Verifique: ping servidor.bairro.local, depois SSH se possível.
+            EN: Node exporter at {{ $labels.instance }} has not responded for more than 1 minute.
+            This may indicate the server is down, node-exporter has stopped,
+            or there is a network problem between the server and Prometheus.
+            Check: ping servidor.bairro.local, then SSH if possible.

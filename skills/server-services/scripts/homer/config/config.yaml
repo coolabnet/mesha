@@ -1,0 +1,148 @@
+# Homer dashboard configuration
+# Community Infrastructure Operator — server-services skill
+#
+# This file is the desired state for the community portal dashboard.
+# Source of truth: desired-state/server/service-catalog.yaml
+#
+# Homer v23+ syntax (https://github.com/bastienwirtz/homer)
+# ---------------------------------------------------------------------------
+
+title: "Rede Comunitária"
+subtitle: "Serviços Locais"
+logo: "logo.png"
+
+header: true
+footer: false
+
+# ---------------------------------------------------------------------------
+# Welcome message
+# ---------------------------------------------------------------------------
+message:
+  style: "is-dark"
+  title: "Bem-vindo à Rede Comunitária do Bairro"
+  icon: "fa fa-wifi"
+  content: >
+    Esta rede pertence à comunidade. Todos os serviços abaixo funcionam
+    sem internet — mesmo quando a conexão externa estiver fora.
+    Em caso de problemas, fale com o mantenedor da rede.
+    <br><br>
+    <em>Welcome to the Community Network. All services below work offline.</em>
+
+# ---------------------------------------------------------------------------
+# Theme
+# ---------------------------------------------------------------------------
+theme: default
+colors:
+  light:
+    highlight-primary: "#3367d6"
+    highlight-secondary: "#4285f4"
+    highlight-hover: "#5a95f5"
+    background: "#f5f5f5"
+    card-background: "#ffffff"
+    text: "#363636"
+    text-header: "#ffffff"
+    text-title: "#303030"
+    text-subtitle: "#424242"
+    card-shadow: rgba(0, 0, 0, 0.12)
+    link: "#3273dc"
+    link-hover: "#363636"
+  dark:
+    highlight-primary: "#3367d6"
+    highlight-secondary: "#4285f4"
+    highlight-hover: "#5a95f5"
+    background: "#131313"
+    card-background: "#2b2b2b"
+    text: "#eaeaea"
+    text-header: "#ffffff"
+    text-title: "#fafafa"
+    text-subtitle: "#f5f5f5"
+    card-shadow: rgba(0, 0, 0, 0.4)
+    link: "#3273dc"
+    link-hover: "#ffdd57"
+
+# ---------------------------------------------------------------------------
+# Service groups — sourced from service-catalog.yaml (approved services only)
+# ---------------------------------------------------------------------------
+services:
+  # -------------------------------------------------------------------------
+  # Comunicação e Arquivos
+  # -------------------------------------------------------------------------
+  - name: "Comunicação e Arquivos"
+    icon: "fas fa-cloud"
+    items:
+      - name: "Nuvem Comunitária"
+        subtitle: "Nextcloud — Arquivos, documentos e calendário compartilhados"
+        logo: "assets/tools/nextcloud.png"
+        url: "http://nuvem.bairro.local"
+        target: "_blank"
+        tag: "nextcloud"
+        keywords: "files storage calendar documents"
+        type: "Ping"
+        # Health check uses the Nextcloud status endpoint
+        endpoint: "http://nuvem.bairro.local/status.php"
+
+  # -------------------------------------------------------------------------
+  # Educação
+  # -------------------------------------------------------------------------
+  - name: "Educação"
+    icon: "fas fa-graduation-cap"
+    items:
+      - name: "Plataforma de Aprendizado"
+        subtitle: "Kolibri — Conteúdo educativo offline (Khan Academy e outros)"
+        logo: "assets/tools/kolibri.png"
+        url: "http://aprendizado.bairro.local"
+        target: "_blank"
+        tag: "kolibri"
+        keywords: "education learning school students"
+        type: "Ping"
+        endpoint: "http://aprendizado.bairro.local/api/public/v1/info/"
+
+  # -------------------------------------------------------------------------
+  # Entretenimento
+  # -------------------------------------------------------------------------
+  - name: "Entretenimento"
+    icon: "fas fa-film"
+    items:
+      - name: "Arquivo de Mídia"
+        subtitle: "Jellyfin — Vídeos educativos e gravações da comunidade"
+        logo: "assets/tools/jellyfin.png"
+        url: "http://midia.bairro.local"
+        target: "_blank"
+        tag: "jellyfin"
+        keywords: "media video movies community"
+        type: "Ping"
+        endpoint: "http://midia.bairro.local/health"
+
+  # -------------------------------------------------------------------------
+  # Infraestrutura (maintainer access)
+  # -------------------------------------------------------------------------
+  - name: "Infraestrutura"
+    icon: "fas fa-server"
+    items:
+      - name: "Painéis de Monitoramento"
+        subtitle: "Grafana — Saúde da rede e dos serviços (somente mantenedores)"
+        logo: "assets/tools/grafana.png"
+        url: "http://grafana.bairro.local"
+        target: "_blank"
+        tag: "grafana"
+        keywords: "monitoring grafana dashboards metrics"
+        type: "Ping"
+        endpoint: "http://grafana.bairro.local/api/health"
+
+      - name: "Coleta de Métricas"
+        subtitle: "Prometheus — Monitoramento de métricas (somente mantenedores)"
+        logo: "assets/tools/prometheus.png"
+        url: "http://metricas.bairro.local"
+        target: "_blank"
+        tag: "prometheus"
+        keywords: "monitoring metrics prometheus maintainer"
+        type: "Ping"
+        endpoint: "http://metricas.bairro.local/-/healthy"
+
+      - name: "Portal da Comunidade"
+        subtitle: "Homer — Este painel de serviços"
+        logo: "assets/tools/homer.png"
+        url: "http://inicio.bairro.local"
+        target: "_blank"
+        tag: "homer"
+        keywords: "dashboard portal home"

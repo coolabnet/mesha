@@ -1,0 +1,15 @@
+services:
+  homer:
+    image: b4bz/homer:latest
+    container_name: homer
+    restart: unless-stopped
+    volumes:
+      - ./config/:/www/assets/
+    networks:
+      - community-net
+    # No ports published to host — access is via reverse proxy only.
+    # Reverse proxy routes inicio.bairro.local → homer:8080 on community-net.
+
+networks:
+  community-net:
+    external: true

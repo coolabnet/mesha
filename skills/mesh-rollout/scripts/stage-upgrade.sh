@@ -1,12 +1,19 @@
 #!/usr/bin/env bash
 # stage-upgrade.sh — Firmware upgrade for a single mesh node (canary stage)
 #
-# Usage: ./stage-upgrade.sh <node-hostname-or-ip> <firmware-image-url> [--dry-run]
+# Usage: ./stage-upgrade.sh <node-hostname-or-ip> <firmware-image-url> [--dry-run] [--auto]
 #
 # Risk class: Class D (firmware change)
 # Requires: explicit approval obtained before running this script.
 # This script performs ONE node only. For multi-node rollouts, run ring by ring
 # per the firmware-rollout playbook and rollout-policy.yaml.
+#
+# Options:
+#   --dry-run   Print the upgrade plan but make no changes (no confirmation prompt)
+#   --auto      Skip the interactive YES confirmation prompt. Used by run-rollout.sh
+#               which has already obtained the single top-level YES confirmation from
+#               the operator before the ring loop begins. Do NOT use --auto for
+#               standalone single-node runs; always confirm interactively instead.
 #
 # See: docs/playbooks/firmware-rollout.md
 #      desired-state/mesh/firmware-policy.yaml
@@ -51,11 +58,12 @@ confirm() {
 }
 
 usage() {
-  echo "Usage: $0 <node-hostname-or-ip> <firmware-image-url> [--dry-run]"
+  echo "Usage: $0 <node-hostname-or-ip> <firmware-image-url> [--dry-run] [--auto]"
   echo ""
   echo "  node-hostname-or-ip   Hostname or IP address of the target node"
   echo "  firmware-image-url    URL or local path of the firmware .bin image"
   echo "  --dry-run             Print the upgrade plan but make no changes"
+  echo "  --auto                Skip interactive confirmation (for use by run-rollout.sh only)"
   echo ""
   echo "Example:"
   echo "  $0 lm-associacao-salao http://192.168.1.50/firmware/lm-2023.09-cpe510.bin"
@@ -72,10 +80,16 @@ usage() {
 NODE="$1"
 FIRMWARE_URL="$2"
 DRY_RUN=false
+AUTO_MODE=false
 
-if [[ "${3:-}" == "--dry-run" ]]; then
-  DRY_RUN=true
-fi
+shift 2
+while [[ $# -gt 0 ]]; do
+  case "$1" in
+    --dry-run) DRY_RUN=true  ; shift ;;
+    --auto)    AUTO_MODE=true ; shift ;;
+    *) die "Unknown argument: $1" ;;
+  esac
+done
 
 FIRMWARE_FILENAME="${FIRMWARE_URL##*/}"
 SSH_TIMEOUT=10
@@ -199,10 +213,14 @@ echo "===================="
 echo ""
 
 # ---------------------------------------------------------------------------
-# Step 5 — Require explicit confirmation
+# Step 5 — Require explicit confirmation (skipped in --auto mode)
 # ---------------------------------------------------------------------------
 
-confirm "Type YES to proceed with the upgrade of ${NODE}:"
+if [[ "${AUTO_MODE}" == true ]]; then
+  log "Step 5: --auto mode — confirmation already obtained by run-rollout.sh operator prompt."
+else
+  confirm "Type YES to proceed with the upgrade of ${NODE}:"
+fi
 
 # ---------------------------------------------------------------------------
 # Step 6 — Upload firmware to node

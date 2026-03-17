@@ -1,0 +1,59 @@
+# desired-state/mesh/maintenance-windows.yaml
+#
+# Scheduled maintenance windows for mesh network operations.
+#
+# Managed by: skills/mesh-rollout/scripts/schedule-maintenance.sh
+# Do not edit manually while an add or cancel operation is in progress.
+#
+# Schema per window:
+#   id               — unique slug (timestamp-based), e.g. maint-20260323T220000
+#   scheduled_at     — start date and time: "YYYY-MM-DD HH:MM"
+#   duration_minutes — length of the window in minutes
+#   scope            — what the window covers:
+#                        ring:<name>       one upgrade ring (canary, stable, trailing)
+#                        node:<hostname>   a single node
+#                        all               all nodes / the entire mesh
+#   description      — plain-language description of the planned work
+#   created_by       — username of the maintainer who scheduled this window
+#   created_at       — ISO 8601 timestamp when this entry was created
+#   status           — scheduled | active | completed | cancelled
+#   notes            — optional free-text field for context or outcome notes
+#
+# Risk class:
+#   Scheduling a window (add/cancel) is Class B — low-risk write.
+#   The window itself governs when Class D operations may execute.
+#
+# See: desired-state/mesh/community-profile/rollout-policy.yaml — change_windows
+#      TOOLS.md — Class B approval requirements
+
+maintenance_windows:
+  - id: "maint-20260323T220000"
+    scheduled_at: "2026-03-23 22:00"
+    duration_minutes: 120
+    scope: "ring:stable"
+    description: "Firmware upgrade ring:stable — LibreMesh 2023.09 on escola and ponto-morro nodes"
+    created_by: "maintainer"
+    created_at: "2026-03-17T14:30:00"
+    status: scheduled
+    notes: "Canary ring completed successfully on 2026-03-02. This window covers the stable ring promotion."
+
+  - id: "maint-20260302T053000"
+    scheduled_at: "2026-03-02 05:30"
+    duration_minutes: 90
+    scope: "ring:canary"
+    description: "Canary firmware upgrade — lm-associacao-salao to LibreMesh 2023.09"
+    created_by: "maintainer"
+    created_at: "2026-03-01T18:00:00"
+    status: completed
+    notes: "Completed successfully at 06:47. All nodes validated. No issues reported. See rollout-state.yaml for full details."
+  - id: "maint-20260406T2200"
+    scheduled_at: "2026-04-06 22:00"
+    duration_minutes: 90
+    scope: "ring:trailing"
+    description: "Upgrade trailing ring — clinica-antena"
+    created_by: "testuser"
+    created_at: "2026-03-17T08:25:24"
+    status: cancelled
+    cancelled_at: "2026-03-17T08:25:28"
+    notes: null
+

@@ -1,0 +1,67 @@
+---
+# adapters/channels/telegram/docker-compose.yaml
+#
+# Docker Compose service for the Mesha Telegram channel adapter.
+#
+# Prerequisites:
+#   1. Create a .env file from .env.example and fill in your values.
+#   2. Ensure the external Docker network exists:
+#        docker network create community-net
+#
+# Usage:
+#   docker compose up -d          # start in background
+#   docker compose logs -f        # follow logs
+#   docker compose down           # stop
+
+services:
+  telegram-adapter:
+    image: node:22-alpine
+    container_name: mesha-telegram-adapter
+    restart: unless-stopped
+
+    # Mount the adapter directory into /app inside the container.
+    # The adapter and health check scripts are read from this volume.
+    volumes:
+      - .:/app:ro
+
+    working_dir: /app
+
+    command: node /app/adapter.mjs
+
+    # Load environment variables from .env (never committed to the repository).
+    env_file:
+      - .env
+
+    # Connect to the shared community network so the adapter can reach the
+    # community-ops-frontdesk operator service by its container name.
+    networks:
+      - community-net
+
+    healthcheck:
+      test:
+        - CMD
+        - node
+        - /app/health.mjs
+      interval: 60s
+      timeout: 15s
+      retries: 3
+      start_period: 10s
+
+    # Resource limits — the adapter is lightweight, but cap it to avoid
+    # runaway memory in abnormal conditions.
+    deploy:
+      resources:
+        limits:
+          memory: 128M
+        reservations:
+          memory: 32M
+
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+networks:
+  community-net:
+    external: true

@@ -102,7 +102,7 @@ catalog:
     category: infrastructure
     install_recipe: "docs/playbooks/local-service-install.md#homer"
     local_domain: "inicio.bairro.local"
-    port: 8081
+    port: 8080
     exposed_via: reverse-proxy
     auth_required: false
     offline_capable: true
