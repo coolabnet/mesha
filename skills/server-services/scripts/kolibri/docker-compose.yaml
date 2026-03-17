@@ -1,0 +1,25 @@
+services:
+  kolibri:
+    image: learningequality/kolibri:latest
+    container_name: kolibri
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/api/public/v1/info/"]
+      interval: 30s
+      timeout: 10s
+      retries: 6
+      start_period: 120s
+    environment:
+      KOLIBRI_HOME: ${KOLIBRI_HOME:-/kolibri}
+      KOLIBRI_FACILITY_NAME: ${KOLIBRI_FACILITY_NAME:-Comunidade}
+    volumes:
+      - ${KOLIBRI_DATA_PATH:-./data/kolibri}:/kolibri
+    # Kolibri listens on port 8080 inside the container.
+    # It is NOT published directly to the host — all access goes through
+    # the community-net Docker network and the reverse proxy.
+    networks:
+      - community-net
+
+networks:
+  community-net:
+    external: true

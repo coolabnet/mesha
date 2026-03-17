@@ -48,8 +48,10 @@ catalog:
     backup_required: true
     steward_role: maintainer
     notes: >
-      Requires Postgres and Redis sibling containers. Data volume must be
-      on a dedicated disk or partition. Admin credentials in secrets/nextcloud.env.
+      Requires MariaDB and Redis sibling containers. MariaDB chosen over Postgres
+      for simpler community deployment and native Nextcloud support.
+      Data volume must be on a dedicated disk or partition.
+      Admin credentials in secrets/nextcloud.env.
 
   - name: jellyfin
     display_name: "Arquivo de Mídia (Jellyfin)"

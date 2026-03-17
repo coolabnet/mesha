@@ -92,7 +92,10 @@ jobs:
       Review whether maintenance mode is needed after user count grows.
 
   - name: nextcloud-db
-    description: "Nextcloud Postgres database dump"
+    description: "Nextcloud MariaDB database dump"
+    # NOTE: Nextcloud uses MariaDB (not Postgres). MariaDB was chosen for
+    # simpler community deployment — it is the recommended DB for Nextcloud
+    # on self-hosted setups and requires no additional tooling beyond mysqldump.
     source_path: "/data/backups/nextcloud-db"
     service: nextcloud
     schedule: "30 2 * * *"  # 02:30 every day, after data backup starts
@@ -101,14 +104,14 @@ jobs:
       keep_weekly: 4
       keep_monthly: 3
     destination: local_usb
-    method: pg_dump
+    method: mysqldump
     encryption: true
     verify:
-      method: "pg_restore --list (schema check)"
+      method: "check dump file is non-empty and contains CREATE TABLE statements"
       after_backup: true
     risk_class: B
     notes: >
-      Run: docker exec nextcloud_db pg_dump -U nextcloud nextcloud > dump.sql
+      Run: docker exec nextcloud-db mysqldump -u nextcloud -p${MYSQL_PASSWORD} nextcloud > dump.sql
       Compress and encrypt with gpg before writing to destination.
       Encryption key: see secrets/backup-gpg-key.asc (public key only committed).
 

@@ -1,0 +1,50 @@
+# Per-node UCI override for: lm-escola-telhado
+# Site: Escola Municipal — Telhado (rooftop)
+# Role: gateway (primary uplink via fibra da prefeitura)
+# Hardware: TP-Link CPE510 v3
+#
+# Reason for this override:
+#   lm-escola-telhado is a directional CPE510 gateway mounted on the school
+#   rooftop, facing north toward the water tower and northeast toward
+#   lm-ponto-morro (hilltop relay). The antenna has a narrow beam and is
+#   physically aligned for maximum SNR on the lm-escola-telhado → lm-ponto-morro
+#   link. A fixed 5 GHz channel (149) is required because:
+#     1. The community default (channel 48) is used by a nearby WISP whose
+#        signal is visible from this elevated position.
+#     2. The CPE510 performs better on 149 at this link distance (~900 m).
+#   The 2.4 GHz radio is set to channel 1 to avoid overlap with the
+#   escola-corredor indoor node on channel 6 (default).
+#
+# Approval reference: maintenance-log-2026-02-15-escola-channel-realign
+# Applied by: mesh-executor on 2026-02-15
+# Last reviewed: 2026-03-01
+
+# ---------------------------------------------------------------------------
+# Hostname override
+# Sets the explicit hostname for this node rather than relying on the
+# auto-generated lm-<mac-suffix> format from lime-community.
+# ---------------------------------------------------------------------------
+config lime 'system'
+	option hostname 'lm-escola-telhado'
+
+# ---------------------------------------------------------------------------
+# WiFi channel overrides
+# Override only the channels; all other WiFi settings inherit from lime-community.
+# ---------------------------------------------------------------------------
+config lime 'wifi'
+	# 5 GHz channel: 149 (UNII-3, 5745 MHz)
+	# Chosen to avoid interference with neighboring WISP on channel 48.
+	# This channel requires no DFS and is supported on CPE510 v3 in BR domain.
+	option channel_5ghz '149'
+
+	# 2.4 GHz channel: 1 (2412 MHz)
+	# Avoids overlap with lm-escola-corredor on channel 6 (community default).
+	# The CPE510 in bridge mode uses 2.4 GHz for nearby client association only.
+	option channel_2ghz '1'
+
+	# TX power: maximum allowed for CPE510 v3 in BR regulatory domain
+	# This is justified by the directional gain of the CPE510's built-in
+	# 23 dBi panel antenna — actual EIRP remains within legal limits.
+	# Standard community value is used for reference but left explicit here
+	# for documentation clarity.
+	option tx_power '27'

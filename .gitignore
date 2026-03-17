@@ -1,3 +1,10 @@
+# Claude Code / OpenClaw system files — not project files
+.claude/
+.claude-flow/
+.swarm/
+.mcp.json
+CLAUDE.md
+
 # Secrets — never commit credentials or keys
 secrets/*.yaml
 secrets/*.json

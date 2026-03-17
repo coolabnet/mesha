@@ -1,0 +1,31 @@
+services:
+  jellyfin:
+    image: jellyfin/jellyfin:latest
+    container_name: jellyfin
+    restart: unless-stopped
+    environment:
+      JELLYFIN_PublishedServerUrl: "http://midia.bairro.local"
+    volumes:
+      - ${JELLYFIN_DATA_PATH:-./data/jellyfin/config}:/config
+      - ${JELLYFIN_CACHE_PATH:-./data/jellyfin/cache}:/cache
+      - ${JELLYFIN_MEDIA_PATH:-./data/media}:/media:ro
+    networks:
+      - community-net
+
+    # ---------------------------------------------------------------------------
+    # Hardware transcoding (disabled by default)
+    # To enable Intel Quick Sync or VA-API, uncomment the devices block below
+    # and ensure the host user is in the 'render' and 'video' groups.
+    #
+    # devices:
+    #   - /dev/dri/renderD128:/dev/dri/renderD128
+    #
+    # For NVIDIA GPU transcoding, use the nvidia runtime instead:
+    # runtime: nvidia
+    # environment:
+    #   NVIDIA_VISIBLE_DEVICES: all
+    # ---------------------------------------------------------------------------
+
+networks:
+  community-net:
+    external: true

@@ -1,0 +1,163 @@
+# lime-community — LibreMesh Community Profile
+#
+# This is the authoritative community-wide configuration for the Mesha mesh network.
+# It is written in OpenWrt UCI (Unified Configuration Interface) format.
+#
+# How it works:
+#   - This file is placed at /etc/config/lime-community on each node.
+#   - The `lime-config` command reads this file (along with lime-defaults and
+#     lime-node) to generate the final OpenWrt configuration.
+#   - Settings here are inherited by ALL nodes unless overridden in lime-node
+#     or a per-node override file in desired-state/mesh/node-overrides/.
+#
+# Important:
+#   - Do NOT put secrets, passwords, or per-node IP addresses here.
+#   - Do NOT put hardware-specific radio channels here if they vary by site.
+#   - Changing this file affects ALL nodes — see rollout-policy.yaml for
+#     the approval and canary process required before deploying this change.
+#
+# Reference: https://libremesh.org/docs/en_lime-config.html
+# Last updated: 2026-03-01
+# Updated by: maintainer
+
+# ---------------------------------------------------------------------------
+# System settings
+# Hostname prefix and DNS domain for all nodes in this community.
+# Each node appends its unique suffix to the hostname prefix.
+# ---------------------------------------------------------------------------
+config lime 'system'
+	# Hostname template: used by LibreMesh to generate node hostnames.
+	# %H is replaced with a MAC-derived suffix unique to each node.
+	# Actual node hostnames are set explicitly in per-node lime-node overrides
+	# (e.g. lm-escola-telhado) or left to auto-generation as lm-%H.
+	option hostname_template 'lm-%H'
+
+	# Community domain — used for local mDNS and lime-app access
+	# Nodes will be reachable at <hostname>.mesha.local on the mesh
+	option domain 'mesha.local'
+
+	# Timezone: Brasília Standard Time (no DST in Brazil since 2019)
+	option timezone 'BRT3'
+
+	# Community name shown in the LibreMesh web interface
+	option community_name 'Mesha'
+
+# ---------------------------------------------------------------------------
+# Network settings
+# IPv4 and IPv6 address space for the entire community mesh.
+# LibreMesh auto-assigns node addresses from these prefixes using the
+# node's MAC address as a deterministic seed.
+# ---------------------------------------------------------------------------
+config lime 'network'
+	# Community IPv4 network prefix (RFC1918 private space)
+	# 10.13.0.0/16 gives ~65534 usable addresses across the mesh
+	option main_ipv4_address '10.13.0.0/16'
+
+	# IPv6 ULA prefix (RFC4193 locally assigned unique address)
+	# Generated once per community; stays stable across all nodes.
+	# fd00::/8 is the ULA range; the remaining bits are community-specific.
+	option main_ipv6_address 'fdca:ffee:8::/48'
+
+	# AnyCast gateway MAC: shared virtual MAC used by all nodes for the
+	# default gateway role. Must be locally administered (bit 1 of first byte set).
+	# This value is community-unique — change it if merging with another mesh.
+	option anygw_mac 'aa:cb:f0:13:00:01'
+
+	# DHCP range offered to client devices connecting to the mesh
+	# LibreMesh manages this automatically from main_ipv4_address
+	# No override needed here unless splitting address space by site.
+
+	# (BMX7 routing tuning is in the config lime 'bmx7' section below.)
+
+# ---------------------------------------------------------------------------
+# WiFi defaults
+# Community-wide wireless settings applied to all nodes.
+# Per-node channel and power overrides go in node-overrides/<hostname>.uci.
+# ---------------------------------------------------------------------------
+config lime 'wifi'
+	# Community SSID — the network name visible to end-user devices
+	# Keep this short and recognizable; change requires community consensus
+	option ap_ssid 'mesha'
+
+	# Community mesh SSID (used for 802.11s mesh links between nodes)
+	# This MUST be the same on all nodes. Do not change without a full rollout.
+	option mesh_ssid 'mesha-mesh'
+
+	# Mesh BSSID — fixed BSSID for the mesh backhaul
+	# Must be the same on all nodes; locally administered address
+	option mesh_bssid 'ca:fe:00:c0:ff:ee'
+
+	# Default 2.4 GHz channel
+	# Channel 6 is standard for 2.4 GHz to minimize overlap with channels 1 and 11
+	# Gateway nodes may override this in node-overrides/ for directional links
+	option channel_2ghz '6'
+
+	# Default 5 GHz channel (UNII-1 band, indoor-safe, no DFS required)
+	# CPE510 directional links may use 149 or 157 depending on alignment
+	option channel_5ghz '48'
+
+	# Wireless modes to enable on each radio.
+	# LibreMesh mode values: 'ap' (client AP), 'mesh' (802.11s backhaul),
+	# 'adhoc' (IBSS), 'client'. Hardware mode (n/ac) is controlled by hwmode
+	# in lime-defaults or per-node override, not by this list.
+	list modes 'ap'
+	list modes 'mesh'
+
+	# Country code — Brazil
+	# This sets the regulatory domain for TX power and channel availability
+	option country 'BR'
+
+	# Access point (client-facing) encryption
+	# open = no password on the community AP; appropriate for public community access
+	# Change to 'psk2' and set a password if the community wants protected AP access
+	option ap_encryption 'none'
+
+	# Mesh link encryption — disabled by default for simplicity
+	# Enable with 'sae' (WPA3) if security policy requires it
+	option mesh_encryption 'none'
+
+# ---------------------------------------------------------------------------
+# BMX7 routing protocol settings
+# BMX7 is the primary routing protocol in LibreMesh for automatic
+# IP address assignment and route convergence across the mesh.
+# ---------------------------------------------------------------------------
+config lime 'bmx7'
+	# Enable BMX7 on all interfaces
+	option enabled '1'
+
+	# Announce local prefixes to the mesh
+	option publish_config '1'
+
+	# Debug level: 0=silent, 12=verbose
+	# Use 0 in production; increase temporarily for troubleshooting
+	option debug '0'
+
+# ---------------------------------------------------------------------------
+# Babel routing protocol settings
+# Babel is the secondary routing protocol, used for IPv6 and as
+# a fallback. LibreMesh can run both BMX7 and Babel simultaneously.
+# ---------------------------------------------------------------------------
+config lime 'babeld'
+	# Enable Babel
+	option enabled '1'
+
+	# Babel link quality mode
+	# 'etx' = expected transmission count metric (recommended)
+	option link_quality 'etx'
+
+	# Debug logging: 0=off, 1=warnings, 2=verbose
+	option debug '0'
+
+# ---------------------------------------------------------------------------
+# HTTP / lime-app web interface settings
+# lime-app provides a local web interface for node status and
+# simple configuration, accessible at http://<node-ip>/ or
+# http://<hostname>.mesha.local/
+# ---------------------------------------------------------------------------
+config lime 'http'
+	# Enable the local lime-app web interface
+	option enabled '1'
+
+	# Serve on port 80 (standard HTTP)
+	# Change to 8080 if port 80 conflicts with another service
+	option port '80'

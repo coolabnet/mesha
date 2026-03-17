@@ -8,8 +8,8 @@ Last updated: 2026-03-16
 
 | Phase | Description | Status |
 |-------|-------------|--------|
-| Phase 1 | Safe Visibility — workspace scaffold | ✅ complete — pending review |
-| Phase 2 | Approved low-risk operations | ⏳ not started |
+| Phase 1 | Safe Visibility — workspace scaffold | ✅ complete — reviewed + committed |
+| Phase 2 | Approved low-risk operations | 🔄 in progress |
 | Phase 3 | Rollouts and controlled change | ⏳ not started |
 
 ---
