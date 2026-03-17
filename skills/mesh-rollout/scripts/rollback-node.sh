@@ -1,4 +1,4 @@
-#!/usr/bin/env bash
+#!/usr/bin/env sh
 # rollback-node.sh — Restore a node to a previous configuration state (UCI config rollback)
 #
 # Usage: ./rollback-node.sh <node-hostname-or-ip> <backup-file.uci.gz>
@@ -16,7 +16,7 @@
 # See: docs/playbooks/firmware-rollout.md — Config restore after rollback
 #      desired-state/mesh/community-profile/rollout-policy.yaml
 
-set -euo pipefail
+set -e
 
 # ---------------------------------------------------------------------------
 # Helpers
@@ -27,13 +27,13 @@ log() {
 }
 
 log_result() {
-  local status="$1"
+  _status="$1"
   echo ""
   echo "--- ROLLBACK RESULT ---"
   echo "date:      $(date '+%Y-%m-%dT%H:%M:%S')"
   echo "node:      ${NODE}"
   echo "backup:    ${BACKUP_FILE}"
-  echo "status:    ${status}"
+  echo "status:    ${_status}"
   echo "-----------------------"
 }
 
@@ -44,11 +44,11 @@ die() {
 }
 
 confirm() {
-  local prompt="$1"
+  _prompt="$1"
   echo ""
-  echo "${prompt}"
+  echo "${_prompt}"
   read -r ANSWER
-  if [[ "${ANSWER}" != "YES" ]]; then
+  if [ "${ANSWER}" != "YES" ]; then
     log "Confirmation not given. Aborting."
     exit 0
   fi
@@ -72,7 +72,7 @@ usage() {
 # Argument parsing
 # ---------------------------------------------------------------------------
 
-[[ $# -lt 2 ]] && usage
+[ $# -lt 2 ] && usage
 
 NODE="$1"
 BACKUP_FILE="$2"
@@ -86,7 +86,7 @@ log "Step 1: Verifying node '${NODE}' is reachable via SSH..."
 
 if ! ssh -o ConnectTimeout="${SSH_TIMEOUT}" -o BatchMode=yes \
      -o StrictHostKeyChecking=yes \
-     "root@${NODE}" "echo ok" &>/dev/null 2>&1; then
+     "root@${NODE}" "echo ok" >/dev/null 2>&1; then
   die "Cannot reach node '${NODE}' via SSH. Check connectivity and SSH key access."
 fi
 
@@ -98,7 +98,7 @@ log "  Node '${NODE}' is reachable."
 
 log "Step 2: Verifying backup file..."
 
-if [[ ! -f "${BACKUP_FILE}" ]]; then
+if [ ! -f "${BACKUP_FILE}" ]; then
   die "Backup file not found: ${BACKUP_FILE}"
 fi
 
@@ -192,7 +192,7 @@ if echo "${APPLY_RESULT}" | grep -q "APPLY_FAILED"; then
   die "uci import failed. Output: ${APPLY_RESULT}"
 fi
 
-if [[ -n "${APPLY_RESULT}" ]]; then
+if [ -n "${APPLY_RESULT}" ]; then
   log "  uci import output: ${APPLY_RESULT}"
 fi
 
@@ -238,7 +238,7 @@ sleep 5
 # so the SSH host key does not change — use StrictHostKeyChecking=yes.
 if ssh -o ConnectTimeout=15 -o BatchMode=yes \
      -o StrictHostKeyChecking=yes \
-     "root@${NODE}" "echo ok" &>/dev/null 2>&1; then
+     "root@${NODE}" "echo ok" >/dev/null 2>&1; then
 
   # Verify a key config element — hostname and lime-community presence
   NEW_HOSTNAME="$(ssh -o ConnectTimeout="${SSH_TIMEOUT}" -o BatchMode=yes \

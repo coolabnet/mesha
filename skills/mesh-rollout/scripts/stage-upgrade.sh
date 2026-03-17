@@ -1,4 +1,4 @@
-#!/usr/bin/env bash
+#!/usr/bin/env sh
 # stage-upgrade.sh — Firmware upgrade for a single mesh node (canary stage)
 #
 # Usage: ./stage-upgrade.sh <node-hostname-or-ip> <firmware-image-url> [--dry-run] [--auto]
@@ -18,7 +18,7 @@
 # See: docs/playbooks/firmware-rollout.md
 #      desired-state/mesh/firmware-policy.yaml
 
-set -euo pipefail
+set -e
 
 # ---------------------------------------------------------------------------
 # Helpers
@@ -30,14 +30,14 @@ log() {
 
 log_result() {
   # Print structured result line at end of run
-  local status="$1"
+  _status="$1"
   echo ""
   echo "--- UPGRADE RESULT ---"
   echo "date:        $(date '+%Y-%m-%dT%H:%M:%S')"
   echo "node:        ${NODE}"
   echo "old_version: ${OLD_VERSION:-unknown}"
   echo "new_version: ${NEW_VERSION:-unknown}"
-  echo "status:      ${status}"
+  echo "status:      ${_status}"
   echo "----------------------"
 }
 
@@ -47,11 +47,11 @@ die() {
 }
 
 confirm() {
-  local prompt="$1"
+  _prompt="$1"
   echo ""
-  echo "${prompt}"
+  echo "${_prompt}"
   read -r ANSWER
-  if [[ "${ANSWER}" != "YES" ]]; then
+  if [ "${ANSWER}" != "YES" ]; then
     log "Confirmation not given. Aborting."
     exit 0
   fi
@@ -75,7 +75,7 @@ usage() {
 # Argument parsing
 # ---------------------------------------------------------------------------
 
-[[ $# -lt 2 ]] && usage
+[ $# -lt 2 ] && usage
 
 NODE="$1"
 FIRMWARE_URL="$2"
@@ -83,7 +83,7 @@ DRY_RUN=false
 AUTO_MODE=false
 
 shift 2
-while [[ $# -gt 0 ]]; do
+while [ $# -gt 0 ]; do
   case "$1" in
     --dry-run) DRY_RUN=true  ; shift ;;
     --auto)    AUTO_MODE=true ; shift ;;
@@ -103,7 +103,7 @@ NEW_VERSION=""
 # Dry-run mode
 # ---------------------------------------------------------------------------
 
-if [[ "${DRY_RUN}" == true ]]; then
+if [ "${DRY_RUN}" = true ]; then
   echo ""
   echo "=== DRY RUN MODE — no changes will be made ==="
   echo ""
@@ -130,7 +130,7 @@ fi
 log "Step 1: Verifying node '${NODE}' is reachable via SSH..."
 
 if ! ssh -o ConnectTimeout="${SSH_TIMEOUT}" -o BatchMode=yes -o StrictHostKeyChecking=yes \
-     "root@${NODE}" "echo ok" &>/dev/null; then
+     "root@${NODE}" "echo ok" >/dev/null 2>&1; then
   die "Cannot reach node '${NODE}' via SSH. Check connectivity and SSH key access. If the node is new and not yet in known_hosts, run: ssh-keyscan -H ${NODE} >> ~/.ssh/known_hosts"
 fi
 
@@ -147,12 +147,12 @@ trap 'rm -rf "${WORK_DIR}"' EXIT
 
 LOCAL_FIRMWARE="${WORK_DIR}/${FIRMWARE_FILENAME}"
 
-if [[ "${FIRMWARE_URL}" == http://* ]] || [[ "${FIRMWARE_URL}" == https://* ]]; then
+if [ "${FIRMWARE_URL}" = http://* ] || [ "${FIRMWARE_URL}" = https://* ]; then
   log "  Downloading firmware from ${FIRMWARE_URL}..."
   if ! curl -fsSL --output "${LOCAL_FIRMWARE}" "${FIRMWARE_URL}"; then
     die "Failed to download firmware from ${FIRMWARE_URL}"
   fi
-elif [[ -f "${FIRMWARE_URL}" ]]; then
+elif [ -f "${FIRMWARE_URL}" ]; then
   log "  Copying local firmware file ${FIRMWARE_URL}..."
   cp "${FIRMWARE_URL}" "${LOCAL_FIRMWARE}"
 else
@@ -175,7 +175,7 @@ log "  SHA256: ${ACTUAL_CHECKSUM}"
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 WORKSPACE_ROOT="$(cd "${SCRIPT_DIR}/../../.." && pwd)"
 POLICY_FILE="${WORKSPACE_ROOT}/desired-state/mesh/firmware-policy.yaml"
-if [[ -f "${POLICY_FILE}" ]]; then
+if [ -f "${POLICY_FILE}" ]; then
   log "  firmware-policy.yaml found. Manual checksum verification recommended."
   log "  Policy file: ${POLICY_FILE}"
   log "  IMPORTANT: Compare the SHA256 above against the checksum published at:"
@@ -216,7 +216,7 @@ echo ""
 # Step 5 — Require explicit confirmation (skipped in --auto mode)
 # ---------------------------------------------------------------------------
 
-if [[ "${AUTO_MODE}" == true ]]; then
+if [ "${AUTO_MODE}" = true ]; then
   log "Step 5: --auto mode — confirmation already obtained by run-rollout.sh operator prompt."
 else
   confirm "Type YES to proceed with the upgrade of ${NODE}:"
@@ -260,10 +260,10 @@ log "Step 8: Waiting for node to go offline (up to ${OFFLINE_WAIT_SECONDS}s)..."
 
 WENT_OFFLINE=false
 ELAPSED=0
-while [[ ${ELAPSED} -lt ${OFFLINE_WAIT_SECONDS} ]]; do
+while [ ${ELAPSED} -lt ${OFFLINE_WAIT_SECONDS} ]; do
   sleep 5
   ELAPSED=$((ELAPSED + 5))
-  if ! ping -c 1 -W 2 "${NODE}" &>/dev/null; then
+  if ! ping -c 1 -W 2 "${NODE}" >/dev/null 2>&1; then
     log "  Node went offline after ${ELAPSED}s."
     WENT_OFFLINE=true
     break
@@ -272,7 +272,7 @@ while [[ ${ELAPSED} -lt ${OFFLINE_WAIT_SECONDS} ]]; do
 done
 echo ""
 
-if [[ "${WENT_OFFLINE}" == false ]]; then
+if [ "${WENT_OFFLINE}" = false ]; then
   log "WARNING: Node did not go offline within ${OFFLINE_WAIT_SECONDS}s."
   log "  The upgrade may not have started, or the node may still be processing."
   log "  Continuing to wait for it to come back online..."
@@ -286,7 +286,7 @@ log "Step 9: Waiting for node to come back online (up to ${ONLINE_WAIT_SECONDS}s
 
 CAME_BACK=false
 ELAPSED=0
-while [[ ${ELAPSED} -lt ${ONLINE_WAIT_SECONDS} ]]; do
+while [ ${ELAPSED} -lt ${ONLINE_WAIT_SECONDS} ]; do
   sleep 10
   ELAPSED=$((ELAPSED + 10))
   # StrictHostKeyChecking=accept-new is intentional here: sysupgrade -n wipes
@@ -294,7 +294,7 @@ while [[ ${ELAPSED} -lt ${ONLINE_WAIT_SECONDS} ]]; do
   # after reboot. accept-new adds the new key without prompting. It does NOT
   # accept a changed key for a host that is already in known_hosts.
   if ssh -o ConnectTimeout=5 -o BatchMode=yes -o StrictHostKeyChecking=accept-new \
-       "root@${NODE}" "echo ok" &>/dev/null 2>&1; then
+       "root@${NODE}" "echo ok" >/dev/null 2>&1; then
     log "  Node is back online after ${ELAPSED}s."
     CAME_BACK=true
     break
@@ -303,7 +303,7 @@ while [[ ${ELAPSED} -lt ${ONLINE_WAIT_SECONDS} ]]; do
 done
 echo ""
 
-if [[ "${CAME_BACK}" == false ]]; then
+if [ "${CAME_BACK}" = false ]; then
   log ""
   log "!!! ROLLBACK REQUIRED !!!"
   log "  Node '${NODE}' did not come back online within ${ONLINE_WAIT_SECONDS}s."
@@ -332,7 +332,7 @@ NEW_VERSION="$(ssh -o ConnectTimeout="${SSH_TIMEOUT}" -o BatchMode=yes \
 
 log "  New firmware version: ${NEW_VERSION}"
 
-if [[ "${NEW_VERSION}" == "${OLD_VERSION}" ]]; then
+if [ "${NEW_VERSION}" = "${OLD_VERSION}" ]; then
   log "WARNING: Firmware version appears unchanged (${NEW_VERSION})."
   log "  The upgrade may not have applied correctly. Run validate-node.sh to confirm."
 fi
