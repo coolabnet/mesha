@@ -15,16 +15,18 @@ SNAPSHOT_FILE="$SNAPSHOT_DIR/$TIMESTAMP.json"
 LATEST_FILE="$EXPORT_DIR/latest.json"
 SUMMARY_FILE="$EXPORT_DIR/latest-summary.txt"
 
-if [[ "${1:-}" == "--plan" ]]; then
-    bash "$RUNNER" "$@"
-    exit 0
-fi
+for arg in "$@"; do
+    if [[ "$arg" == "--plan" ]]; then
+        bash "$RUNNER" "$@"
+        exit 0
+    fi
+done
 
 mkdir -p "$SNAPSHOT_DIR"
 
 bash "$RUNNER" "$@" > "$SNAPSHOT_FILE"
 
-python3 - "$LATEST_FILE" "$SUMMARY_FILE" <<'PYEOF'
+python3 - "$LATEST_FILE" "$SUMMARY_FILE" "$SNAPSHOT_FILE" <<'PYEOF'
 import json
 import pathlib
 import sys
@@ -39,7 +41,7 @@ with snapshot_path.open("r", encoding="utf-8") as handle:
 if payload.get("mode") == "plan":
     raise SystemExit("Refusing to promote --plan output into exports/mesh/latest.json")
 
-snapshot_path.replace(latest_path)
+latest_path.write_text(json.dumps(payload, indent=2) + "\n", encoding="utf-8")
 
 summary = payload.get("summary", {})
 lines = [

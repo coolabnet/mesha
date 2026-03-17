@@ -92,7 +92,7 @@ The following questions must be answered by a maintainer before the system can b
 - `exports/` directory does not exist yet — it is created when the first snapshot is exported.
 - The Telegram adapter (`adapters/channels/telegram/`) requires a bot token in `secrets/telegram.env` before it can operate.
 - No live infrastructure data has been collected. All desired-state files are stubs.
-- Recurring read-only collection is available through `bash scripts/mesh-heartbeat.sh`, but it still needs either a seed inventory or explicit targets to connect to real routers.
+- Recurring read-only collection is available through `bash scripts/mesh-heartbeat.sh`, but it still needs either a seed inventory or a successful `thisnode.info` bootstrap to connect to real routers.
 
 ---
 

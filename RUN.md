@@ -9,7 +9,7 @@ bash scripts/activate-workspace.sh
 
 # 2. Start OpenClaw
 openclaw gateway start
-openclaw chat --workspace /home/luandro/Dev/coolab/mesha
+openclaw chat --workspace "$(pwd)"
 
 # 3. Paste the activation prompt printed by activate-workspace.sh
 
