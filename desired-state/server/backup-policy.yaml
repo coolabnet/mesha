@@ -1,0 +1,211 @@
+# desired-state/server/backup-policy.yaml
+#
+# Backup schedules, retention rules, and destinations for community server data.
+#
+# This file drives the backup workflow executed by the server-executor skill.
+# Restores are Class D operations — they require explicit human approval.
+#
+# Backup philosophy for this project:
+#   - local backup first (offline-safe, no internet dependency)
+#   - optional remote backup as secondary layer
+#   - never auto-restore over live data — always manual approval
+#   - backups are only useful if restore has been tested
+#
+# Fields per job:
+#   name          — short identifier
+#   description   — what is backed up
+#   source_path   — data source on servidor-principal
+#   service       — service name from service-catalog.yaml (for context)
+#   schedule      — cron expression (server local time)
+#   retention     — how many copies to keep (and for how long)
+#   destination   — where backup files go
+#   method        — rsync | tar | pg_dump | docker-volume | custom
+#   encryption    — true | false (required for any sensitive data)
+#   verify        — how to validate the backup is usable
+#   risk_class    — restore is Class D; backup creation is Class B
+#   notes
+
+policy_version: "1.0"
+last_updated: "2026-03-01"
+timezone: "America/Sao_Paulo"
+
+# ---------------------------------------------------------------------------
+# Destinations
+# ---------------------------------------------------------------------------
+destinations:
+  local_usb:
+    type: local
+    path: "/data/backups"
+    device: "/dev/sda1 (USB SSD mounted at /data)"
+    notes: >
+      Primary backup destination. On the same physical server.
+      Protects against software failures and accidental deletion.
+      Does NOT protect against hardware failure of the server itself.
+      Periodically copy to an external drive held off-site.
+
+  external_drive:
+    type: local-offsite
+    path: "/mnt/backup-externo"
+    device: "USB drive held by lead maintainer"
+    notes: >
+      Offsite backup. Manually connected monthly (or after major changes).
+      The knowledge-curator agent should remind the maintainer when the
+      last offsite backup is more than 30 days old.
+
+  tailscale_remote:
+    type: remote
+    host: "backup-remoto"  # Optional remote host via Tailscale
+    path: "/backups/bairro-novo"
+    notes: >
+      Optional. Only configure if a remote host is available and trusted.
+      Not required for offline operation. Encrypt all data before transfer.
+      This destination is disabled by default — set enabled: true to activate.
+    enabled: false
+
+# ---------------------------------------------------------------------------
+# Backup jobs
+# ---------------------------------------------------------------------------
+jobs:
+  # -------------------------------------------------------------------------
+  # Nextcloud data
+  # -------------------------------------------------------------------------
+  - name: nextcloud-data
+    description: "Nextcloud user files and uploaded data"
+    source_path: "/data/nextcloud/data"
+    service: nextcloud
+    schedule: "0 2 * * *"  # 02:00 every day
+    retention:
+      copies: 7
+      keep_weekly: 4
+      keep_monthly: 3
+    destination: local_usb
+    method: rsync
+    encryption: false  # data is on LAN-only storage; no external exposure
+    verify:
+      method: "rsync --dry-run checksum"
+      after_backup: true
+    risk_class: B
+    notes: >
+      Uses rsync --checksum for incremental sync. Large initial run expected.
+      Nextcloud should be in maintenance mode during backup if possible,
+      but brief maintenance windows conflict with nightly schedule.
+      Review whether maintenance mode is needed after user count grows.
+
+  - name: nextcloud-db
+    description: "Nextcloud Postgres database dump"
+    source_path: "/data/backups/nextcloud-db"
+    service: nextcloud
+    schedule: "30 2 * * *"  # 02:30 every day, after data backup starts
+    retention:
+      copies: 7
+      keep_weekly: 4
+      keep_monthly: 3
+    destination: local_usb
+    method: pg_dump
+    encryption: true
+    verify:
+      method: "pg_restore --list (schema check)"
+      after_backup: true
+    risk_class: B
+    notes: >
+      Run: docker exec nextcloud_db pg_dump -U nextcloud nextcloud > dump.sql
+      Compress and encrypt with gpg before writing to destination.
+      Encryption key: see secrets/backup-gpg-key.asc (public key only committed).
+
+  # -------------------------------------------------------------------------
+  # Kolibri
+  # -------------------------------------------------------------------------
+  - name: kolibri-data
+    description: "Kolibri user progress data and facility configuration"
+    source_path: "/data/kolibri"
+    service: kolibri
+    schedule: "0 3 * * 0"  # 03:00 every Sunday (weekly)
+    retention:
+      copies: 4
+      keep_monthly: 2
+    destination: local_usb
+    method: tar
+    encryption: false
+    verify:
+      method: "tar --list to confirm archive integrity"
+      after_backup: false
+    risk_class: B
+    notes: >
+      Content channels are large and reproducible — only user progress and
+      facility config are critical. Content can be re-downloaded if lost.
+      Adjust schedule if content download runs on Sundays.
+
+  # -------------------------------------------------------------------------
+  # Grafana dashboards
+  # -------------------------------------------------------------------------
+  - name: grafana-config
+    description: "Grafana dashboard definitions and datasource config"
+    source_path: "/data/grafana"
+    service: grafana
+    schedule: "0 4 * * 0"  # 04:00 every Sunday
+    retention:
+      copies: 4
+      keep_monthly: 2
+    destination: local_usb
+    method: docker-volume
+    encryption: false
+    verify:
+      method: "check archive is non-empty"
+      after_backup: false
+    risk_class: B
+    notes: "Dashboards ideally should also be exported as JSON and committed to the repo."
+
+  # -------------------------------------------------------------------------
+  # System configuration snapshot
+  # -------------------------------------------------------------------------
+  - name: system-config-snapshot
+    description: >
+      Snapshot of /etc, /opt/services (compose files), and secrets directory
+      structure (without secret values) for disaster recovery.
+    source_path:
+      - "/etc"
+      - "/opt/services"
+    service: null
+    schedule: "0 1 * * 0"  # 01:00 every Sunday
+    retention:
+      copies: 8
+      keep_monthly: 3
+    destination: local_usb
+    method: tar
+    encryption: true
+    verify:
+      method: "tar --list"
+      after_backup: true
+    risk_class: B
+    notes: >
+      IMPORTANT: secrets/ directory structure is included but secret values
+      must never be backed up to an unencrypted destination.
+      This backup enables rapid server rebuild after hardware failure.
+
+# ---------------------------------------------------------------------------
+# Restore policy
+# ---------------------------------------------------------------------------
+restore_policy:
+  risk_class: D
+  approval_required: true
+  approvers:
+    - role: lead_maintainer
+  notes: >
+    Restoring over live data is irreversible. Before any restore:
+    1. Take a snapshot of current state if possible.
+    2. Get explicit approval with named approver recorded in maintenance log.
+    3. Notify affected users (school, clinic) before restoring shared services.
+    4. Test restore on a separate path first when possible.
+    5. Validate service health after restore before declaring done.
+
+# ---------------------------------------------------------------------------
+# Backup health monitoring
+# ---------------------------------------------------------------------------
+monitoring:
+  alert_on_failure: true
+  alert_channel: "dm_lead_maintainer"
+  staleness_threshold_hours: 26  # alert if daily backup is more than 26h old
+  offsite_reminder_days: 30  # remind maintainer if no offsite backup in 30 days
+  notes: >
+    The knowledge-curator skill should check backup age during weekly
+    maintenance summaries and flag overdue or failed backup jobs.

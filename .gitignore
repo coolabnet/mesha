@@ -1,0 +1,45 @@
+# Secrets — never commit credentials or keys
+secrets/*.yaml
+secrets/*.json
+secrets/*.env
+secrets/*.key
+secrets/*.pem
+!secrets/README.md
+
+# Environment files
+.env
+.env.*
+!.env.example
+
+# Local overrides (machine-specific, not for sharing)
+*.local.yaml
+*.local.json
+*.local.md
+
+# Runtime and logs (generated at runtime, not source-controlled)
+logs/
+exports/
+
+# OS and editor noise
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Node (for future scripts)
+node_modules/
+npm-debug.log*
+
+# Python (for future helper scripts)
+__pycache__/
+*.pyc
+*.pyo
+.venv/
+venv/
+
+# Temporary files
+*.tmp
+*.bak

@@ -1,0 +1,101 @@
+# desired-state/server/hosts.yaml
+#
+# Community server hosts — the physical or virtual machines that run local services.
+#
+# This is the desired/reference state for server hosts.
+# Use it to:
+#   - understand what each host is supposed to be
+#   - compare against actual running configuration (server-readonly skill)
+#   - plan new service deployments
+#
+# Fields:
+#   name          — hostname (used in local-services.yaml and SSH targets)
+#   role          — primary | secondary | field-node | backup
+#   hardware      — physical hardware description
+#   os            — operating system
+#   os_version    — OS version string
+#   ip            — primary LAN IP (static preferred for servers)
+#   mac           — ethernet MAC (for DHCP reservation if needed)
+#   location      — physical location (site name)
+#   services      — list of service names from service-catalog.yaml
+#   storage       — disk/storage layout
+#   access        — how maintainers reach this host
+#   notes
+
+hosts:
+  - name: "servidor-principal"
+    display_name: "Servidor Principal da Comunidade"
+    role: primary
+    hardware:
+      description: "Raspberry Pi 4 Model B, 4GB RAM"
+      cpu: "ARM Cortex-A72 quad-core 1.8GHz"
+      ram_gb: 4
+      storage:
+        - device: "/dev/mmcblk0"
+          type: microSD
+          size_gb: 64
+          mount: "/"
+          purpose: "OS and container images"
+        - device: "/dev/sda"
+          type: "USB SSD"
+          size_gb: 1000
+          mount: "/data"
+          purpose: "Service data volumes (Nextcloud, media, backups)"
+    os: "Ubuntu Server"
+    os_version: "22.04 LTS"
+    ip: "10.13.0.1"   # static; reserved on mesh gateway DHCP
+    mac: "e4:5f:01:ab:cd:ef"
+    location: "Escola Municipal"
+    services:
+      - nextcloud
+      - jellyfin
+      - kolibri
+      - homer-dashboard
+      - prometheus
+      - grafana
+    access:
+      ssh_port: 22
+      ssh_user: "admin"
+      ssh_key_path: "secrets/ssh/servidor-principal.pub"  # never commit private key
+      tailscale: true
+      tailscale_hostname: "servidor-principal"
+      local_reachable: true
+    container_runtime: docker
+    container_compose_dir: "/opt/services"
+    backup_destination: "/data/backups"
+    notes: >
+      Primary community server. Always-on. Connected via ethernet to the mesh
+      gateway at escola-telhado. Static IP lease managed on the gateway router.
+      Docker compose files live in /opt/services/{service-name}/docker-compose.yml.
+      OS updates managed manually; run 'apt upgrade' during maintenance windows.
+
+  - name: "notebook-manutencao"
+    display_name: "Notebook de Manutenção (Field Laptop)"
+    role: field-node
+    hardware:
+      description: "Lenovo ThinkPad (maintainer's laptop)"
+      cpu: "Intel Core i5 (gen varies)"
+      ram_gb: 8
+      storage:
+        - device: "/dev/sda"
+          type: SSD
+          size_gb: 256
+          mount: "/"
+          purpose: "OS and workspace"
+    os: "Ubuntu"
+    os_version: "22.04 LTS"
+    ip: dhcp  # changes per network
+    mac: null  # varies
+    location: "portable — used at any site"
+    services: []  # no persistent services; field-use only
+    access:
+      ssh_port: null
+      ssh_user: "maintainer"
+      tailscale: true
+      tailscale_hostname: "notebook-manutencao"
+      local_reachable: true  # when connected to mesh
+    notes: >
+      Used for field maintenance, SSH into routers and servidor-principal.
+      Same workspace repo as servidor-principal. Must be kept up to date
+      with inventories. Tailscale ensures access when on a different network.
+      WSL2 or native Linux both acceptable — see BOOTSTRAP.md.

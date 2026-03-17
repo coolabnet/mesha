@@ -1,0 +1,73 @@
+# inventories/mesh-nodes.yaml
+# Normalized inventory of all mesh nodes in the community network.
+#
+# Fields:
+#   name           — human-friendly label used in summaries and alerts
+#   hostname       — actual hostname on the router (used for SSH and routing)
+#   mac            — primary radio or ethernet MAC address (used as stable node ID)
+#   site           — name matching an entry in sites.yaml
+#   model          — hardware model matching an entry in hardware-models.yaml
+#   firmware_version — currently installed LibreMesh / OpenWrt version
+#   role           — gateway (has uplink), relay (mesh-only backbone), leaf (end-point)
+#   status         — online | offline | degraded | unknown
+#
+# Maintenance notes:
+#   - Update status fields after each diagnostic run or confirmed outage.
+#   - firmware_version should reflect what is actually installed, not what is desired.
+#     The desired firmware is declared in desired-state/mesh/firmware-policy.yaml.
+#   - Do NOT manually edit mac addresses; they are pulled from the node itself.
+
+nodes:
+  - name: "Escola Municipal - Telhado"
+    hostname: "lm-escola-telhado"
+    mac: "dc:9f:db:a1:22:01"
+    site: "Escola Municipal"
+    model: "TP-Link CPE510 v3"
+    firmware_version: "LibreMesh 2023.09"
+    role: gateway
+    status: online
+    notes: "Primary uplink via fibra da prefeitura. Faces north toward water tower."
+
+  - name: "Escola Municipal - Corredor"
+    hostname: "lm-escola-corredor"
+    mac: "dc:9f:db:a1:22:02"
+    site: "Escola Municipal"
+    model: "TP-Link TL-WR841N v13"
+    firmware_version: "LibreMesh 2023.09-minimal"
+    role: leaf
+    status: online
+    notes: "Indoor node. Covers staff room and main hallway. Poor link to rooftop in rain."
+
+  - name: "Clínica do Bairro - Antena"
+    hostname: "lm-clinica-antena"
+    mac: "e8:de:27:b3:44:10"
+    site: "Clínica do Bairro"
+    model: "Ubiquiti NanoStation M5"
+    firmware_version: "LibreMesh 2022.12"
+    role: gateway
+    status: degraded
+    notes: >
+      Firmware is one major release behind. Link to escola-telhado is weak after
+      the new building was constructed nearby. Candidate for antenna repositioning.
+
+  - name: "Associação de Moradores - Salão"
+    hostname: "lm-associacao-salao"
+    mac: "c0:4a:00:f2:88:30"
+    site: "Associação de Moradores"
+    model: "GL.iNet GL-AR750S"
+    firmware_version: "LibreMesh 2023.09"
+    role: leaf
+    status: online
+    notes: "Used during community meetings. Powered by UPS. Indoor, single-room coverage."
+
+  - name: "Ponto Comunitário - Morro"
+    hostname: "lm-ponto-morro"
+    mac: "b4:fb:e4:77:cc:55"
+    site: "Ponto Comunitário Morro"
+    model: "TP-Link CPE510 v3"
+    firmware_version: "LibreMesh 2023.09"
+    role: relay
+    status: online
+    notes: >
+      High elevation. Acts as mid-hop between escola and lower sites.
+      Line-of-sight clear. Good SNR consistently above -65 dBm.

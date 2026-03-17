@@ -1,0 +1,115 @@
+# desired-state/mesh/firmware-policy.yaml
+#
+# Firmware policy for all LibreMesh / OpenWrt nodes in the mesh.
+#
+# This file declares:
+#   - which firmware version is the community standard (approved)
+#   - which versions are acceptable but should be upgraded (beta/legacy)
+#   - which versions are blocked and must be replaced immediately
+#   - per-model overrides where hardware constraints apply
+#
+# The mesh-collector uses this file to compute drift: nodes whose
+# firmware_version does not match their approved target are flagged for upgrade.
+#
+# The mesh-planner uses this file to build upgrade plans.
+#
+# IMPORTANT: Changing the approved_version for a model triggers a
+# Class D operation (high-risk rollout) per rollout-policy.yaml.
+
+policy_version: "1.1"
+last_updated: "2026-03-01"
+updated_by: "maintainer"
+
+# ---------------------------------------------------------------------------
+# Global defaults
+# Applied to all models unless a per-model override exists.
+# ---------------------------------------------------------------------------
+global:
+  approved_version: "LibreMesh 2023.09"
+  release_notes_url: "https://libremesh.org/news/2023-09.html"
+  upgrade_urgency: normal  # low | normal | high | critical
+  notes: >
+    LibreMesh 2023.09 is the current community standard. All nodes should
+    target this version. Nodes on older versions are flagged as drifted.
+
+# ---------------------------------------------------------------------------
+# Version classification
+# ---------------------------------------------------------------------------
+versions:
+  - version: "LibreMesh 2023.09"
+    status: approved
+    models_supported:
+      - "TP-Link CPE510 v3"
+      - "GL.iNet GL-AR750S"
+      - "Ubiquiti NanoStation M5"
+    notes: "Stable release. Community standard."
+
+  - version: "LibreMesh 2023.03"
+    status: beta
+    # beta = functional but should be upgraded; acceptable during transition period
+    models_supported:
+      - "TP-Link CPE510 v3"
+      - "GL.iNet GL-AR750S"
+    upgrade_urgency: normal
+    notes: >
+      Previous release. Acceptable temporarily. Schedule upgrade within 60 days.
+      No known security issues but missing bugfixes from 2023.09.
+
+  - version: "LibreMesh 2022.12"
+    status: legacy
+    # legacy = still functional but actively outdated; upgrade required
+    models_supported:
+      - "Ubiquiti NanoStation M5"
+      - "TP-Link CPE510 v3"
+    upgrade_urgency: high
+    notes: >
+      Over 12 months old. Missing significant stability patches.
+      Nodes on this version should be queued for upgrade in the next
+      maintenance window. Currently: lm-clinica-antena is on this version.
+
+  - version: "LibreMesh 2021.x"
+    status: blocked
+    # blocked = must be upgraded before node can be used in production
+    upgrade_urgency: critical
+    notes: >
+      Known security vulnerabilities. Any node found on a 2021.x build
+      should be isolated from the gateway and upgraded before returning to service.
+      Alert lead maintainer immediately if discovered.
+
+  - version: "OpenWrt 21.02 (vanilla)"
+    status: blocked
+    upgrade_urgency: critical
+    notes: >
+      Vanilla OpenWrt without LibreMesh community profile is not permitted
+      on production mesh nodes. May be used temporarily during onboarding only.
+
+# ---------------------------------------------------------------------------
+# Per-model overrides
+# Use when a model has hardware or support constraints.
+# ---------------------------------------------------------------------------
+model_overrides:
+  - model: "TP-Link TL-WR841N v13"
+    approved_version: "LibreMesh 2023.09-minimal"
+    # minimal build required due to 4 MB flash constraint
+    notes: >
+      4 MB flash cannot fit a full LibreMesh 2023.09 build. Use only the
+      stripped minimal build. This model is at end of life — preferred action
+      is hardware replacement rather than continued firmware support.
+    recommended_action: replace_hardware
+    replacement_model: "GL.iNet GL-AR750S"
+
+# ---------------------------------------------------------------------------
+# Firmware image storage
+# Where pre-downloaded firmware binaries are staged before a rollout.
+# ---------------------------------------------------------------------------
+firmware_storage:
+  local_path: "/data/firmware-cache"   # path on servidor-principal
+  naming_convention: "{model_slug}-{version}.bin"
+  validation:
+    checksum_required: true
+    checksum_algorithm: sha256
+    checksum_source: "libremesh.org release page"
+  notes: >
+    All firmware images must be downloaded and checksummed before a rollout
+    starts. The mesh-executor must not fetch firmware live during a rollout —
+    offline staging is required for resilience.

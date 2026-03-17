@@ -1,0 +1,129 @@
+# desired-state/server/domains.yaml
+#
+# Local domain names used in the community network.
+#
+# These are LAN-only DNS names — they resolve only inside the mesh network.
+# They are NOT public internet DNS entries.
+#
+# DNS resolution is handled by dnsmasq running on the mesh gateway (lm-escola-telhado)
+# or by a local resolver on servidor-principal, depending on configuration.
+#
+# The server-executor skill is responsible for:
+#   - configuring the local DNS server to match this file
+#   - verifying that each domain resolves correctly from mesh clients
+#   - running offline DNS resolution tests as part of health checks
+#
+# Fields:
+#   domain        — local domain name (should end in .bairro.local or similar)
+#   resolves_to   — hostname or IP target
+#   type          — A (IP) | CNAME (alias) | wildcard
+#   purpose       — what this domain is for
+#   service       — service name from service-catalog.yaml (if applicable)
+#   tls           — none | self-signed | lets-encrypt (LE not available offline)
+#   notes
+
+# -----------------------------------------------------------------------
+# Base domain
+# -----------------------------------------------------------------------
+base_domain: "bairro.local"
+# All local services should use subdomains of this base.
+# Change this value when adapting this workspace to a different community.
+
+# -----------------------------------------------------------------------
+# Domain records
+# -----------------------------------------------------------------------
+records:
+  # Service domains — each service gets its own subdomain
+  - domain: "nuvem.bairro.local"
+    resolves_to: "10.13.0.1"
+    type: A
+    purpose: "Nextcloud community file sharing"
+    service: nextcloud
+    tls: self-signed
+    notes: "Self-signed cert generated during install. Users will see browser warning on first visit."
+
+  - domain: "midia.bairro.local"
+    resolves_to: "10.13.0.1"
+    type: A
+    purpose: "Jellyfin offline media archive"
+    service: jellyfin
+    tls: none
+    notes: "Plain HTTP acceptable — no sensitive data, LAN only."
+
+  - domain: "aprendizado.bairro.local"
+    resolves_to: "10.13.0.1"
+    type: A
+    purpose: "Kolibri offline learning platform"
+    service: kolibri
+    tls: none
+
+  - domain: "inicio.bairro.local"
+    resolves_to: "10.13.0.1"
+    type: A
+    purpose: "Community portal / service dashboard (Homer)"
+    service: homer-dashboard
+    tls: none
+    notes: >
+      This domain should be the default browser home page for community devices.
+      Also used as the reverse proxy catch-all for unknown subdomains.
+
+  - domain: "metricas.bairro.local"
+    resolves_to: "10.13.0.1"
+    type: A
+    purpose: "Prometheus metrics (maintainer access only)"
+    service: prometheus
+    tls: none
+    notes: "Do not advertise this domain to general users. Auth at reverse proxy layer."
+
+  - domain: "grafana.bairro.local"
+    resolves_to: "10.13.0.1"
+    type: A
+    purpose: "Grafana dashboards (maintainer + read-only community)"
+    service: grafana
+    tls: none
+
+  # Infrastructure aliases
+  - domain: "servidor.bairro.local"
+    resolves_to: "10.13.0.1"
+    type: A
+    purpose: "Direct alias for the primary server (for SSH and admin use)"
+    service: null
+    tls: none
+    notes: "Useful shorthand for SSH: ssh admin@servidor.bairro.local"
+
+  - domain: "gateway.bairro.local"
+    resolves_to: "10.13.0.254"  # gateway router LAN IP
+    type: A
+    purpose: "Mesh gateway router admin interface"
+    service: null
+    tls: none
+    notes: >
+      Points to the LibreMesh LuCI web interface on lm-escola-telhado.
+      Credentials managed separately — never committed here.
+
+  # Wildcard catch-all (handled by reverse proxy, not DNS)
+  - domain: "*.bairro.local"
+    resolves_to: "10.13.0.1"
+    type: wildcard
+    purpose: "Wildcard catch-all — all unknown subdomains go to the server for routing"
+    service: null
+    tls: none
+    notes: >
+      Reverse proxy returns the Homer dashboard for unrecognized hosts.
+      Add explicit service records above for each new service.
+
+# -----------------------------------------------------------------------
+# DNS server configuration
+# -----------------------------------------------------------------------
+dns_server:
+  host: "lm-escola-telhado"  # dnsmasq on the gateway router
+  listen_interface: "br-lan"
+  upstream_dns:
+    - "1.1.1.1"   # used only when internet is available
+    - "8.8.8.8"
+  local_search_domain: "bairro.local"
+  notes: >
+    dnsmasq is configured as part of the LibreMesh community profile.
+    Local records are added via /etc/dnsmasq.d/community-hosts.conf on the router.
+    If the gateway is offline, local DNS resolution fails for mesh clients.
+    Consider running a secondary dnsmasq on servidor-principal as fallback.

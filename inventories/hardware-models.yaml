@@ -1,0 +1,128 @@
+# inventories/hardware-models.yaml
+# Known hardware models deployed in the community mesh.
+#
+# This reference is used by the mesh-readonly skill and knowledge-curator to:
+#   - identify firmware compatibility for a given device
+#   - surface known hardware issues during triage
+#   - guide purchasing decisions for new nodes
+#
+# Fields:
+#   model          — exact model string (must match model field in mesh-nodes.yaml)
+#   vendor         — manufacturer name
+#   type           — outdoor | indoor | indoor-travel
+#   cpu_arch       — MIPS | ARM | x86 (relevant for firmware selection)
+#   flash_mb       — onboard flash in MB
+#   ram_mb         — RAM in MB
+#   radios         — list of radio bands (2.4GHz | 5GHz | 60GHz)
+#   openwrt_support — maintained | legacy | eol | unknown
+#   libremesh_notes — notes on LibreMesh compatibility and quirks
+#   known_issues   — list of known hardware or firmware problems
+#   recommended    — true if this model is approved for new purchases
+#   notes
+
+models:
+  - model: "TP-Link CPE510 v3"
+    vendor: "TP-Link"
+    type: outdoor
+    cpu_arch: MIPS
+    flash_mb: 8
+    ram_mb: 64
+    radios:
+      - "5GHz"
+    openwrt_support: maintained
+    libremesh_notes: >
+      Well supported. Good outdoor performance. Directional 13 dBi antenna.
+      Ideal for point-to-point backbone and gateway uplink links.
+      Flash is tight at 8 MB — avoid installing extra packages.
+    known_issues:
+      - "v3 power jack can corrode in humid environments; inspect annually"
+      - "PoE injector is vendor-specific; generic 24V passive PoE works"
+    recommended: true
+    notes: "Most deployed model in this mesh. Spare units held at escola."
+
+  - model: "TP-Link TL-WR841N v13"
+    vendor: "TP-Link"
+    type: indoor
+    cpu_arch: MIPS
+    flash_mb: 4
+    ram_mb: 32
+    radios:
+      - "2.4GHz"
+    openwrt_support: legacy
+    libremesh_notes: >
+      4 MB flash severely limits usable firmware size. Only minimal builds fit.
+      Use only for legacy leaf nodes. Do NOT use as gateway or relay.
+      Upgrade path: replace with GL-AR750S or CPE510 if role changes.
+    known_issues:
+      - "4 MB flash — cannot run current LibreMesh builds without stripping packages"
+      - "Overheats in enclosed spaces without ventilation"
+      - "v13 lacks USB; no 4G backup possible"
+    recommended: false
+    notes: >
+      Still functional but at end of practical life for this project.
+      Replacement candidate when budget allows.
+
+  - model: "Ubiquiti NanoStation M5"
+    vendor: "Ubiquiti"
+    type: outdoor
+    cpu_arch: MIPS
+    flash_mb: 8
+    ram_mb: 64
+    radios:
+      - "5GHz"
+    openwrt_support: legacy
+    libremesh_notes: >
+      OpenWrt/LibreMesh support exists but is not primary. AirOS is the vendor
+      default; running LibreMesh requires full flash and is unsupported by Ubiquiti.
+      Performance is good when flashed correctly. Watch firmware size constraints.
+    known_issues:
+      - "Proprietary PoE — requires Ubiquiti 24V passive injector; standard 802.3af will not power it correctly"
+      - "M-series is considered legacy by Ubiquiti; no AirOS security updates"
+      - "Antenna cover cracks in UV exposure after several years"
+    recommended: false
+    notes: >
+      Acceptable for relay use where already deployed. Not recommended for new
+      purchases — prefer CPE510 v3 for equivalent outdoor use case.
+
+  - model: "GL.iNet GL-AR750S"
+    vendor: "GL.iNet"
+    type: indoor-travel
+    cpu_arch: MIPS
+    flash_mb: 16
+    ram_mb: 128
+    radios:
+      - "2.4GHz"
+      - "5GHz"
+    openwrt_support: maintained
+    libremesh_notes: >
+      Dual-band, 16 MB flash — comfortable for full LibreMesh builds.
+      Good for indoor leaf nodes and field-testing. USB port enables 4G backup.
+      Small form factor; ideal for meeting rooms or temporary deployments.
+    known_issues:
+      - "Internal antennas limit range compared to outdoor models"
+      - "Runs warm in fully enclosed enclosures"
+    recommended: true
+    notes: "Good choice for indoor or portable mesh nodes. Easy to carry for field setup."
+
+  - model: "Raspberry Pi 4 Model B (4GB)"
+    vendor: "Raspberry Pi Foundation"
+    type: indoor
+    cpu_arch: ARM
+    flash_mb: null   # uses microSD or SSD, not onboard flash
+    ram_mb: 4096
+    radios:
+      - "2.4GHz"
+      - "5GHz"
+    openwrt_support: maintained
+    libremesh_notes: >
+      Not a typical mesh router. Used as a local server or as a wired-only
+      mesh entry point with USB-ethernet adapters. Can run OpenWrt but primary
+      use in this project is as a lightweight server host.
+    known_issues:
+      - "Requires quality microSD or SSD — cheap cards fail after heavy writes"
+      - "USB-C power supply quality matters; use official or equivalent"
+    recommended: true
+    notes: >
+      Used as the local server (servidor-principal) in low-budget deployments.
+      Not suitable as a primary wireless mesh node. Excellent as a gateway/server
+      host when combined with a wired connection to a proper mesh node.

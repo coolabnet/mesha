@@ -1,0 +1,100 @@
+# inventories/local-services.yaml
+# Local services currently running on community-controlled servers.
+#
+# This inventory describes WHAT IS ACTUALLY RUNNING, not what should be running.
+# For desired/approved service definitions, see desired-state/server/service-catalog.yaml.
+#
+# Fields:
+#   name           — short service name (matches service-catalog where applicable)
+#   host           — server hostname where the service runs (matches hosts.yaml)
+#   container      — container name or systemd unit name, if applicable
+#   local_domain   — local DNS name used to reach the service
+#   port           — internal port the service listens on
+#   exposed_via    — direct | reverse-proxy | tailscale | none
+#   status         — running | stopped | degraded | unknown
+#   last_checked   — ISO date of last confirmed health check
+#   steward        — person or role responsible for this service
+#   notes
+
+services:
+  - name: nextcloud
+    host: "servidor-principal"
+    container: "nextcloud_app"
+    local_domain: "nuvem.bairro.local"
+    port: 80
+    exposed_via: reverse-proxy
+    status: running
+    last_checked: "2026-03-10"
+    steward: "Marcos (Associação)"
+    notes: >
+      Community file sharing and calendar. Used by the school and clinic.
+      Runs on Docker via compose. Postgres backend in a sibling container.
+      Storage on /data/nextcloud (separate disk). ~40 GB used of 500 GB.
+
+  - name: jellyfin
+    host: "servidor-principal"
+    container: "jellyfin"
+    local_domain: "midia.bairro.local"
+    port: 8096
+    exposed_via: reverse-proxy
+    status: running
+    last_checked: "2026-03-10"
+    steward: "Fábio (voluntário)"
+    notes: >
+      Offline media archive. Educational videos, documentaries, local recordings.
+      Works without internet. Storage on /data/media (~200 GB used).
+      No authentication currently — accessible to anyone on the mesh.
+
+  - name: kolibri
+    host: "servidor-principal"
+    container: "kolibri"
+    local_domain: "aprendizado.bairro.local"
+    port: 8080
+    exposed_via: reverse-proxy
+    status: running
+    last_checked: "2026-03-08"
+    steward: "Dona Lúcia (Escola)"
+    notes: >
+      KA Lite / Kolibri offline learning platform. Khan Academy content
+      downloaded for offline use. Used by students on the school network.
+      Content sync from internet needed periodically. Last sync: 2026-02-20.
+
+  - name: homer-dashboard
+    host: "servidor-principal"
+    container: "homer"
+    local_domain: "inicio.bairro.local"
+    port: 8081
+    exposed_via: reverse-proxy
+    status: running
+    last_checked: "2026-03-10"
+    steward: "maintainer"
+    notes: >
+      Simple community portal / dashboard with links to all local services.
+      Static site served by Homer. Requires no backend. Good offline test target.
+
+  - name: prometheus
+    host: "servidor-principal"
+    container: "prometheus"
+    local_domain: "metricas.bairro.local"
+    port: 9090
+    exposed_via: reverse-proxy
+    status: running
+    last_checked: "2026-03-10"
+    steward: "maintainer"
+    notes: >
+      Scrapes node-exporter on the server and any LibreMesh Prometheus exporters
+      if enabled on routers. Retention: 15d. Not exposed to mesh users directly.
+
+  - name: grafana
+    host: "servidor-principal"
+    container: "grafana"
+    local_domain: "grafana.bairro.local"
+    port: 3000
+    exposed_via: reverse-proxy
+    status: running
+    last_checked: "2026-03-10"
+    steward: "maintainer"
+    notes: >
+      Connected to Prometheus. Dashboards for mesh link health and server stats.
+      Admin credentials in secrets/grafana.env (not committed). Guest read-only
+      login enabled for community maintainers.

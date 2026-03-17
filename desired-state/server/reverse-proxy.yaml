@@ -1,0 +1,164 @@
+# desired-state/server/reverse-proxy.yaml
+#
+# Reverse proxy routing rules for the community server.
+#
+# The reverse proxy (Caddy or Nginx — see notes below) runs on servidor-principal
+# and routes incoming HTTP/HTTPS requests to the correct local service container
+# based on the Host header (virtual hosting by subdomain).
+#
+# This file is the desired state. The server-executor skill reads this file
+# to generate or update the actual reverse proxy configuration.
+#
+# Software choice:
+#   Caddy is recommended for this setup because:
+#     - automatic self-signed cert generation (no manual cert management)
+#     - simple declarative config
+#     - good defaults for LAN use
+#   Nginx is also acceptable; config templates differ.
+#   Change proxy_software below if Nginx is chosen.
+#
+# Fields per route:
+#   domain        — incoming hostname (must match an entry in domains.yaml)
+#   backend       — internal target (host:port or container-name:port)
+#   strip_prefix  — optional path prefix to strip before forwarding
+#   auth          — none | basic | forward-auth
+#   tls           — none | self-signed | acme (ACME not usable offline)
+#   health_check  — path to poll for service health (optional)
+#   notes
+
+proxy_software: caddy  # caddy | nginx
+proxy_host: "servidor-principal"
+proxy_listen_http: 80
+proxy_listen_https: 443
+config_path: "/opt/services/caddy/Caddyfile"
+
+routes:
+  # ---------------------------------------------------------------------------
+  # Community portal — catch-all / default
+  # ---------------------------------------------------------------------------
+  - domain: "inicio.bairro.local"
+    backend: "homer:8081"
+    strip_prefix: null
+    auth: none
+    tls: none
+    health_check: "/"
+    notes: "Default landing page. Should load even when other services are down."
+
+  # ---------------------------------------------------------------------------
+  # Nextcloud
+  # ---------------------------------------------------------------------------
+  - domain: "nuvem.bairro.local"
+    backend: "nextcloud_app:80"
+    strip_prefix: null
+    auth: none  # Nextcloud handles its own auth
+    tls: self-signed
+    health_check: "/status.php"
+    notes: >
+      Nextcloud requires specific headers: X-Forwarded-For, X-Real-IP,
+      and the trusted_proxies config in Nextcloud's config.php must include
+      the proxy IP. Template in docs/playbooks/local-service-install.md#nextcloud.
+
+  # ---------------------------------------------------------------------------
+  # Jellyfin
+  # ---------------------------------------------------------------------------
+  - domain: "midia.bairro.local"
+    backend: "jellyfin:8096"
+    strip_prefix: null
+    auth: none
+    tls: none
+    health_check: "/health"
+    notes: "Websocket passthrough required for Jellyfin — enable proxy_read_timeout and upgrade headers."
+
+  # ---------------------------------------------------------------------------
+  # Kolibri
+  # ---------------------------------------------------------------------------
+  - domain: "aprendizado.bairro.local"
+    backend: "kolibri:8080"
+    strip_prefix: null
+    auth: none
+    tls: none
+    health_check: "/api/public/v1/info/"
+    notes: null
+
+  # ---------------------------------------------------------------------------
+  # Prometheus (restricted)
+  # ---------------------------------------------------------------------------
+  - domain: "metricas.bairro.local"
+    backend: "prometheus:9090"
+    strip_prefix: null
+    auth: basic
+    auth_config:
+      realm: "Métricas — acesso restrito"
+      htpasswd_path: "/opt/services/caddy/htpasswd_metricas"
+      # generate with: caddy hash-password and update htpasswd file
+    tls: none
+    health_check: "/-/healthy"
+    notes: "Basic auth added at proxy level. Credentials NOT in this file — see secrets/."
+
+  # ---------------------------------------------------------------------------
+  # Grafana
+  # ---------------------------------------------------------------------------
+  - domain: "grafana.bairro.local"
+    backend: "grafana:3000"
+    strip_prefix: null
+    auth: none  # Grafana handles its own auth with guest read-only
+    tls: none
+    health_check: "/api/health"
+    notes: "Grafana guest access enabled in grafana.ini. Proxy does not add extra auth."
+
+  # ---------------------------------------------------------------------------
+  # Server admin shorthand
+  # ---------------------------------------------------------------------------
+  - domain: "servidor.bairro.local"
+    backend: null  # no HTTP backend — this domain is for SSH only
+    strip_prefix: null
+    auth: none
+    tls: none
+    health_check: null
+    notes: >
+      This domain is DNS-only (see domains.yaml). No HTTP route needed.
+      Leave entry here as documentation anchor. Proxy returns 404 for HTTP.
+
+  # ---------------------------------------------------------------------------
+  # Wildcard catch-all — unknown subdomains redirect to portal
+  # ---------------------------------------------------------------------------
+  - domain: "*.bairro.local"
+    backend: "homer:8081"
+    strip_prefix: null
+    auth: none
+    tls: none
+    health_check: null
+    notes: >
+      Any subdomain not explicitly matched above falls through to Homer dashboard.
+      This ensures users get a useful landing page even if they type an incorrect URL.
+
+# ---------------------------------------------------------------------------
+# Global proxy headers
+# Applied to all routes unless overridden.
+# ---------------------------------------------------------------------------
+global_headers:
+  X-Frame-Options: "SAMEORIGIN"
+  X-Content-Type-Options: "nosniff"
+  X-Forwarded-Proto: "{scheme}"
+  notes: >
+    Referrer-Policy and Content-Security-Policy headers intentionally omitted
+    at the proxy level — too many services have incompatible CSP requirements.
+    Configure per-service in the application itself.
+
+# ---------------------------------------------------------------------------
+# Offline validation checklist
+# Used by server-readonly skill to confirm proxy is working without internet.
+# ---------------------------------------------------------------------------
+offline_validation:
+  - check: "HTTP 200 from inicio.bairro.local"
+    critical: true
+  - check: "HTTP 200 or 302 from nuvem.bairro.local/status.php"
+    critical: true
+  - check: "HTTP 200 from midia.bairro.local/health"
+    critical: false
+  - check: "HTTP 200 from aprendizado.bairro.local/api/public/v1/info/"
+    critical: false
+  - check: "HTTP 401 from metricas.bairro.local (auth working)"
+    critical: false
+  - check: "HTTP 200 or 302 from grafana.bairro.local/api/health"
+    critical: false

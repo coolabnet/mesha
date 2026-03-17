@@ -1,0 +1,77 @@
+# inventories/sites.yaml
+# Physical sites in the community where mesh nodes are installed.
+#
+# Fields:
+#   name        — matches the site field in mesh-nodes.yaml
+#   location    — human-readable street or neighborhood description
+#   coordinates — GPS lat/lon for map display and line-of-sight planning
+#   nodes       — list of node names installed at this site (matches mesh-nodes.yaml name)
+#   contact     — local person responsible for physical access
+#   power       — power source description (grid, UPS, solar, unknown)
+#   notes       — anything useful for field visits or incident triage
+
+sites:
+  - name: "Escola Municipal"
+    location: "Rua das Acácias 120, Bairro Novo"
+    coordinates:
+      lat: -15.8012
+      lon: -47.9322
+    nodes:
+      - "Escola Municipal - Telhado"
+      - "Escola Municipal - Corredor"
+    contact:
+      name: "Dona Lúcia (diretora)"
+      phone: "+55 61 99800-0001"
+    power: "grid + small UPS on switch"
+    notes: >
+      School hours are 7h–18h on weekdays. Rooftop access needs permission.
+      The main switch is in the director's office. After-hours incidents
+      must go through the janitor (Seu Raimundo, same contact sheet).
+
+  - name: "Clínica do Bairro"
+    location: "Rua da Saúde 45, Bairro Novo"
+    coordinates:
+      lat: -15.8034
+      lon: -47.9298
+    nodes:
+      - "Clínica do Bairro - Antena"
+    contact:
+      name: "Enfermeira Sandra"
+      phone: "+55 61 99800-0002"
+    power: "grid (no UPS)"
+    notes: >
+      Clinic operates Mon–Fri 8h–17h and Sat 8h–12h. No UPS — power cuts
+      bring the node offline. Outdoor antenna is on the south wall.
+      Building obstructs partial LOS to escola-telhado.
+
+  - name: "Associação de Moradores"
+    location: "Praça Central s/n, Bairro Novo"
+    coordinates:
+      lat: -15.8025
+      lon: -47.9340
+    nodes:
+      - "Associação de Moradores - Salão"
+    contact:
+      name: "Presidente Marcos"
+      phone: "+55 61 99800-0003"
+    power: "grid + UPS"
+    notes: >
+      Used mainly for weekly meetings (Thursdays 19h). Node is always on.
+      UPS provides about 30 min backup. Key held by Marcos and one deputy.
+
+  - name: "Ponto Comunitário Morro"
+    location: "Alto do Morro, acesso pela trilha sul"
+    coordinates:
+      lat: -15.7980
+      lon: -47.9280
+    nodes:
+      - "Ponto Comunitário - Morro"
+    contact:
+      name: "Voluntário Fábio"
+      phone: "+55 61 99800-0004"
+    power: "solar + battery"
+    notes: >
+      Remote elevated point. Solar system installed by volunteers in 2023.
+      Access via foot trail — approximately 20 min walk. Only reachable
+      by 4x4 in dry season. Ideal relay position for morro neighborhood.
+      Battery autonomy estimated at 2 days without sun.

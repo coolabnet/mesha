@@ -1,0 +1,193 @@
+# desired-state/server/service-catalog.yaml
+#
+# Catalog of approved local services for community server deployment.
+#
+# This is the DESIRED STATE — it defines what services are permitted,
+# how they should be exposed, and what their requirements are.
+# The actual running state is in inventories/local-services.yaml.
+#
+# The server-planner compares this catalog against the live inventory
+# to detect drift (missing services, unapproved services, config mismatch).
+#
+# Fields per service:
+#   name              — short identifier (must be unique)
+#   display_name      — human-friendly name
+#   description       — what this service is for
+#   approved          — true | false (false = must be removed if found running)
+#   category          — communication | education | media | infrastructure | governance
+#   install_recipe    — reference to the install playbook in docs/playbooks/
+#   local_domain      — desired local DNS name
+#   port              — internal container/service port
+#   exposed_via       — reverse-proxy | tailscale | direct | none
+#   auth_required     — true | false
+#   offline_capable   — true = works without internet after initial setup
+#   storage_gb        — estimated storage requirement
+#   backup_required   — true | false (drives backup-policy.yaml)
+#   steward_role      — who is responsible (maintainer | school | clinic | association)
+#   notes
+
+catalog:
+  # -------------------------------------------------------------------------
+  # Approved services
+  # -------------------------------------------------------------------------
+
+  - name: nextcloud
+    display_name: "Nuvem Comunitária (Nextcloud)"
+    description: >
+      Community file sharing, document collaboration, and shared calendar.
+      Core service for organizational coordination.
+    approved: true
+    category: communication
+    install_recipe: "docs/playbooks/local-service-install.md#nextcloud"
+    local_domain: "nuvem.bairro.local"
+    port: 80
+    exposed_via: reverse-proxy
+    auth_required: true
+    offline_capable: true
+    storage_gb: 500
+    backup_required: true
+    steward_role: maintainer
+    notes: >
+      Requires Postgres and Redis sibling containers. Data volume must be
+      on a dedicated disk or partition. Admin credentials in secrets/nextcloud.env.
+
+  - name: jellyfin
+    display_name: "Arquivo de Mídia (Jellyfin)"
+    description: >
+      Offline media archive for educational videos, community recordings,
+      and documentaries. No internet required after content is loaded.
+    approved: true
+    category: media
+    install_recipe: "docs/playbooks/local-service-install.md#jellyfin"
+    local_domain: "midia.bairro.local"
+    port: 8096
+    exposed_via: reverse-proxy
+    auth_required: false  # open to mesh users by design
+    offline_capable: true
+    storage_gb: 500
+    backup_required: false  # media content is replaceable; no personal data
+    steward_role: maintainer
+    notes: >
+      Guest access is intentional — all content is public/educational.
+      If personal content is added in future, auth_required should become true.
+
+  - name: kolibri
+    display_name: "Plataforma de Aprendizado (Kolibri)"
+    description: >
+      Offline learning platform with Khan Academy and other educational content.
+      Primarily for school use but open to community.
+    approved: true
+    category: education
+    install_recipe: "docs/playbooks/local-service-install.md#kolibri"
+    local_domain: "aprendizado.bairro.local"
+    port: 8080
+    exposed_via: reverse-proxy
+    auth_required: false
+    offline_capable: true
+    storage_gb: 100
+    backup_required: true  # student progress data should be backed up
+    steward_role: school
+    notes: >
+      Content packs downloaded manually. Admin manages content channels.
+      Facility code required for user registration — see secrets/kolibri.env.
+
+  - name: homer-dashboard
+    display_name: "Portal da Comunidade (Homer)"
+    description: >
+      Simple landing page listing all local services with links and status.
+      First thing users see when they open the browser on the mesh.
+    approved: true
+    category: infrastructure
+    install_recipe: "docs/playbooks/local-service-install.md#homer"
+    local_domain: "inicio.bairro.local"
+    port: 8081
+    exposed_via: reverse-proxy
+    auth_required: false
+    offline_capable: true
+    storage_gb: 1
+    backup_required: false  # config is in the repo
+    steward_role: maintainer
+    notes: >
+      Config lives in desired-state/server/homer-config.yaml (to be created).
+      Should be the default redirect for the reverse proxy catch-all.
+
+  - name: prometheus
+    display_name: "Coleta de Métricas (Prometheus)"
+    description: >
+      Time-series metrics collection for server and mesh health monitoring.
+    approved: true
+    category: infrastructure
+    install_recipe: "docs/playbooks/local-service-install.md#prometheus"
+    local_domain: "metricas.bairro.local"
+    port: 9090
+    exposed_via: reverse-proxy
+    auth_required: true  # restrict to maintainers only
+    offline_capable: true
+    storage_gb: 20
+    backup_required: false  # metrics are ephemeral; 15-day retention
+    steward_role: maintainer
+    notes: "Scrape targets defined in desired-state/server/prometheus-targets.yaml (to be created)."
+
+  - name: grafana
+    display_name: "Painéis de Monitoramento (Grafana)"
+    description: >
+      Visualization dashboards for server and mesh metrics sourced from Prometheus.
+    approved: true
+    category: infrastructure
+    install_recipe: "docs/playbooks/local-service-install.md#grafana"
+    local_domain: "grafana.bairro.local"
+    port: 3000
+    exposed_via: reverse-proxy
+    auth_required: true
+    offline_capable: true
+    storage_gb: 5
+    backup_required: true  # dashboards and user config
+    steward_role: maintainer
+    notes: "Guest read-only login enabled. Admin credentials in secrets/grafana.env."
+
+  # -------------------------------------------------------------------------
+  # Services under evaluation (not yet deployed)
+  # -------------------------------------------------------------------------
+
+  - name: peertube
+    display_name: "Vídeo Comunitário (PeerTube)"
+    description: >
+      Self-hosted video platform for community-created content. Under evaluation.
+    approved: false
+    category: media
+    install_recipe: null  # playbook not yet written
+    local_domain: "video.bairro.local"
+    port: 9000
+    exposed_via: reverse-proxy
+    auth_required: true
+    offline_capable: true
+    storage_gb: 200
+    backup_required: true
+    steward_role: maintainer
+    notes: >
+      Not yet approved. Requires community decision. High storage demand.
+      Evaluate Jellyfin vs PeerTube based on community upload needs.
+
+  # -------------------------------------------------------------------------
+  # Explicitly blocked services
+  # -------------------------------------------------------------------------
+
+  - name: portainer
+    display_name: "Portainer (Container UI)"
+    description: "Web UI for Docker management."
+    approved: false
+    category: infrastructure
+    notes: >
+      BLOCKED. Portainer gives broad Docker control via web UI. Too high a risk
+      surface for a community server. Container management must go through
+      maintainer SSH and the server-services skill only.
+
+  - name: cloudflare-tunnel
+    display_name: "Cloudflare Tunnel"
+    description: "Outbound tunnel to Cloudflare for public access."
+    approved: false
+    category: infrastructure
+    notes: >
+      BLOCKED. Exposes local services to the public internet without community
+      decision. Any public exposure must be explicitly discussed and approved.
+      Tailscale is the approved remote-access path.

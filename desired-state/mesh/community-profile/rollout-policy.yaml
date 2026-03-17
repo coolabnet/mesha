@@ -1,0 +1,190 @@
+# desired-state/mesh/community-profile/rollout-policy.yaml
+#
+# Rollout policy for firmware and configuration changes across the mesh.
+#
+# This file defines the SAFETY MODEL for all mesh change operations.
+# It is consumed by the mesh-planner and mesh-executor agents.
+#
+# Risk class reference (from BOOTSTRAP.md):
+#   Class A — Read-only         — no approval needed
+#   Class B — Low-risk write    — maintainer approval usually required
+#   Class C — Medium-risk change — approval + rollback required
+#   Class D — High-risk / many-host — explicit approval + canary + change window
+#
+# The mesh-executor MUST NOT bypass this policy without an explicit override
+# recorded in the maintenance log.
+
+policy_version: "1.0"
+last_updated: "2026-03-01"
+updated_by: "maintainer"
+
+# ---------------------------------------------------------------------------
+# Upgrade rings
+# Nodes are assigned to rings. Changes roll out ring by ring.
+# A ring must stabilize before the next ring begins.
+# ---------------------------------------------------------------------------
+upgrade_rings:
+  - ring: canary
+    description: >
+      First ring. One or two non-critical nodes used to test a new firmware
+      or configuration before any wider rollout. Should be nodes that are
+      easy to physically access and do not serve critical users.
+    nodes:
+      - "Associação de Moradores - Salão"  # meeting-room node, low impact
+    stabilization_period_hours: 24
+    auto_promote: false  # canary ring always requires manual promotion decision
+
+  - ring: stable
+    description: >
+      Main production nodes. Applied only after canary ring stabilizes
+      with no reported issues. Includes all gateway and high-traffic relay nodes.
+    nodes:
+      - "Escola Municipal - Telhado"
+      - "Escola Municipal - Corredor"
+      - "Ponto Comunitário - Morro"
+    stabilization_period_hours: 48
+    auto_promote: false
+
+  - ring: trailing
+    description: >
+      Nodes with known issues, degraded hardware, or limited access.
+      Rolled out last. Human review required before each node in this ring.
+    nodes:
+      - "Clínica do Bairro - Antena"
+    stabilization_period_hours: 72
+    auto_promote: false
+
+# ---------------------------------------------------------------------------
+# Approval requirements by risk class
+# ---------------------------------------------------------------------------
+approval:
+  class_a_read_only:
+    required: false
+    notes: "Any agent may run read-only operations at any time."
+
+  class_b_low_risk:
+    required: true
+    approvers:
+      - role: maintainer
+    min_approvers: 1
+    approval_channel: "dm_maintainer"  # references channel config
+    notes: "Single maintainer DM approval sufficient. Documentation updates exempt."
+
+  class_c_medium_risk:
+    required: true
+    approvers:
+      - role: maintainer
+      - role: site_contact  # person at the affected site
+    min_approvers: 1
+    approval_channel: "dm_maintainer"
+    rollback_required: true
+    validation_required: true
+    notes: >
+      Must include a plain-language description of what will change and what
+      will happen if it fails. Rollback plan must be stated before approval is sought.
+
+  class_d_high_risk:
+    required: true
+    approvers:
+      - role: lead_maintainer
+    min_approvers: 1
+    approval_channel: "dm_maintainer"
+    change_window_required: true
+    canary_required: true
+    rollback_required: true
+    validation_required: true
+    notes: >
+      Class D operations require a change window, a canary node tested first,
+      and explicit written approval. The mesh-executor must stop and report
+      after each ring and wait for promotion confirmation.
+
+# ---------------------------------------------------------------------------
+# Change windows
+# Preferred times for disruptive operations (Class C and D).
+# ---------------------------------------------------------------------------
+change_windows:
+  preferred:
+    - description: "Sunday early morning"
+      days: ["sunday"]
+      start_time: "05:00"
+      end_time: "08:00"
+      timezone: "America/Sao_Paulo"
+    - description: "Weeknight low-traffic window"
+      days: ["monday", "tuesday", "wednesday", "thursday", "friday"]
+      start_time: "22:00"
+      end_time: "23:30"
+      timezone: "America/Sao_Paulo"
+  blackout_periods:
+    - description: "School exam weeks (check school calendar)"
+      notes: "Avoid disruptive changes during school exam periods."
+    - description: "Community assembly nights (Thursdays 19h–22h)"
+      days: ["thursday"]
+      start_time: "18:30"
+      end_time: "22:30"
+      timezone: "America/Sao_Paulo"
+    - description: "Local public holidays"
+      notes: "Avoid all Class C/D operations on national and local holidays."
+
+# ---------------------------------------------------------------------------
+# Canary rules
+# How the canary stage is evaluated before promoting to stable ring.
+# ---------------------------------------------------------------------------
+canary_rules:
+  min_stable_hours: 24
+  health_checks:
+    - check: "node reachable via mesh ping"
+      required: true
+    - check: "uptime > stabilization period"
+      required: true
+    - check: "no error log entries in last 6h"
+      required: false  # recommended but not blocking
+    - check: "link quality to nearest relay above -75 dBm"
+      required: false
+  failure_actions:
+    on_health_check_fail: rollback_immediately
+    on_timeout: pause_and_alert
+    on_rollback_fail: alert_lead_maintainer
+  promotion:
+    method: manual  # canary never auto-promotes
+    confirmation_required: true
+    confirmation_channel: "dm_maintainer"
+
+# ---------------------------------------------------------------------------
+# Rollback policy
+# ---------------------------------------------------------------------------
+rollback:
+  automatic_on_health_fail: true
+  automatic_on_timeout_minutes: 30
+  max_rollback_attempts: 2
+  rollback_firmware_source: "local_backup"  # must be staged before rollout starts
+  post_rollback_actions:
+    - "log incident with node name, firmware attempted, failure reason"
+    - "alert maintainer with summary"
+    - "mark node status as degraded in inventory until reviewed"
+  notes: >
+    If automatic rollback is not possible (e.g., brick risk), stop and alert
+    the lead maintainer immediately. Do NOT attempt improvised recovery
+    without a human decision.
+
+# ---------------------------------------------------------------------------
+# Notification policy
+# ---------------------------------------------------------------------------
+notifications:
+  pre_change_alert:
+    enabled: true
+    channels: ["maintainer_group"]
+    message_template: >
+      [PRÉ-MUDANÇA] Iniciando {operation} em {node_count} nó(s).
+      Janela: {start_time}–{end_time}. Aprovado por: {approver}.
+  post_change_summary:
+    enabled: true
+    channels: ["maintainer_group"]
+    message_template: >
+      [PÓS-MUDANÇA] {operation} concluído em {node_count} nó(s).
+      Status: {result}. Ver log: {log_path}.
+  failure_alert:
+    enabled: true
+    channels: ["maintainer_group", "dm_lead_maintainer"]
+    message_template: >
+      [ALERTA] Falha durante {operation} em {node}. Ação: {action_taken}.
+      Requer atenção humana.
