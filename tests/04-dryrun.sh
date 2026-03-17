@@ -128,6 +128,39 @@ run_dryrun_checks() {
     else
         assert_exit_zero "mesh-heartbeat.sh --plan exits cleanly without touching routers" \
             timeout 15 bash "$mesh_heartbeat" --plan
+
+        local heartbeat_latest="$WORKSPACE_ROOT/exports/mesh/latest.json"
+        local heartbeat_before
+        local heartbeat_backup
+        heartbeat_before="$(mktemp)"
+        heartbeat_backup="$(mktemp)"
+        printf '{"sentinel":"preserve-existing-cache"}\n' > "$heartbeat_before"
+        mkdir -p "$(dirname "$heartbeat_latest")"
+        local heartbeat_had_latest=false
+        if [[ -f "$heartbeat_latest" ]]; then
+            cp "$heartbeat_latest" "$heartbeat_backup"
+            heartbeat_had_latest=true
+        fi
+        cp "$heartbeat_before" "$heartbeat_latest"
+
+        timeout 15 bash "$mesh_heartbeat" --plan >/dev/null 2>&1
+        local heartbeat_plan_rc=$?
+        if [[ $heartbeat_plan_rc -ne 0 ]]; then
+            qa_fail "mesh-heartbeat.sh --plan preserves cache state"
+        elif cmp -s "$heartbeat_before" "$heartbeat_latest"; then
+            qa_pass "mesh-heartbeat.sh --plan does not overwrite exports/mesh/latest.json"
+        else
+            qa_fail "mesh-heartbeat.sh --plan does not overwrite exports/mesh/latest.json"
+        fi
+
+        if [[ "$heartbeat_had_latest" == true ]]; then
+            cp "$heartbeat_backup" "$heartbeat_latest"
+        else
+            rm -f "$heartbeat_latest"
+        fi
+
+        rm -f "$heartbeat_before"
+        rm -f "$heartbeat_backup"
     fi
 
     # -----------------------------------------------------------------------
