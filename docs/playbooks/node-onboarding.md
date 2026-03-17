@@ -125,7 +125,18 @@ If anything looks wrong, correct it before proceeding. Do not apply a config you
 
 ### Step 7 — Write the node to the inventory (draft)
 
-Add the node to `inventories/mesh-nodes.yaml` in draft status:
+Add the node to `inventories/mesh-nodes.yaml` in draft status. This draft should contain only the durable facts that a live read cannot infer safely on its own:
+
+- site
+- human-readable node name
+- SSH-reachable hostname or management IP
+- hardware model
+- intended role
+- any physical notes that matter for maintenance
+
+Live status, reachability, topology membership, and recent collection timestamps should come from `mesh-readonly` snapshots after the node is reachable.
+
+Draft example:
 
 ```yaml
 - hostname: escola-ap-01

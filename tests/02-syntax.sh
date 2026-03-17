@@ -25,6 +25,9 @@ run_syntax_checks() {
         scripts/bootstrap.sh
         scripts/doctor.sh
         scripts/activate-workspace.sh
+        scripts/discover-from-thisnode.sh
+        scripts/mesh-heartbeat.sh
+        skills/mesh-readonly/scripts/run-mesh-readonly.sh
         skills/mesh-rollout/scripts/run-rollout.sh
         skills/mesh-rollout/scripts/stage-upgrade.sh
         skills/mesh-rollout/scripts/validate-node.sh

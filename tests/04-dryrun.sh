@@ -107,7 +107,52 @@ run_dryrun_checks() {
     fi
 
     # -----------------------------------------------------------------------
-    qa_section "E. normalize.py — stdin JSON normalization"
+    qa_section "E. mesh-readonly runner --plan — inventory selection only"
+    # -----------------------------------------------------------------------
+
+    local mesh_runner="$WORKSPACE_ROOT/skills/mesh-readonly/scripts/run-mesh-readonly.sh"
+    if [[ ! -x "$mesh_runner" ]]; then
+        qa_skip "mesh-readonly runner --plan" "runner script missing or not executable"
+    else
+        assert_exit_zero "mesh-readonly runner --plan exits cleanly without touching routers" \
+            timeout 15 bash "$mesh_runner" --plan
+    fi
+
+    # -----------------------------------------------------------------------
+    qa_section "F. mesh-heartbeat.sh --plan — scheduled collection without live reads"
+    # -----------------------------------------------------------------------
+
+    local mesh_heartbeat="$WORKSPACE_ROOT/scripts/mesh-heartbeat.sh"
+    if [[ ! -x "$mesh_heartbeat" ]]; then
+        qa_skip "mesh-heartbeat.sh --plan" "heartbeat script missing or not executable"
+    else
+        assert_exit_zero "mesh-heartbeat.sh --plan exits cleanly without touching routers" \
+            timeout 15 bash "$mesh_heartbeat" --plan
+    fi
+
+    # -----------------------------------------------------------------------
+    qa_section "G. discover-from-thisnode.sh --plan — bootstrap discovery without live reads"
+    # -----------------------------------------------------------------------
+
+    local discover_thisnode="$WORKSPACE_ROOT/scripts/discover-from-thisnode.sh"
+    if [[ ! -x "$discover_thisnode" ]]; then
+        qa_skip "discover-from-thisnode.sh --plan" "discovery script missing or not executable"
+    else
+        assert_exit_zero "discover-from-thisnode.sh --plan exits cleanly without touching routers" \
+            timeout 15 bash "$discover_thisnode" --plan
+
+        local discover_plan_out
+        discover_plan_out="$(mktemp)"
+        timeout 15 bash "$discover_thisnode" --plan > "$discover_plan_out"
+        assert_contains "$discover_plan_out" '"latest_gateway_candidate"' \
+            "discover-from-thisnode.sh --plan reports the gateway candidate output path"
+        assert_contains "$discover_plan_out" '"target_host": "thisnode.info"' \
+            "discover-from-thisnode.sh --plan stays scoped to thisnode.info"
+        rm -f "$discover_plan_out"
+    fi
+
+    # -----------------------------------------------------------------------
+    qa_section "H. normalize.py — stdin JSON normalization"
     # -----------------------------------------------------------------------
     # normalize.py reads JSON from stdin.
     # An empty array [] is valid: the script outputs [] and exits 0.
@@ -153,7 +198,7 @@ run_dryrun_checks() {
     fi
 
     # -----------------------------------------------------------------------
-    qa_section "F. Telegram health.mjs — environment-aware health check"
+    qa_section "I. Telegram health.mjs — environment-aware health check"
     # -----------------------------------------------------------------------
     # health.mjs does NOT start an HTTP server; it runs checks and exits.
     # Without TELEGRAM_BOT_TOKEN it reports check failures and exits 1.

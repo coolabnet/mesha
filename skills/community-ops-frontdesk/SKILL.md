@@ -108,3 +108,4 @@ These are examples of user messages that trigger this skill:
 5. **Tone**: never alarming, never dismissive. Acknowledge concern, explain the next step, keep the user informed.
 6. **Offline behavior**: if the specialist skill is unavailable, the frontdesk should explain this and suggest manual steps from the playbooks if available.
 7. **Language**: respond in the language the user wrote in, or in the community's configured default language if ambiguous.
+8. **Current-status queries must trigger live reads**: when the user asks for the current status of the mesh, the frontdesk must wait for a fresh `mesh-readonly` run and must not answer from inventory example data alone.

@@ -1,7 +1,7 @@
 # MEMORY.md — Mesha Memory Model and Knowledge Storage
 
 Source of truth: `BOOTSTRAP.md`
-Last updated: 2026-03-16
+Last updated: 2026-03-17
 
 ---
 
@@ -17,13 +17,14 @@ All memory in this workspace is stored as files in the repository. There is no s
 
 ### 1. Inventory — What exists
 
-Inventories describe the current known state of the physical and logical infrastructure.
+Inventories describe the durable identity and known structure of the physical and logical infrastructure.
+They are seeded manually once, then supplemented by machine-generated observations.
 
 **Location:** `inventories/`
 
 | File | Contents |
 |------|----------|
-| `inventories/mesh-nodes.yaml` | All known router nodes: name, site, hardware model, IP, firmware version, role, last-seen status |
+| `inventories/mesh-nodes.yaml` | All known router nodes: name, site, hardware model, SSH target, firmware baseline, role, curated notes, and optional cached observation fields |
 | `inventories/sites.yaml` | All known sites: name, location, notes, node list, site contact |
 | `inventories/gateways.yaml` | Gateway nodes and uplinks: ISP, bandwidth, backup path, current status |
 | `inventories/local-services.yaml` | All locally hosted services: name, host, port/domain, status, owner |
@@ -31,13 +32,43 @@ Inventories describe the current known state of the physical and logical infrast
 
 **Update rules:**
 - Inventories are updated by `knowledge-curator` after any approved change
-- `mesh-collector` may update node last-seen timestamps automatically after reads
-- Inventories must never reflect a desired state — they reflect actual current state
+- Inventories hold durable context that cannot be discovered safely from telemetry alone: site names, local contacts, physical notes, ownership, and intended node roles
+- `mesh-collector` may refresh observation fields such as last-seen timestamps after reads, but should not invent site metadata or governance context
+- Inventories must never reflect a desired state — they reflect actual known structure and confirmed facts
 - When a node is decommissioned, it is marked inactive, not deleted
 
+**Seed vs. refresh:**
+- Seed manually once: node names, SSH targets, site mapping, hardware model, gateway identity, uplink notes, local contacts
+- Refresh automatically: reachability, collected-at timestamp, cached snapshot, firmware version observed from the node
+- If a field comes from live reads and may change often, prefer storing it in `exports/` snapshots and syncing it back into inventory only when that improves long-term clarity
+
 **Freshness:**
-- Node status fields may be stale. Each node entry should include a `last_updated` timestamp.
+- Node status fields may be stale.
+- If an inventory entry includes cached observed fields, it should also include a `last_updated` timestamp.
 - Agents must check freshness before relying on inventory data for planning.
+
+---
+
+### 1A. Observed Snapshots — What the system last saw
+
+Observed snapshots are machine-generated records from live adapters and heartbeat runs.
+They are the preferred cached source for recent status when live reads are unavailable.
+
+**Location:** `exports/`
+
+| File | Contents |
+|------|----------|
+| `exports/mesh/latest.json` | Most recent full mesh heartbeat snapshot |
+| `exports/mesh/snapshots/*.json` | Timestamped historical mesh snapshots for comparison and audit |
+
+**Update rules:**
+- Snapshots are written automatically by read-only collectors and heartbeat jobs
+- Snapshots may be overwritten or rotated; they are runtime artifacts, not curated knowledge
+- Agents should prefer a fresh live read first, then a recent snapshot, and only then fall back to inventory status fields
+
+**Freshness:**
+- A snapshot is cached operational state, not a source of truth for site identity
+- If `exports/mesh/latest.json` is older than the local heartbeat interval, agents should say it is stale before relying on it
 
 ---
 
@@ -278,8 +309,8 @@ An agent must not diagnose a problem without first checking whether the incident
 
 Memory is only useful if it is accurate. The following rules apply:
 
-- Every inventory entry must have a `last_updated` field
-- If `last_updated` is more than 7 days ago for a node, the agent should flag this before relying on it for planning
+- If an inventory entry includes cached observed fields, it should include a `last_updated` field
+- If `last_updated` is more than 7 days ago for a cached node status, the agent should flag this before relying on it for planning
 - After any approved change, `knowledge-curator` is responsible for updating the relevant inventory and log within the same session
 - If a file is missing that should exist (e.g., no site notes for a site with known recurring problems), `knowledge-curator` should flag this and propose creating it
 
@@ -288,5 +319,5 @@ Memory is only useful if it is accurate. The following rules apply:
 ## What memory does not include
 
 - Secrets, credentials, or keys — these must never appear in workspace files
-- Live telemetry — real-time metrics are not stored here; only normalized snapshots when relevant
+- Live telemetry streams — this workspace stores normalized snapshots and cached heartbeat outputs, not a permanent time-series database
 - Cloud or external state — this workspace only stores what is local and community-controlled

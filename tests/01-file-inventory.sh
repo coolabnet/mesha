@@ -85,12 +85,15 @@ run_file_inventory() {
     check_file "scripts/bootstrap.sh"    exec
     check_file "scripts/doctor.sh"       exec
     check_file "scripts/activate-workspace.sh" exec
+    check_file "scripts/discover-from-thisnode.sh" exec
+    check_file "scripts/mesh-heartbeat.sh" exec
     check_file "scripts/bootstrap.mjs"
     check_file "scripts/bootstrap.ps1"
 
     # -----------------------------------------------------------------------
     qa_section "Mesh-rollout scripts"
     # -----------------------------------------------------------------------
+    check_file "skills/mesh-readonly/scripts/run-mesh-readonly.sh" exec
     check_file "skills/mesh-rollout/scripts/run-rollout.sh"   exec
     check_file "skills/mesh-rollout/scripts/stage-upgrade.sh" exec
     check_file "skills/mesh-rollout/scripts/validate-node.sh" exec

@@ -38,7 +38,38 @@ It runs on community-controlled hardware, works offline when needed, and keeps r
 
 ## Quick Start
 
-Get Mesha running in under 5 minutes on Linux, macOS, or Windows (WSL2).
+Get Mesha installed quickly on Linux, macOS, or Windows (WSL2).
+
+For a real deployment, think in two phases:
+- seed the inventories once with real node targets and site context
+- let the heartbeat refresh live status under `exports/`
+
+### First Real Mesh Status
+
+If you are a new maintainer and want the shortest path to the first real mesh status result, use this checklist:
+
+```bash
+# 1. Validate and activate the workspace
+bash scripts/doctor.sh
+bash scripts/activate-workspace.sh
+
+# 2. If connected to LibreMesh, bootstrap from thisnode.info
+bash scripts/discover-from-thisnode.sh --plan
+bash scripts/discover-from-thisnode.sh
+
+# 3. Review and merge the candidate files into inventories/
+#    exports/discovery/latest-candidate-node.yaml
+#    exports/discovery/latest-candidate-gateway.yaml
+
+# 4. Verify the normal live mesh reader
+bash skills/mesh-readonly/scripts/run-mesh-readonly.sh --plan
+bash skills/mesh-readonly/scripts/run-mesh-readonly.sh
+
+# 5. Start recurring cached snapshots
+bash scripts/mesh-heartbeat.sh
+```
+
+If you are not connected to LibreMesh yet, skip step 2 and seed `inventories/` manually from your real node targets.
 
 ### Prerequisites
 
@@ -200,13 +231,22 @@ bash scripts/activate-workspace.sh
 ### Start Using Mesha
 
 ```bash
-# Workspace is now active. Use the activation prompt from BOOTSTRAP.md:
-cat BOOTSTRAP.md | grep -A 50 "## Activation"
+# Workspace is now active. Paste the activation prompt printed by:
+bash scripts/activate-workspace.sh
 
-# Or start with read-only queries:
-bash adapters/mesh/collect-nodes.sh
-bash adapters/server/collect-health.sh
+# Optional LibreMesh bootstrap if the current node answers to thisnode.info:
+bash scripts/discover-from-thisnode.sh --plan
+bash scripts/discover-from-thisnode.sh
+
+# Review and merge candidate inventory data, then test live reads:
+bash skills/mesh-readonly/scripts/run-mesh-readonly.sh --plan
+bash skills/mesh-readonly/scripts/run-mesh-readonly.sh
+
+# Start recurring cached snapshots:
+bash scripts/mesh-heartbeat.sh
 ```
+
+`inventories/` is the human-maintained source for identity and site context. `exports/mesh/latest.json` is the machine-managed cached status written by heartbeat runs.
 
 ### Example Conversations
 

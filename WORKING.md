@@ -86,12 +86,13 @@ The following questions must be answered by a maintainer before the system can b
 
 ## Known Gaps at This Time
 
-- All inventories contain example/stub data. Real node IPs, site names, firmware versions, and service details must be added by a maintainer who knows the environment.
+- All inventories contain example/stub data. Real node connection targets, site names, firmware baselines, and service details must be added by a maintainer who knows the environment.
 - No secrets or credentials have been configured. The system cannot connect to any router or server until `secrets/` is populated per `secrets/README.md`.
 - `logs/` directory does not exist yet — it is created on first approved write action. Subdirectories needed: `logs/incidents/`, `logs/maintenance/`, `logs/decisions/`, `logs/channel-errors/`.
 - `exports/` directory does not exist yet — it is created when the first snapshot is exported.
 - The Telegram adapter (`adapters/channels/telegram/`) requires a bot token in `secrets/telegram.env` before it can operate.
 - No live infrastructure data has been collected. All desired-state files are stubs.
+- Recurring read-only collection is available through `bash scripts/mesh-heartbeat.sh`, but it still needs either a seed inventory or explicit targets to connect to real routers.
 
 ---
 

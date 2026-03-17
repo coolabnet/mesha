@@ -4,6 +4,13 @@
 
 By the end of this guide, the system will be running and you will be able to inspect your mesh and local server safely.
 
+The shortest successful onboarding path is:
+1. Install the workspace and confirm OpenClaw runs.
+2. Seed the inventories once with real node targets and site context.
+3. Verify SSH access manually to one router.
+4. Start a recurring heartbeat that writes fresh snapshots under `exports/`.
+5. Let chat queries use live reads first and heartbeat snapshots as cached fallback.
+
 ---
 
 ## Before You Start
@@ -133,6 +140,77 @@ bash scripts/doctor.sh
 ```
 
 The doctor script checks that all prerequisites are installed and that the workspace structure looks correct. Fix any items it flags before continuing. If it warns that `logs/` or `exports/` are missing, run `bash scripts/activate-workspace.sh` once and then re-run the doctor.
+
+### Step 11 — Seed the mesh inventory once
+
+Before the operator can read your real mesh, replace the example entries in:
+
+- `inventories/mesh-nodes.yaml`
+- `inventories/gateways.yaml`
+- `inventories/sites.yaml`
+
+Minimum required seed data:
+
+- `mesh-nodes.yaml`: stable node name, SSH target in `hostname`, site, hardware model, role
+- `gateways.yaml`: which node is a gateway and which SSH target should be used for topology reads
+- `sites.yaml`: human site names, access notes, local contacts
+
+Important: in this workspace, the `hostname` field is the actual connection target used by live mesh reads. If your DNS is not set up, use the management IP instead of a hostname.
+
+### Step 12 — Verify SSH outside the operator
+
+Test at least one real node manually before relying on chat:
+
+```bash
+ssh root@<real-node-target>
+```
+
+If SSH does not work here, the operator will not be able to collect live state either.
+
+Optional shortcut on LibreMesh:
+
+If you are already connected to the mesh LAN or Wi-Fi and the local node responds to `thisnode.info`, you can bootstrap discovery before finishing the full inventory:
+
+```bash
+bash scripts/discover-from-thisnode.sh --plan
+bash scripts/discover-from-thisnode.sh
+```
+
+This writes machine-observed draft data under `exports/discovery/`. Review that output and use it to fill `inventories/mesh-nodes.yaml` and `inventories/gateways.yaml`. Do not treat discovery output as a replacement for site names, contacts, or physical notes.
+
+The discovery script writes both:
+
+- `exports/discovery/latest-candidate-node.yaml`
+- `exports/discovery/latest-candidate-gateway.yaml`
+
+Only merge the gateway candidate if the discovered node is truly a gateway.
+
+### Step 13 — Start recurring heartbeat snapshots
+
+Run the mesh heartbeat script on the primary ops host at your preferred interval:
+
+```bash
+bash scripts/mesh-heartbeat.sh
+```
+
+This writes machine-managed cached state under:
+
+- `exports/mesh/latest.json`
+- `exports/mesh/snapshots/*.json`
+
+Recommended cadence:
+
+- Small mesh: every 10 minutes
+- Larger or unstable mesh: every 5 minutes
+- Battery-sensitive or bandwidth-limited mesh: every 15 minutes
+
+Example cron entry:
+
+```cron
+*/10 * * * * cd /path/to/mesha && bash scripts/mesh-heartbeat.sh >> /tmp/mesha-heartbeat.log 2>&1
+```
+
+The heartbeat should refresh live status automatically. The inventories remain the human-curated source for identity, site context, and topology intent.
 
 ---
 

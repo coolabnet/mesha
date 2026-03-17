@@ -53,6 +53,17 @@ This skill never writes to routers. It is the primary visibility tool for the co
 - **Drift report** (when applicable): list of nodes or settings that differ from desired state, with description of each difference.
 - **Recommended next steps**: if issues found, list the smallest safe actions to investigate or resolve (may include routing to `incident-triage` or flagging for `mesh-rollout` approval).
 
+## Execution Workflow
+
+1. For any request about current mesh status, current topology, live node reachability, weak links, or gateway health, run `bash skills/mesh-readonly/scripts/run-mesh-readonly.sh` before answering.
+2. For a request scoped to one inventoried node, run `bash skills/mesh-readonly/scripts/run-mesh-readonly.sh --hostname <inventory-hostname>`.
+3. If the operator host is already on a LibreMesh node that exposes `thisnode.info`, run `bash scripts/discover-from-thisnode.sh` locally to generate draft bootstrap artifacts under `exports/discovery/`.
+4. Use `--plan` only to verify which inventory targets would be queried. Never present `--plan` output as live state.
+5. Treat `inventories/mesh-nodes.yaml` and `inventories/gateways.yaml` as reference inputs only. They are not current status by themselves.
+6. If the live runner returns no reachable nodes, say that clearly. Do not fall back to inventory example data as if it were a fresh mesh snapshot.
+7. If live collection is unavailable and `exports/mesh/latest.json` exists, you may use it as a cached snapshot only if you label it clearly as cached and mention its collection timestamp.
+8. For unattended recurring collection, use `bash scripts/mesh-heartbeat.sh` on the ops host and read `exports/mesh/latest.json` as the cached last-known snapshot.
+
 ---
 
 ## Risk Class
@@ -87,6 +98,7 @@ No approval required. This skill may be triggered directly by the frontdesk or b
 3. **Timestamp all snapshots**: every snapshot must include a `collected_at` field. Stale data must not be presented as current.
 4. **Physical-world inference**: when link quality is poor, include a plain-language hypothesis about the physical cause (obstruction, distance, interference, power instability). Mark it as a hypothesis, not a confirmed fact.
 5. **Graceful degradation**: if a node is unreachable, mark it as unreachable in the snapshot and proceed with the rest. Do not abort the entire inspection because one node is down.
-6. **Offline operation**: the skill must be able to return the last known snapshot from local inventory even when live router access is unavailable. Label such data clearly as cached.
+6. **Offline operation**: the skill should prefer `exports/mesh/latest.json` as the cached last-known snapshot when live router access is unavailable. Only fall back to inventory files when no cached snapshot exists, and label the result clearly as stale reference data.
 7. **Scope limiting**: if given a specific node or site, scope the inspection to that target. Do not unnecessarily query the entire network for a single-node request.
 8. **No speculation in the human summary**: separate "confirmed findings" from "possible causes" clearly in output.
+9. **No inventory-as-status**: inventory `status` fields are not authoritative live health. They may be stale or example data. Use the live runner first whenever the user asks for current status.
