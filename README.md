@@ -53,7 +53,7 @@ ssh client
 docker
 docker-compose
 python3
-node.js 18+
+node.js 22+
 jq
 ```
 
@@ -86,10 +86,10 @@ ls -la logs/ exports/
 
 **Expected output:** You should see test results similar to:
 ```
-PASS: 217   FAIL: 0   SKIP: 14
+PASS: 219   FAIL: 0   SKIP: 14
 ```
 
-If tests fail, see [docs/troubleshooting.md](docs/troubleshooting.md) for help.
+If tests fail, see [docs/troubleshooting.md](docs/troubleshooting.md#section-5--installation-and-environment-setup) for help.
 
 ---
 
@@ -190,7 +190,7 @@ bash scripts/activate-workspace.sh
 |---------|----------|
 | `bash scripts/bootstrap.sh` fails with "permission denied" | Run `chmod +x scripts/*.sh tests/*.sh` |
 | Docker socket permission error | Add your user to the docker group: `sudo usermod -aG docker $USER` |
-| WSL2 networking issues | See [docs/troubleshooting.md](docs/troubleshooting.md#wsl2-networking) |
+| WSL2 networking issues | See [docs/troubleshooting.md](docs/troubleshooting.md#53-wsl2-networking-issues) |
 | Tests FAIL on fresh install | This is normal — most failures are "service not running". See docs/troubleshooting.md |
 
 ---

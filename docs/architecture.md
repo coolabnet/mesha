@@ -200,7 +200,7 @@ Channel adapters are the outermost layer — they bridge external messaging plat
 **Implemented:**
 - `adapters/channels/telegram/` — Telegram Bot API adapter (long-polling or webhook, trust level assignment by user ID, Docker Compose deployment). See `adapters/channels/telegram/README.md`.
 
-**Planned (stubs only):**
+**Planned (future implementation):**
 - `adapters/channels/whatsapp/` — WhatsApp Business API adapter
 - `adapters/channels/web-dashboard/` — Local web interface adapter
 

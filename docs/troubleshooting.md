@@ -375,8 +375,8 @@ cat inventories/local-services.yaml
 **Fix:**
 
 1. If files are empty or missing, they need to be populated. Use the `knowledge-curator` skill or fill them in manually following the YAML format in each file.
-2. If the data is there but not being read, check whether the workspace is activated and pointing at the correct directory.
-3. Make sure the workspace path in OpenClaw matches the `mesha` repo path.
+2. If the data is there but not being read, check whether OpenClaw is configured to use the correct workspace directory.
+3. Confirm the workspace path in OpenClaw matches the `mesha` repo path: `openclaw config get agents.defaults.workspace`.
 
 ---
 

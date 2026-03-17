@@ -47,6 +47,7 @@ __pycache__/
 .venv/
 venv/
 
-# Temporary files
+# Temporary files and local data
 *.tmp
 *.bak
+.superset/

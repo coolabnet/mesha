@@ -33,20 +33,20 @@ User message
 ### WhatsApp Business API
 
 - **Type:** WhatsApp Business (via official Meta Cloud API or a compatible bridge)
-- **Status:** Stub (Phase 2 — not yet implemented)
+- **Status:** Planned for future implementation
 - **API:** Meta Cloud API or self-hosted bridge (e.g., whatsapp-web.js, Baileys)
 - **Trust level:** Depends on sender and group (see trust model below)
 - **Notes:** The official API requires a Meta Business account and phone number registration. An unofficial bridge (Baileys or similar) can be used for personal accounts but is not officially supported by Meta and carries terms-of-service risk.
-- **Stub location:** `adapters/channels/whatsapp/` (to be created in Phase 2)
+- **Location:** `adapters/channels/whatsapp/` (to be created)
 
 ### Local Web Dashboard
 
 - **Type:** Local HTTP web interface
-- **Status:** Stub (Phase 2 — not yet implemented)
+- **Status:** Planned for future implementation
 - **Delivery:** Web browser on the local network (LAN or mesh)
 - **Trust level:** High — accessible only within the local network or VPN
 - **Notes:** The dashboard would provide a real-time view of mesh and server status, a log viewer, and a simple chat interface to the operator. Homer (`inicio.bairro.local`) provides a read-only version in Phase 1.
-- **Stub location:** `adapters/channels/web-dashboard/` (to be created in Phase 2)
+- **Location:** `adapters/channels/web-dashboard/` (to be created)
 
 ## Trust model per channel
 
@@ -125,8 +125,8 @@ If delivery fails, the adapter must:
 None of the channel adapters have been implemented. The following are stubs only:
 
 - `adapters/channels/telegram/` — directory not yet created
-- `adapters/channels/whatsapp/` — directory not yet created
-- `adapters/channels/web-dashboard/` — directory not yet created
+- `adapters/channels/whatsapp/` — planned for future implementation
+- `adapters/channels/web-dashboard/` — planned for future implementation
 
 The operator can be activated and used directly by calling it from the OpenClaw CLI or by invoking the frontdesk agent directly without a channel adapter. Channel adapters add the messaging platform layer on top.
 

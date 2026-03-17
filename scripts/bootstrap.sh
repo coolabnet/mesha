@@ -3,8 +3,7 @@
 # scripts/bootstrap.sh
 # Mesha Community Infrastructure Operator — Host Bootstrap
 #
-# Checks for required tools, prints install suggestions for anything missing,
-# verifies OpenClaw CLI, and summarizes next steps.
+# Checks for required tools and prints install suggestions for anything missing.
 #
 # Usage:
 #   ./scripts/bootstrap.sh              # check and suggest installs

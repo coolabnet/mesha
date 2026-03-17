@@ -111,7 +111,7 @@ openclaw onboard --workspace .
 
 Follow the prompts. The `--workspace .` flag points OpenClaw at the `mesha` directory you just cloned.
 
-### Step 9 — Activate the workspace
+### Step 9 — Confirm the workspace path
 
 ```bash
 cd ~/community-ops/mesha
@@ -119,12 +119,12 @@ openclaw config set agents.defaults.workspace "$(pwd)"
 openclaw config get agents.defaults.workspace
 ```
 
-If a `scripts/activate-workspace.sh` script has been created in the repo, you can also run:
+If you prefer the repo helper, you can also run:
 ```bash
 bash scripts/activate-workspace.sh
 ```
 
-> Note: The `scripts/` directory and its helper scripts are not yet present in this workspace. They are planned for a future phase (see BOOTSTRAP.md "Rule 5"). Use the manual commands above until those scripts are created.
+This helper creates the local runtime directories under `logs/` and `exports/`, then prints the activation prompt from `BOOTSTRAP.md`.
 
 ### Step 10 — Run the health check
 
@@ -132,9 +132,7 @@ bash scripts/activate-workspace.sh
 bash scripts/doctor.sh
 ```
 
-The doctor script checks that all prerequisites are installed and that the workspace structure looks correct. Fix any items it flags before continuing.
-
-> Note: If `scripts/doctor.sh` does not yet exist, skip to the "Health Check" section below for the equivalent manual checks.
+The doctor script checks that all prerequisites are installed and that the workspace structure looks correct. Fix any items it flags before continuing. If it warns that `logs/` or `exports/` are missing, run `bash scripts/activate-workspace.sh` once and then re-run the doctor.
 
 ---
 
@@ -207,7 +205,7 @@ openclaw onboard --workspace .
 
 The `--workspace .` flag points OpenClaw at the `mesha` directory or merge target described in the Linux steps.
 
-### Step 9 — Activate the workspace
+### Step 9 — Confirm the workspace path
 
 ```bash
 cd ~/community-ops/mesha
@@ -215,12 +213,12 @@ openclaw config set agents.defaults.workspace "$(pwd)"
 openclaw config get agents.defaults.workspace
 ```
 
-If a `scripts/activate-workspace.sh` script has been created in the repo, you can also run:
+If you prefer the repo helper, you can also run:
 ```bash
 bash scripts/activate-workspace.sh
 ```
 
-> Note: See the Linux section note above about the `scripts/` directory status.
+This helper creates the local runtime directories under `logs/` and `exports/`, then prints the activation prompt from `BOOTSTRAP.md`.
 
 ### Step 10 — Run the health check
 
@@ -228,7 +226,7 @@ bash scripts/activate-workspace.sh
 bash scripts/doctor.sh
 ```
 
-> Note: If `scripts/doctor.sh` does not yet exist, use the manual checks in the "Health Check" section below.
+If the doctor warns that `logs/` or `exports/` are missing, run `bash scripts/activate-workspace.sh` once and then re-run the doctor.
 
 ---
 
@@ -323,7 +321,7 @@ cd mesha
 openclaw onboard --workspace .
 ```
 
-### Step 10 — Activate the workspace (inside WSL2)
+### Step 10 — Confirm the workspace path (inside WSL2)
 
 ```bash
 cd ~/community-ops/mesha
@@ -337,7 +335,7 @@ openclaw config get agents.defaults.workspace
 bash scripts/doctor.sh
 ```
 
-> Note: If `scripts/doctor.sh` does not yet exist, use the manual checks in the "Health Check" section below.
+If the doctor warns that `logs/` or `exports/` are missing, run `bash scripts/activate-workspace.sh` once and then re-run the doctor.
 
 ---
 
@@ -361,14 +359,12 @@ The system will respond by:
 
 ## Health Check
 
-> Note: The `scripts/doctor.sh` script is planned but not yet created in this workspace. Use the manual checks below. When the script is created, it will automate these same checks.
-
-The doctor script (when available) can be run with:
+Use the doctor script first:
 ```bash
 bash scripts/doctor.sh
 ```
 
-It will verify:
+It verifies:
 
 - [ ] Git is installed and functional
 - [ ] Node.js 22+ is installed
@@ -380,7 +376,7 @@ It will verify:
 - [ ] Required desired-state files exist
 - [ ] Secrets directory has a README and no committed secrets
 
-**Manual health checks (use these now):**
+If you need to double-check the environment manually, use:
 
 ```bash
 git --version

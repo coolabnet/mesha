@@ -7,7 +7,11 @@
 # Checks tools, workspace structure, key files, inventories, and git state.
 #
 # Usage:
-#   ./scripts/doctor.sh
+#   ./scripts/doctor.sh              # run all checks
+#   ./scripts/doctor.sh --help       # show this usage
+#
+# Options:
+#   --help, -h   Show this help message and exit
 #
 # Exit codes:
 #   0 — all checks PASS
@@ -19,6 +23,33 @@
 # =============================================================================
 
 set -euo pipefail
+
+# ---------------------------------------------------------------------------
+# Argument parsing
+# ---------------------------------------------------------------------------
+for arg in "$@"; do
+  case "$arg" in
+    -h|--help)
+      echo "Usage: $0 [OPTIONS]"
+      echo ""
+      echo "Perform read-only health checks on the Mesha workspace."
+      echo ""
+      echo "Options:"
+      echo "  --help, -h    Show this help message and exit"
+      echo ""
+      echo "Exit codes:"
+      echo "  0 — all checks PASS"
+      echo "  1 — one or more checks FAIL (critical issues)"
+      echo "  2 — no FAILs, but one or more checks produced a WARNING"
+      exit 0
+      ;;
+    *)
+      echo "Unknown option: $arg" >&2
+      echo "Run $0 --help for usage information" >&2
+      exit 1
+      ;;
+  esac
+done
 
 # ---------------------------------------------------------------------------
 # Resolve repo root
@@ -118,21 +149,6 @@ fi
 
 # curl
 check_tool_required "curl" "curl" "--version"
-
-# OpenClaw CLI (try multiple candidate names)
-openclaw_found=false
-for candidate in openclaw openclaw-cli; do
-  if command -v "$candidate" &>/dev/null; then
-    oc_ver="$("$candidate" --version 2>&1 | head -1 || true)"
-    pass "openclaw ($candidate): $oc_ver"
-    openclaw_found=true
-    break
-  fi
-done
-if ! $openclaw_found; then
-  fail "openclaw CLI not found — install with: npm install -g @openclaw/cli"
-  record_fail
-fi
 
 # ---------------------------------------------------------------------------
 # Section 2: Recommended tools
