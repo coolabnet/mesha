@@ -1,0 +1,194 @@
+#!/usr/bin/env bash
+# tests/04-dryrun.sh — Safe dry-run / smoke tests for Mesha scripts and adapters.
+#
+# No network access required. No real routers touched.
+# Scripts are invoked in their safest available mode; tests SKIP when a safe
+# mode is unavailable rather than running with side effects.
+#
+# Usage:
+#   ./tests/04-dryrun.sh
+#   bash tests/04-dryrun.sh
+
+set -uo pipefail
+
+source "$(dirname "${BASH_SOURCE[0]}")/lib.sh"
+
+# ---------------------------------------------------------------------------
+# run_dryrun_checks
+# ---------------------------------------------------------------------------
+
+run_dryrun_checks() {
+
+    # -----------------------------------------------------------------------
+    qa_section "A. doctor.sh — read-only health diagnostics"
+    # -----------------------------------------------------------------------
+    # doctor.sh exit codes:
+    #   0 — all checks pass
+    #   1 — one or more critical failures  (e.g. openclaw not installed)
+    #   2 — warnings only (e.g. missing optional tools or runtime dirs)
+    # All three are valid outcomes on a baseline system; only a crash (rc>=3)
+    # or a bash syntax/parse error (rc=127) would indicate a real problem.
+
+    timeout 30 bash "$WORKSPACE_ROOT/scripts/doctor.sh" > /tmp/qa_doctor.out 2>&1
+    local rc=$?
+    if [[ $rc -eq 0 || $rc -eq 1 || $rc -eq 2 ]]; then
+        qa_pass "doctor.sh runs cleanly without crashing (rc=$rc)"
+    elif [[ $rc -eq 124 ]]; then
+        qa_fail "doctor.sh timed out after 30 seconds"
+    else
+        qa_fail "doctor.sh crashed with unexpected rc=$rc"
+        qa_info  "Output tail: $(tail -5 /tmp/qa_doctor.out 2>/dev/null || true)"
+    fi
+
+    # -----------------------------------------------------------------------
+    qa_section "B. bootstrap.sh --check-only — read-only prerequisite check"
+    # -----------------------------------------------------------------------
+    # bootstrap.sh supports --check-only (confirmed in source).
+    # In that mode it checks tools and prints suggestions but makes NO changes.
+    # Exit 0 = all required tools present; exit 1 = missing required tools.
+    # Both are acceptable outcomes here.
+
+    timeout 30 bash "$WORKSPACE_ROOT/scripts/bootstrap.sh" --check-only \
+        > /tmp/qa_bootstrap.out 2>&1
+    local brc=$?
+    if [[ $brc -eq 0 || $brc -eq 1 ]]; then
+        qa_pass "bootstrap.sh --check-only runs cleanly (rc=$brc)"
+    elif [[ $brc -eq 124 ]]; then
+        qa_fail "bootstrap.sh --check-only timed out"
+    else
+        qa_fail "bootstrap.sh --check-only crashed with unexpected rc=$brc"
+        qa_info  "Output tail: $(tail -5 /tmp/qa_bootstrap.out 2>/dev/null || true)"
+    fi
+
+    # -----------------------------------------------------------------------
+    qa_section "C. activate-workspace.sh — side-effect analysis"
+    # -----------------------------------------------------------------------
+    # activate-workspace.sh has no --dry-run or --check-only flag.
+    # It creates runtime directories (logs/incidents, logs/maintenance,
+    # logs/decisions, exports) and prints an activation prompt.
+    # Running it here would create those directories as side effects on any
+    # host; skip in a clean QA environment to preserve test isolation.
+
+    qa_skip "activate-workspace.sh" \
+        "no dry-run flag available — creates runtime directories as side effects (logs/, exports/)"
+
+    # -----------------------------------------------------------------------
+    qa_section "D. run-rollout.sh --dry-run — rollout plan without changes"
+    # -----------------------------------------------------------------------
+    # run-rollout.sh requires:
+    #   --firmware-url  (mandatory; triggers usage() and exit 1 if absent)
+    #   --dry-run       prints plan and exits 0 — no SSH, no node changes
+    # It also checks:
+    #   - desired-state/mesh/community-profile/rollout-policy.yaml  (must exist)
+    #   - inventories/mesh-nodes.yaml                               (must exist)
+    #   - skills/mesh-rollout/scripts/stage-upgrade.sh              (must be executable)
+    #   - skills/mesh-rollout/scripts/validate-node.sh              (must be executable)
+    # All of those files should be present in the repo per 01-file-inventory.sh.
+
+    local policy_file="$WORKSPACE_ROOT/desired-state/mesh/community-profile/rollout-policy.yaml"
+    local inventory_file="$WORKSPACE_ROOT/inventories/mesh-nodes.yaml"
+    local stage_upgrade="$WORKSPACE_ROOT/skills/mesh-rollout/scripts/stage-upgrade.sh"
+    local validate_node="$WORKSPACE_ROOT/skills/mesh-rollout/scripts/validate-node.sh"
+
+    if [[ ! -f "$policy_file" ]]; then
+        qa_skip "run-rollout.sh --dry-run" "rollout-policy.yaml not found — run 01-file-inventory first"
+    elif [[ ! -f "$inventory_file" ]]; then
+        qa_skip "run-rollout.sh --dry-run" "mesh-nodes.yaml not found — run 01-file-inventory first"
+    elif [[ ! -x "$stage_upgrade" ]]; then
+        qa_skip "run-rollout.sh --dry-run" "stage-upgrade.sh missing or not executable"
+    elif [[ ! -x "$validate_node" ]]; then
+        qa_skip "run-rollout.sh --dry-run" "validate-node.sh missing or not executable"
+    else
+        assert_exit_zero "run-rollout.sh --dry-run exits cleanly with a dummy firmware URL" \
+            timeout 15 bash \
+                "$WORKSPACE_ROOT/skills/mesh-rollout/scripts/run-rollout.sh" \
+                --firmware-url "/tmp/qa-dummy-firmware.bin" \
+                --dry-run
+    fi
+
+    # -----------------------------------------------------------------------
+    qa_section "E. normalize.py — stdin JSON normalization"
+    # -----------------------------------------------------------------------
+    # normalize.py reads JSON from stdin.
+    # An empty array [] is valid: the script outputs [] and exits 0.
+    # A single node object is also valid; we test both forms.
+
+    if ! check_command python3; then
+        qa_skip "normalize.py empty-array input" "python3 not available"
+        qa_skip "normalize.py single-node object input" "python3 not available"
+    else
+        # Test 1: empty array — should produce "[]" on stdout, exit 0
+        local norm_out
+        norm_out="$(echo '[]' | timeout 5 python3 \
+            "$WORKSPACE_ROOT/adapters/mesh/normalize.py" 2>/dev/null)"
+        local norm_rc=$?
+        if [[ $norm_rc -eq 0 ]]; then
+            qa_pass "normalize.py accepts empty JSON array (rc=0)"
+        else
+            qa_fail "normalize.py returned rc=$norm_rc for empty array input"
+        fi
+
+        # Test 2: minimal node object — should normalize and exit 0
+        local node_json='{"hostname":"test-node","firmware":"23.05","status":"online","role":"gateway","site":"escola"}'
+        local norm2_out
+        norm2_out="$(echo "$node_json" | timeout 5 python3 \
+            "$WORKSPACE_ROOT/adapters/mesh/normalize.py" 2>/dev/null)"
+        local norm2_rc=$?
+        if [[ $norm2_rc -eq 0 ]]; then
+            qa_pass "normalize.py normalizes a single node object (rc=0)"
+        else
+            qa_fail "normalize.py returned rc=$norm2_rc for single-node object"
+        fi
+
+        # Test 3: invalid JSON — should exit 1 (not crash)
+        local bad_out
+        bad_out="$(echo 'not-json' | timeout 5 python3 \
+            "$WORKSPACE_ROOT/adapters/mesh/normalize.py" 2>/dev/null)"
+        local bad_rc=$?
+        if [[ $bad_rc -eq 1 ]]; then
+            qa_pass "normalize.py exits 1 on invalid JSON input (not a crash)"
+        else
+            qa_fail "normalize.py returned rc=$bad_rc for invalid JSON — expected 1"
+        fi
+    fi
+
+    # -----------------------------------------------------------------------
+    qa_section "F. Telegram health.mjs — environment-aware health check"
+    # -----------------------------------------------------------------------
+    # health.mjs does NOT start an HTTP server; it runs checks and exits.
+    # Without TELEGRAM_BOT_TOKEN it reports check failures and exits 1.
+    # Exit 1 (checks failed) is expected and safe; exit 0 would mean a real
+    # token was present in the environment.
+    # The script is safe to invoke in any environment.
+
+    if ! check_command node; then
+        qa_skip "Telegram health.mjs" "node not available"
+    else
+        # Run without env vars — expect check failures (rc=1) or all-pass (rc=0)
+        TELEGRAM_BOT_TOKEN="" OPERATOR_ENDPOINT="" \
+            timeout 15 node "$WORKSPACE_ROOT/adapters/channels/telegram/health.mjs" \
+            > /tmp/qa_telegram_health.out 2>&1
+        local trc=$?
+        if [[ $trc -eq 0 ]]; then
+            # All checks passed — a real token must be set in the environment
+            qa_pass "Telegram health.mjs completed all checks (rc=0)"
+        elif [[ $trc -eq 1 ]]; then
+            # Expected: TELEGRAM_BOT_TOKEN not set → check failures → rc=1
+            qa_pass "Telegram health.mjs runs and exits cleanly without credentials (rc=1 expected)"
+        elif [[ $trc -eq 124 ]]; then
+            qa_fail "Telegram health.mjs timed out after 15 seconds"
+        else
+            qa_fail "Telegram health.mjs crashed with unexpected rc=$trc"
+            qa_info  "Output: $(cat /tmp/qa_telegram_health.out 2>/dev/null | head -10 || true)"
+        fi
+    fi
+
+}
+
+# ---------------------------------------------------------------------------
+# Entry point
+# ---------------------------------------------------------------------------
+if [[ "${BASH_SOURCE[0]}" == "${0}" ]]; then
+    run_dryrun_checks
+    qa_summary
+fi
