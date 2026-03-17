@@ -219,7 +219,7 @@ if (!openclawFound) {
   missingRequired.push('openclaw');
   info('Install (requires Node.js 22+ first):  npm install -g @openclaw/cli');
   info('Then verify with:                       openclaw --version');
-  info('Run onboarding with:                    openclaw init');
+  info('Run onboarding with:                    openclaw onboard --workspace .');
 }
 
 // ---------------------------------------------------------------------------

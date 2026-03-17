@@ -304,7 +304,7 @@ curl https://api.telegram.org/bot<token>/getMe   # Telegram example
 
 **Fix:**
 
-1. **OpenClaw is not running:** restart it: `openclaw start` or the appropriate service command.
+1. **OpenClaw is not running:** restart it: `openclaw gateway --force` or the appropriate service command.
 2. **Channel token expired or revoked:** regenerate the bot token in the channel's admin interface and update it in the local secrets store. Never commit tokens to the repo.
 3. **The ops host lost internet:** if the channel requires internet (e.g., Telegram), the ops host needs network access. Check the host's network.
 4. **The channel is in an untrusted/sandboxed mode:** if the message was sent from a public group, the operator may be intentionally not responding to write requests. This is expected behavior.
@@ -457,7 +457,7 @@ Use this checklist when something is broken and you are not sure where to start:
 
 - [ ] Is the ops host powered on and connected to the network?
 - [ ] Is OpenClaw running? (`openclaw status`)
-- [ ] Is the workspace activated? (`openclaw workspace list`)
+- [ ] Is the workspace configured? (`openclaw config get agents.defaults.workspace`)
 - [ ] Are the inventory files populated? (`ls inventories/`)
 - [ ] Can you SSH into the affected node or server? (`ssh root@<ip>`)
 - [ ] Is the affected node reachable on the network? (`ping <ip>`)

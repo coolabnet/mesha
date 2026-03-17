@@ -267,7 +267,7 @@ check_openclaw() {
       info "Install OpenClaw via npm (requires Node.js 22+ first):"
       info "  npm install -g @openclaw/cli"
       info "Then verify with: openclaw --version"
-      info "Full onboarding: openclaw init"
+      info "Full onboarding: openclaw onboard --workspace ."
     fi
   fi
 }

@@ -106,16 +106,17 @@ cd mesha
 ### Step 8 — Run OpenClaw onboarding
 
 ```bash
-openclaw init
+openclaw onboard --workspace .
 ```
 
-Follow the prompts. When asked for a workspace path, point it at the `mesha` directory you just cloned, or let OpenClaw create a default workspace first and then copy/link this repo into it.
+Follow the prompts. The `--workspace .` flag points OpenClaw at the `mesha` directory you just cloned.
 
 ### Step 9 — Activate the workspace
 
 ```bash
 cd ~/community-ops/mesha
-openclaw workspace activate .
+openclaw config set agents.defaults.workspace "$(pwd)"
+openclaw config get agents.defaults.workspace
 ```
 
 If a `scripts/activate-workspace.sh` script has been created in the repo, you can also run:
@@ -201,16 +202,17 @@ cd mesha
 ### Step 8 — Run OpenClaw onboarding
 
 ```bash
-openclaw init
+openclaw onboard --workspace .
 ```
 
-Point the workspace path at the `mesha` directory or merge as described in the Linux steps.
+The `--workspace .` flag points OpenClaw at the `mesha` directory or merge target described in the Linux steps.
 
 ### Step 9 — Activate the workspace
 
 ```bash
 cd ~/community-ops/mesha
-openclaw workspace activate .
+openclaw config set agents.defaults.workspace "$(pwd)"
+openclaw config get agents.defaults.workspace
 ```
 
 If a `scripts/activate-workspace.sh` script has been created in the repo, you can also run:
@@ -318,14 +320,15 @@ cd mesha
 ### Step 9 — Run OpenClaw onboarding (inside WSL2)
 
 ```bash
-openclaw init
+openclaw onboard --workspace .
 ```
 
 ### Step 10 — Activate the workspace (inside WSL2)
 
 ```bash
 cd ~/community-ops/mesha
-openclaw workspace activate .
+openclaw config set agents.defaults.workspace "$(pwd)"
+openclaw config get agents.defaults.workspace
 ```
 
 ### Step 11 — Run the health check (inside WSL2)

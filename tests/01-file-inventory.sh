@@ -161,6 +161,57 @@ run_file_inventory() {
         fi
     fi
 
+    # -----------------------------------------------------------------------
+    qa_section "Runtime consistency — no stale OpenClaw references"
+    # -----------------------------------------------------------------------
+    local stale_pattern='claude''-flow|Claude'' Flow|claude'' flow'
+    local branding_targets=(
+        "$WORKSPACE_ROOT/README.md"
+        "$WORKSPACE_ROOT/BOOTSTRAP.md"
+        "$WORKSPACE_ROOT/AGENTS.md"
+        "$WORKSPACE_ROOT/SOUL.md"
+        "$WORKSPACE_ROOT/TOOLS.md"
+        "$WORKSPACE_ROOT/MEMORY.md"
+        "$WORKSPACE_ROOT/WORKING.md"
+        "$WORKSPACE_ROOT/TASKS.md"
+        "$WORKSPACE_ROOT/PROGRESS.md"
+        "$WORKSPACE_ROOT/docs"
+        "$WORKSPACE_ROOT/scripts"
+        "$WORKSPACE_ROOT/tests"
+    )
+    local stale_hits
+    stale_hits="$(
+        LC_ALL=C grep -RInE "$stale_pattern" \
+            --exclude-dir=.git \
+            --exclude-dir=node_modules \
+            --exclude-dir=secrets \
+            "${branding_targets[@]}" 2>/dev/null || true
+    )"
+    if [[ -n "$stale_hits" ]]; then
+        qa_fail "workspace docs and scripts must not contain stale runtime references"
+        qa_info "Matches:"
+        printf '%s\n' "$stale_hits"
+    else
+        qa_pass "workspace docs and scripts contain no stale runtime references"
+    fi
+
+    local stale_command_pattern='openclaw'' start|openclaw'' init|openclaw'' workspace activate|openclaw'' workspace list'
+    local stale_command_hits
+    stale_command_hits="$(
+        LC_ALL=C grep -RInE "$stale_command_pattern" \
+            --exclude-dir=.git \
+            --exclude-dir=node_modules \
+            --exclude-dir=secrets \
+            "${branding_targets[@]}" 2>/dev/null || true
+    )"
+    if [[ -n "$stale_command_hits" ]]; then
+        qa_fail "workspace docs and scripts must not contain obsolete OpenClaw commands"
+        qa_info "Matches:"
+        printf '%s\n' "$stale_command_hits"
+    else
+        qa_pass "workspace docs and scripts contain no obsolete OpenClaw commands"
+    fi
+
 }
 
 # ---------------------------------------------------------------------------
