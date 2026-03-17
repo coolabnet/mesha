@@ -1,7 +1,7 @@
 # AGENTS.md — Mesha Agent Role Boundaries and Orchestration
 
 Source of truth: `BOOTSTRAP.md`
-Last updated: 2026-03-16
+Last updated: 2026-03-17
 
 ---
 
