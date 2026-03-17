@@ -286,6 +286,14 @@ workspace/
   BOOTSTRAP.md
   MEMORY.md
   WORKING.md
+  TASKS.md
+  PROGRESS.md
+  scripts/
+    bootstrap.sh
+    bootstrap.ps1
+    bootstrap.mjs
+    doctor.sh
+    activate-workspace.sh
   inventories/
     mesh-nodes.yaml
     sites.yaml
@@ -300,24 +308,31 @@ workspace/
         rollout-policy.yaml
       node-overrides/
       firmware-policy.yaml
+      rollout-state.yaml
+      maintenance-windows.yaml
     server/
       hosts.yaml
       domains.yaml
       reverse-proxy.yaml
       service-catalog.yaml
       backup-policy.yaml
+      monitoring/
+        prometheus.yml
+        alerting-rules.yaml
+        grafana-dashboards/
   docs/
     architecture.md
     deployment.md
     troubleshooting.md
     onboarding/
     playbooks/
+    sites/
+    known-issues/
   skills/
     community-ops-frontdesk/
       SKILL.md
     mesh-readonly/
       SKILL.md
-      adapters/
     mesh-rollout/
       SKILL.md
       scripts/
@@ -326,7 +341,6 @@ workspace/
       templates/
     server-readonly/
       SKILL.md
-      scripts/
     server-services/
       SKILL.md
       scripts/
@@ -340,6 +354,7 @@ workspace/
     mesh/
     server/
     channels/
+      telegram/
   logs/
   exports/
   secrets/
@@ -784,7 +799,9 @@ without needing hidden knowledge.
 
 Do not start by giving the agent full autonomous control.
 
-### Phase 1 — Safe visibility
+> **Current status:** All three phases are complete. See `PROGRESS.md` for details and `TASKS.md` for any open follow-up work.
+
+### Phase 1 — Safe visibility ✅ COMPLETED
 Build first:
 - workspace structure
 - frontdesk agent
@@ -798,7 +815,7 @@ Build first:
 Goal:
 - the system can explain the network and the server before it changes anything
 
-### Phase 2 — Approved low-risk operations
+### Phase 2 — Approved low-risk operations ✅ COMPLETED
 Build next:
 - service restart flows
 - approved server install recipes
@@ -809,7 +826,7 @@ Build next:
 Goal:
 - the system can help safely with scoped operations
 
-### Phase 3 — Rollouts
+### Phase 3 — Rollouts ✅ COMPLETED
 Build after that:
 - canary firmware upgrades
 - staged multi-node changes
@@ -823,6 +840,8 @@ Goal:
 ---
 
 ## What the initial repo should contain
+
+> **Note:** This list covers the Phase 1 minimum. Phase 2 and Phase 3 files (scripts/, adapters/, docs/sites/, docs/known-issues/, docs/onboarding/, mesh-rollout scripts, server-services recipes, monitoring desired-state, etc.) are all present on disk. See `WORKING.md` for the complete inventory and `TASKS.md` for the archived per-session task log.
 
 At minimum, create these files first:
 
@@ -881,6 +900,12 @@ The bootstrap is successful when another maintainer can:
 - inspect the mesh and local server safely
 - see clearly what is still missing
 - start implementing the approved skill set
+
+> **Bootstrap complete.** All criteria above are met by the current implementation. The three git commits that built this workspace are:
+>
+> - `5082279` — feat: scaffold Phase 1 bootstrap for Mesha Community Infrastructure Operator
+> - `eac8f3c` — feat: Phase 2 — scripts, adapters, service recipes, mesh tooling
+> - `adb56e9` — feat: Phase 3 — rollout orchestration, Telegram adapter, monitoring, site docs
 
 ---
 

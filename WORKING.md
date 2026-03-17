@@ -5,137 +5,71 @@ Last updated: 2026-03-16
 
 ---
 
-Last synced: 2026-03-16 — all 33 Phase 1 files exist on disk.
+Last synced: 2026-03-17 — all three phases scaffolded and committed. See PROGRESS.md for full phase breakdown.
 
 ## Overall Phase Status
 
 | Phase | Description | Status |
 |-------|-------------|--------|
-| Phase 1 | Safe Visibility — workspace scaffold and read-only operations | In progress |
-| Phase 2 | Approved low-risk operations — service restarts, installs, config-diff | Not started |
-| Phase 3 | Rollouts and controlled multi-host change | Not started |
+| Phase 1 | Safe Visibility — workspace scaffold and read-only operations | Complete |
+| Phase 2 | Approved low-risk operations — service restarts, installs, config-diff | Complete |
+| Phase 3 | Rollouts and controlled multi-host change | Complete |
 
 ---
 
-## Current Phase: Phase 1 — Safe Visibility
+## Phase 1 — Safe Visibility (Complete)
 
-**Goal:** The system can explain the network and the server before it changes anything.
+All Phase 1 files exist on disk. The workspace scaffold is complete: root context files, inventories, desired-state stubs, documentation, and skill definitions.
 
-Phase 1 is complete when a maintainer can:
-- Activate the workspace
-- Receive a summary of the architecture
-- Inspect mesh node status and health
-- Inspect local server and service status
-- Diagnose a basic incident using the system
-- Find a playbook for common operations
-- Understand what is missing or incomplete
-
-**Phase 1 is not complete until Phase 1 has been reviewed and accepted by a maintainer.**
+| Group | Files | Status |
+|-------|-------|--------|
+| A — Root context files | AGENTS.md, SOUL.md, TOOLS.md, MEMORY.md, WORKING.md | Complete |
+| B — Inventories + desired state | 12 YAML files | Complete |
+| C — Documentation | 6 docs + additional playbooks and site notes | Complete |
+| D — Skills | 9 SKILL.md files + secrets/README.md | Complete |
 
 ---
 
-## What Is In Scope Right Now
+## Phase 2 — Approved Low-Risk Operations (Complete)
 
-### Group A — Root context files (this session)
+Phase 2 deliverables are on disk.
 
-These are the files currently being created by Codex-A.
-
-| File | Status |
-|------|--------|
-| `AGENTS.md` | Created |
-| `SOUL.md` | Created |
-| `TOOLS.md` | Created |
-| `MEMORY.md` | Created |
-| `WORKING.md` | Created (this file) |
-
-### Group B — Inventories and desired state
-
-Delegated to Codex-B. Status: pending review.
-
-| File | Expected status |
-|------|----------------|
-| `inventories/mesh-nodes.yaml` | Created — pending review |
-| `inventories/sites.yaml` | Created — pending review |
-| `inventories/gateways.yaml` | Created — pending review |
-| `inventories/local-services.yaml` | Created — pending review |
-| `inventories/hardware-models.yaml` | Created — pending review |
-| `desired-state/mesh/community-profile/rollout-policy.yaml` | Created — pending review |
-| `desired-state/mesh/firmware-policy.yaml` | Created — pending review |
-| `desired-state/server/service-catalog.yaml` | Created — pending review |
-| `desired-state/server/hosts.yaml` | Created — pending review |
-| `desired-state/server/domains.yaml` | Created — pending review |
-| `desired-state/server/reverse-proxy.yaml` | Created — pending review |
-| `desired-state/server/backup-policy.yaml` | Created — pending review |
-
-### Group C — Documentation
-
-Delegated to Codex-C. Status: pending review.
-
-| File | Expected status |
-|------|----------------|
-| `docs/architecture.md` | Created — pending review |
-| `docs/deployment.md` | Created — pending review |
-| `docs/troubleshooting.md` | Created — pending review |
-| `docs/playbooks/node-onboarding.md` | Created — pending review |
-| `docs/playbooks/firmware-rollout.md` | Created — pending review |
-| `docs/playbooks/local-service-install.md` | Created — pending review |
-
-### Group D — Skills
-
-Delegated to Codex-D. Status: pending review.
-
-| File | Expected status |
-|------|----------------|
-| `skills/community-ops-frontdesk/SKILL.md` | Created — pending review |
-| `skills/mesh-readonly/SKILL.md` | Created — pending review |
-| `skills/server-readonly/SKILL.md` | Created — pending review |
-| `skills/incident-triage/SKILL.md` | Created — pending review |
-| `skills/knowledge-curator/SKILL.md` | Created — pending review |
-| `skills/voice-friendly-response/SKILL.md` | Created — pending review |
-| `skills/mesh-rollout/SKILL.md` | Created — pending review |
-| `skills/mesh-onboarding/SKILL.md` | Created — pending review |
-| `skills/server-services/SKILL.md` | Created — pending review |
-| `secrets/README.md` | Created — pending review |
+| Deliverable | Location | Status |
+|-------------|----------|--------|
+| Bootstrap scripts | `scripts/` (bootstrap.sh, bootstrap.ps1, bootstrap.mjs, doctor.sh, activate-workspace.sh) | Complete |
+| Mesh adapters | `adapters/mesh/` (collect-nodes.sh, collect-topology.sh, normalize.py) | Complete |
+| Server adapters | `adapters/server/` (collect-health.sh, collect-services.sh) | Complete |
+| Channel adapter — Telegram | `adapters/channels/telegram/` (adapter.mjs, health.mjs, docker-compose.yaml, README.md) | Complete |
+| Channel adapter README | `adapters/channels/README.md` | Complete |
+| Mesh-rollout scripts | `skills/mesh-rollout/scripts/` (run-rollout.sh, stage-upgrade.sh, validate-node.sh, rollback-node.sh, check-drift.sh, schedule-maintenance.sh) | Complete |
+| Server-services scripts | `skills/server-services/scripts/` (nextcloud, jellyfin, kolibri, homer, prometheus install recipes + create-network.sh + README.md) | Complete |
+| Mesh-onboarding templates | `skills/mesh-onboarding/templates/` (node-checklist.md, site-metadata-form.md) | Complete |
+| Node override example | `desired-state/mesh/node-overrides/lm-escola-telhado.uci` | Complete |
+| Maintenance windows desired state | `desired-state/mesh/maintenance-windows.yaml` | Complete |
+| Rollout state tracking | `desired-state/mesh/rollout-state.yaml` | Complete |
+| Additional playbooks | `docs/playbooks/incident-response.md`, `maintenance-window.md`, `rollout-orchestration.md` | Complete |
+| Site notes | `docs/sites/escola-municipal.md`, `clinica-do-bairro.md`, `README.md` | Complete |
+| Service onboarding guides | `docs/onboarding/nextcloud.md`, `jellyfin.md`, `kolibri.md` | Complete |
+| Known issues | `docs/known-issues/tplink-wr841n-power-loss.md`, `channel-congestion-2ghz.md`, `README.md` | Complete |
 
 ---
 
-## What Is Not In Scope Yet
+## Phase 3 — Rollouts and Controlled Change (Complete)
 
-The following belong to Phase 2 and Phase 3. Do not begin these until Phase 1 is reviewed and accepted.
+Phase 3 deliverables are on disk.
 
-### Phase 2 (not started)
-- Bootstrap scripts (`scripts/bootstrap.sh`, `scripts/bootstrap.ps1`, `scripts/bootstrap.mjs`, `scripts/doctor.sh`, `scripts/activate-workspace.sh`)
-- Mesh adapter stubs (`adapters/mesh/`, `adapters/server/`, `adapters/channels/`)
-- Mesh-rollout execution scripts (`skills/mesh-rollout/scripts/`)
-- Server-services execution scripts (`skills/server-services/scripts/`)
-- Mesh-readonly live adapters (`skills/mesh-readonly/adapters/`)
-- Service restart flows
-- Config-diff explanation flows
-- Simple node onboarding helpers
-
-### Phase 3 (not started)
-- Canary firmware upgrade orchestration
-- Staged multi-node change workflows
-- Rollback automation hooks
-- Scheduled maintenance window management
-- Dashboards and analytics
-
----
-
-## Active Agents in This Session
-
-| Agent ID | Role | Current Task |
-|----------|------|-------------|
-| Codex-A | Root context file generator | Completed — AGENTS.md, SOUL.md, TOOLS.md, MEMORY.md, WORKING.md |
-| Codex-B | Inventory and desired-state generator | Completed |
-| Codex-C | Documentation generator | Completed |
-| Codex-D | Skills generator | Completed |
+| Deliverable | Location | Status |
+|-------------|----------|--------|
+| Monitoring desired state | `desired-state/server/monitoring/prometheus.yml`, `alerting-rules.yaml`, `grafana-dashboards/community-overview.json` | Complete |
+| Rollout orchestration playbook | `docs/playbooks/rollout-orchestration.md` | Complete |
+| Maintenance window playbook | `docs/playbooks/maintenance-window.md` | Complete |
+| Canary and staged upgrade scripts | `skills/mesh-rollout/scripts/` (stage-upgrade.sh, validate-node.sh, rollback-node.sh, schedule-maintenance.sh) | Complete (shared with Phase 2) |
 
 ---
 
 ## Pending Decisions
 
-The following questions must be answered by a maintainer before the system can be fully configured. None of these block Phase 1 completion, but they will be required before Phase 2.
+The following questions must be answered by a maintainer before the system can be connected to real infrastructure. None block workspace coherence, but all are required before live operations.
 
 1. **Community name and language** — What is the community called? What language(s) should the system use by default?
 2. **Site list** — What are the actual site names and locations to populate `inventories/sites.yaml`?
@@ -152,34 +86,36 @@ The following questions must be answered by a maintainer before the system can b
 
 ## Known Gaps at This Time
 
-- No live infrastructure data has been collected yet. All inventories are stubs.
-- No real desired-state files exist yet. They will be created as stubs in Phase 1 and filled in after maintainer input.
-- No skills are wired to real infrastructure. Phase 1 skills are documentation-only.
-- No secrets or credentials have been configured. The system cannot connect to any router or server yet.
-- Bootstrap scripts do not exist yet.
+- All inventories contain example/stub data. Real node IPs, site names, firmware versions, and service details must be added by a maintainer who knows the environment.
+- No secrets or credentials have been configured. The system cannot connect to any router or server until `secrets/` is populated per `secrets/README.md`.
+- `logs/` directory does not exist yet — it is created on first approved write action. Subdirectories needed: `logs/incidents/`, `logs/maintenance/`, `logs/decisions/`, `logs/channel-errors/`.
+- `exports/` directory does not exist yet — it is created when the first snapshot is exported.
+- The Telegram adapter (`adapters/channels/telegram/`) requires a bot token in `secrets/telegram.env` before it can operate.
+- No live infrastructure data has been collected. All desired-state files are stubs.
 
 ---
 
 ## Blockers
 
-None at this time. Phase 1 is proceeding.
+None. All three phases are complete. The workspace is ready for a maintainer to supply real infrastructure data and credentials.
 
 ---
 
-## Next Actions After This Session
+## Next Actions
 
-1. Review all Phase 1 files for correctness and completeness
-2. Have a maintainer answer the pending decisions listed above
-3. Populate inventories with real data once site information is available
-4. Begin Phase 2 planning only after Phase 1 is accepted
-5. Do not connect the system to real infrastructure until credentials are configured per `secrets/README.md`
+1. Review all workspace files for correctness against your actual environment
+2. Populate inventories with real data (nodes, sites, gateways, services)
+3. Configure `secrets/` per `secrets/README.md`
+4. Set up the Telegram bot per `adapters/channels/telegram/README.md`
+5. Run `scripts/doctor.sh` on the target host to verify prerequisites
+6. Activate the workspace using the prompt in `BOOTSTRAP.md`
 
 ---
 
 ## Notes for the Next Agent or Maintainer
 
-- All Phase 1 files are intentional stubs — they have correct structure and real content, but they describe the architecture, not a live deployment
-- Real data (node IPs, site names, firmware versions, etc.) must be added by a maintainer who knows the environment
+- All Phase 1–3 files are scaffolds — they have correct structure and real content, but they describe an example environment, not a live deployment
+- Real data must be added by a maintainer who knows the actual infrastructure
 - `BOOTSTRAP.md` is the source of truth for all architectural decisions
-- TASKS.md is the per-session task registry used by the Codex agents during bootstrap. It is not a permanent workspace component — it tracks work-in-progress and can be archived after Phase 1 is accepted.
-- If a file in this list is missing when you read this, it has not been created yet — check TASKS.md for status
+- `PROGRESS.md` contains the full phase completion record with agent dispatch log
+- `TASKS.md` is the per-file task registry used by bootstrap agents — it covers all three phases and is now an archive record

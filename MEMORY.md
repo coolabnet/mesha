@@ -78,6 +78,8 @@ Incidents record service disruptions, unexpected failures, and any event that re
 
 **Location:** `logs/incidents/`
 
+> Note: The `logs/` directory and all subdirectories (`logs/incidents/`, `logs/maintenance/`, `logs/decisions/`, `logs/channel-errors/`) are created at runtime by agents on their first write. They do not exist in the initial workspace scaffold. This is intentional — the workspace contains only structured knowledge files, and runtime outputs are generated as the system operates.
+
 **Format:** One file per incident, named by date and brief description.
 
 Example filename: `logs/incidents/2026-03-15-escuela-offline.md`

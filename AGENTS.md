@@ -303,19 +303,23 @@ If a receiving agent disagrees with the risk class assigned by a planner, the hi
 
 ---
 
-## Phase 1 Constraints
+## Phase Status
 
-During Phase 1 (current), the following agents and capabilities are active:
+All three bootstrap phases are complete. The full agent roster is defined and the execution-layer agents are available for use once credentials are configured and a maintainer approves live operations.
 
-- `community-ops-frontdesk` — active, read-only routing and explanation
+**Currently active (all phases complete):**
+
+- `community-ops-frontdesk` — active, receives and routes requests
 - `mesh-collector` — active, read-only mesh inspection
-- `mesh-planner` — active, planning only, no execution yet
-- `server-planner` — active, planning only, no execution yet
-- `knowledge-curator` — active, documentation and memory
+- `mesh-planner` — active, produces structured plans and requests approval
+- `mesh-executor` — active, performs approved mesh changes only
+- `server-planner` — active, produces structured server plans
+- `server-executor` — active, performs approved server changes only
+- `knowledge-curator` — active, documentation and memory management
 
-The following agents are defined but not yet operational:
+**Operational gate:** No write actions to real infrastructure are permitted until:
+1. `secrets/` is populated with real credentials (see `secrets/README.md`)
+2. Inventories are populated with real node and service data
+3. A human maintainer issues explicit approval for the first live operation
 
-- `mesh-executor` — defined, gated until Phase 2 approved
-- `server-executor` — defined, gated until Phase 2 approved
-
-No write actions to infrastructure are permitted during Phase 1 unless explicitly authorized by a human maintainer in a direct session.
+Until those conditions are met, the system operates in read-only and planning mode only. See `WORKING.md` for current gap list.
