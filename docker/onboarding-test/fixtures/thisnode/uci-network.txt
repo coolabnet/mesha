@@ -1,0 +1,9 @@
+network.loopback=interface
+network.loopback.proto='static'
+network.loopback.ipaddr='127.0.0.1'
+network.lan=interface
+network.lan.proto='static'
+network.lan.ipaddr='10.13.0.10'
+network.mesh=interface
+network.mesh.proto='static'
+network.mesh.ipaddr='10.13.0.10'

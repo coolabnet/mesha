@@ -1,0 +1,8 @@
+wireless.radio0.type='mac80211'
+wireless.radio0.channel='6'
+wireless.radio0.band='2g'
+wireless.radio1.type='mac80211'
+wireless.radio1.channel='149'
+wireless.radio1.band='5g'
+wireless.@wifi-iface[0].ssid='mesha-fixture-2g'
+wireless.@wifi-iface[1].ssid='mesha-fixture-5g'

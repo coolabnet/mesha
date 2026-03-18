@@ -1,0 +1,1 @@
+10.13.0.10 dev wlan0 lladdr 02:11:22:33:44:55 REACHABLE

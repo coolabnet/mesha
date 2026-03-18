@@ -1,0 +1,4 @@
+wlan0     ESSID: "mesha-fixture-2g"
+          Channel: 6
+wlan1     ESSID: "mesha-fixture-5g"
+          Channel: 149

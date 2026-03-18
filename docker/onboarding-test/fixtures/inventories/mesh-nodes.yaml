@@ -1,0 +1,20 @@
+nodes:
+  - name: "Fixture Thisnode"
+    hostname: "fake-thisnode"
+    mac: "02:42:ac:11:00:11"
+    site: "Fixture Site"
+    model: "Fixture CPE"
+    firmware_version: "LibreMesh 2024.1"
+    role: relay
+    status: unknown
+    notes: "Test-only node for the onboarding compose stack."
+
+  - name: "Fixture Gateway"
+    hostname: "fake-gateway"
+    mac: "02:42:ac:11:00:01"
+    site: "Fixture Site"
+    model: "Fixture Gateway"
+    firmware_version: "LibreMesh 2024.1"
+    role: gateway
+    status: unknown
+    notes: "Test-only gateway for the onboarding compose stack."

@@ -1,0 +1,68 @@
+services:
+  mesha-ops:
+    build:
+      context: .
+      dockerfile: docker/onboarding-test/ops/Dockerfile
+    working_dir: /workspace
+    environment:
+      MESHA_ROUTER_SSH_KEY: /root/.ssh/id_ed25519
+      MESHA_SERVER_SSH_KEY: /root/.ssh/id_ed25519
+    command: ["sleep", "infinity"]
+    depends_on:
+      - fake-thisnode
+      - fake-gateway
+    volumes:
+      - ${WORKSPACE_DIR:?set WORKSPACE_DIR}:/workspace
+      - ${SSH_DIR:?set SSH_DIR}:/fixture-ssh:ro
+    networks:
+      - onboarding-test
+
+  phase1-test:
+    build:
+      context: .
+      dockerfile: docker/onboarding-test/ops/Dockerfile
+    working_dir: /workspace
+    environment:
+      MESHA_ROUTER_SSH_KEY: /root/.ssh/id_ed25519
+      MESHA_SERVER_SSH_KEY: /root/.ssh/id_ed25519
+    command: ["bash", "/opt/mesha-test/phase1-test.sh"]
+    depends_on:
+      - fake-thisnode
+      - fake-gateway
+    volumes:
+      - ${WORKSPACE_DIR:?set WORKSPACE_DIR}:/workspace
+      - ${SSH_DIR:?set SSH_DIR}:/fixture-ssh:ro
+    networks:
+      - onboarding-test
+
+  fake-thisnode:
+    build:
+      context: .
+      dockerfile: docker/onboarding-test/fake-node/Dockerfile
+    environment:
+      ENABLE_HTTP: "1"
+    volumes:
+      - ./docker/onboarding-test/fixtures/thisnode:/fixtures:ro
+      - ${SSH_DIR:?set SSH_DIR}/id_ed25519.pub:/fixture-ssh/id_ed25519.pub:ro
+    networks:
+      onboarding-test:
+        aliases:
+          - thisnode.info
+
+  fake-gateway:
+    build:
+      context: .
+      dockerfile: docker/onboarding-test/fake-node/Dockerfile
+    environment:
+      ENABLE_HTTP: "0"
+    volumes:
+      - ./docker/onboarding-test/fixtures/gateway:/fixtures:ro
+      - ${SSH_DIR:?set SSH_DIR}/id_ed25519.pub:/fixture-ssh/id_ed25519.pub:ro
+    networks:
+      onboarding-test:
+        aliases:
+          - fake-gateway
+
+networks:
+  onboarding-test:
+    driver: bridge

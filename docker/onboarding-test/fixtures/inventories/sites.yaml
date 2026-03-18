@@ -1,0 +1,14 @@
+sites:
+  - name: "Fixture Site"
+    location: "Compose Test Network"
+    coordinates:
+      lat: 0.0
+      lon: 0.0
+    nodes:
+      - "Fixture Thisnode"
+      - "Fixture Gateway"
+    contact:
+      name: "Fixture Maintainer"
+      phone: "+55 00 00000-0000"
+    power: "lab"
+    notes: "Isolated onboarding test fixtures only."

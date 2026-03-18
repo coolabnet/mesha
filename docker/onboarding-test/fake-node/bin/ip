@@ -1,0 +1,17 @@
+#!/usr/bin/env sh
+set -eu
+
+REAL_IP="/sbin/ip"
+[ -x /usr/sbin/ip ] && REAL_IP="/usr/sbin/ip"
+
+if [ "$#" -eq 3 ] && [ "$1" = "-j" ] && [ "$2" = "addr" ] && [ "$3" = "show" ]; then
+    cat /fixtures/ip.addr.json
+    exit 0
+fi
+
+if [ "$#" -eq 2 ] && [ "$1" = "neigh" ] && [ "$2" = "show" ]; then
+    cat /fixtures/ip.neigh.txt
+    exit 0
+fi
+
+exec "$REAL_IP" "$@"

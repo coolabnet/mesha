@@ -1,0 +1,17 @@
+#!/usr/bin/env sh
+set -eu
+
+case "$*" in
+  "get system.@system[0].hostname")
+    cat /fixtures/hostname.txt
+    ;;
+  "show network")
+    cat /fixtures/uci-network.txt
+    ;;
+  "show wireless")
+    cat /fixtures/uci-wireless.txt
+    ;;
+  *)
+    exit 1
+    ;;
+esac

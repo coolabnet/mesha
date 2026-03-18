@@ -1,0 +1,22 @@
+{
+  "interface": [
+    {
+      "interface": "lan",
+      "route": [
+        { "target": "10.13.0.0" }
+      ],
+      "ipv4-address": [
+        { "address": "10.13.0.10" }
+      ]
+    },
+    {
+      "interface": "mesh",
+      "route": [
+        { "target": "10.13.0.1" }
+      ],
+      "ipv4-address": [
+        { "address": "10.13.0.10" }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,9 @@
+gateways:
+  - node: "Fixture Gateway"
+    hostname: "fake-gateway"
+    uplink_type: "fiber"
+    uplink_isp: "Fixture ISP"
+    uplink_ip: "192.0.2.10"
+    priority: 10
+    status: unknown
+    notes: "Test-only gateway fixture."

@@ -1,0 +1,2 @@
+wlan0 up
+br-lan up
