@@ -16,45 +16,8 @@
 #   status        — online | offline | degraded
 #   notes
 
-gateways:
-  - node: "Escola Municipal - Telhado"
-    hostname: "lm-escola-telhado"
-    uplink_type: fiber
-    uplink_isp: "Prefeitura Municipal (fibra pública)"
-    uplink_speed:
-      down_mbps: 100
-      up_mbps: 50
-    uplink_ip: dhcp
-    backup_uplink:
-      uplink_type: 4g
-      uplink_isp: "Claro Brasil"
-      uplink_speed:
-        down_mbps: 20
-        up_mbps: 10
-      notes: "4G dongle on USB port. Auto-failover configured in LibreMesh mwan3."
-    priority: 10
-    status: online
-    notes: >
-      Primary internet gateway for the whole mesh. Fiber drops occasionally
-      on rainy days — suspected cable entry issue at the rooftop junction box.
-      4G backup has been tested and works. Check mwan3 status after fiber
-      incidents to confirm correct failover and recovery.
+# NOTE: No gateways confirmed yet in the live mesh.
+# All discovered nodes (porao, yuri, marie, carlinhos) are leaf nodes.
+# If you discover a gateway node, add it here with its uplink details.
 
-  - node: "Clínica do Bairro - Antena"
-    hostname: "lm-clinica-antena"
-    uplink_type: fixed-wireless
-    uplink_isp: "Provedor Local Aeronet"
-    uplink_speed:
-      down_mbps: 15
-      up_mbps: 5
-    uplink_ip: "192.168.100.254"  # static from ISP
-    backup_uplink: null
-    priority: 20
-    status: degraded
-    notes: >
-      Secondary gateway. Lower priority than escola-telhado.
-      Currently degraded due to weak link to the mesh backbone.
-      ISP uplink itself is healthy; the problem is mesh-side signal.
-      If escola-telhado goes down, this gateway will carry full traffic
-      but throughput will be limited. No backup uplink — single point of
-      failure if the main gateway is down and mesh route here is also broken.
+gateways: []

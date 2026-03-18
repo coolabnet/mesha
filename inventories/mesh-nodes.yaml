@@ -18,56 +18,42 @@
 #   - Do NOT manually edit mac addresses; they are pulled from the node itself.
 
 nodes:
-  - name: "Escola Municipal - Telhado"
-    hostname: "lm-escola-telhado"
-    mac: "dc:9f:db:a1:22:01"
-    site: "Escola Municipal"
-    model: "TP-Link CPE510 v3"
-    firmware_version: "LibreMesh 2023.09"
-    role: gateway
-    status: online
-    notes: "Primary uplink via fibra da prefeitura. Faces north toward water tower."
-
-  - name: "Escola Municipal - Corredor"
-    hostname: "lm-escola-corredor"
-    mac: "dc:9f:db:a1:22:02"
-    site: "Escola Municipal"
-    model: "TP-Link TL-WR841N v13"
-    firmware_version: "LibreMesh 2023.09-minimal"
+  - name: "Porão da PSP"
+    hostname: "porao"
+    mac: "d8:b3:70:c0:7c:92"
+    site: "Associação Portal Sem Porteiras"
+    model: "Ubiquiti UniFi-AC-MESH"
+    firmware_version: "LibreRouterOs 1.5-SNAPSHOT"
     role: leaf
     status: online
-    notes: "Indoor node. Covers staff room and main hallway. Poor link to rooftop in rain."
+    notes: "Basement dual-band mesh node (2.4GHz/5GHz). Default gateway via 10.208.39.98. 22+ mesh originators reachable."
 
-  - name: "Clínica do Bairro - Antena"
-    hostname: "lm-clinica-antena"
-    mac: "e8:de:27:b3:44:10"
-    site: "Clínica do Bairro"
-    model: "Ubiquiti NanoStation M5"
-    firmware_version: "LibreMesh 2022.12"
-    role: gateway
-    status: degraded
-    notes: >
-      Firmware is one major release behind. Link to escola-telhado is weak after
-      the new building was constructed nearby. Candidate for antenna repositioning.
-
-  - name: "Associação de Moradores - Salão"
-    hostname: "lm-associacao-salao"
-    mac: "c0:4a:00:f2:88:30"
-    site: "Associação de Moradores"
-    model: "GL.iNet GL-AR750S"
-    firmware_version: "LibreMesh 2023.09"
+  - name: "Yuri - NanoStation AC"
+    hostname: "yuri"
+    mac: "f4:e2:c6:83:01:e0"
+    site: "Associação Portal Sem Porteiras"
+    model: "Ubiquiti NanoStation AC"
+    firmware_version: "LibreRouterOs 1.5-SNAPSHOT"
     role: leaf
     status: online
-    notes: "Used during community meetings. Powered by UPS. Indoor, single-room coverage."
+    notes: "Confirmed reachable via SSH. Single ethernet interface (eth0). Dual-band AC wave2."
 
-  - name: "Ponto Comunitário - Morro"
-    hostname: "lm-ponto-morro"
-    mac: "b4:fb:e4:77:cc:55"
-    site: "Ponto Comunitário Morro"
-    model: "TP-Link CPE510 v3"
-    firmware_version: "LibreMesh 2023.09"
-    role: relay
+  - name: "Marie - TL-WDR3500"
+    hostname: "marie"
+    mac: "e8:de:27:93:b1:4f"
+    site: "Associação Portal Sem Porteiras"
+    model: "TP-Link TL-WDR3500 v1"
+    firmware_version: "LibreRouterOs 1.5"
+    role: leaf
     status: online
-    notes: >
-      High elevation. Acts as mid-hop between escola and lower sites.
-      Line-of-sight clear. Good SNR consistently above -65 dBm.
+    notes: "Confirmed reachable via SSH. Dual ethernet (eth0/eth1). Indoor router with WiFi."
+
+  - name: "Carlinhos - CPE210"
+    hostname: "carlinhos"
+    mac: "18:a6:f7:eb:09:a0"
+    site: "Associação Portal Sem Porteiras"
+    model: "TP-Link CPE210 v1.1"
+    firmware_version: "LibreRouterOs 1.5"
+    role: leaf
+    status: online
+    notes: "Confirmed reachable via SSH. 5GHz CPE. Dedicated mesh backhaul link."
