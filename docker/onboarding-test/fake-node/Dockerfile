@@ -4,7 +4,8 @@ RUN apk add --no-cache \
       bash \
       iproute2 \
       netcat-openbsd \
-      openssh-server
+      openssh-server \
+      python3
 
 COPY docker/onboarding-test/fake-node/bin/uci /usr/local/bin/uci
 COPY docker/onboarding-test/fake-node/bin/ubus /usr/local/bin/ubus

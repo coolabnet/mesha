@@ -10,7 +10,7 @@ The shortest successful onboarding path is:
 1. Install the workspace and confirm OpenClaw runs.
 2. Seed the inventories once with real node targets and site context.
 3. Verify SSH access manually to one router.
-4. Start a recurring heartbeat that writes fresh snapshots under `exports/`.
+4. Run one heartbeat now, then schedule it so fresh snapshots keep appearing under `exports/`.
 5. Let chat queries use live reads first and heartbeat snapshots as cached fallback.
 
 ---
@@ -187,9 +187,9 @@ The discovery script writes both:
 
 Only merge the gateway candidate if the discovered node is truly a gateway.
 
-### Step 13 — Start recurring heartbeat snapshots
+### Step 13 — Run heartbeat now, then schedule it
 
-Run the mesh heartbeat script on the primary ops host at your preferred interval:
+Run the mesh heartbeat script once on the primary ops host:
 
 ```bash
 bash scripts/mesh-heartbeat.sh
@@ -212,7 +212,7 @@ Example cron entry:
 */10 * * * * cd /path/to/mesha && bash scripts/mesh-heartbeat.sh >> /tmp/mesha-heartbeat.log 2>&1
 ```
 
-The heartbeat should refresh live status automatically. The inventories remain the human-curated source for identity, site context, and topology intent.
+This single run writes a fresh cache snapshot. To keep live status fresh, schedule the same command with cron or systemd. The inventories remain the human-curated source for identity, site context, and topology intent.
 
 ---
 

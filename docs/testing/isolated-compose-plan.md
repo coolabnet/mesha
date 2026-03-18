@@ -2,6 +2,8 @@
 
 This document describes the implemented Phase 1 path to make Mesha onboarding testable in an isolated Docker/Compose environment without touching real routers.
 
+The harness uses `docker compose`, not the legacy standalone `docker-compose` binary.
+
 Phase 1 is now implemented in:
 
 - `docker-compose.onboarding-test.yml`

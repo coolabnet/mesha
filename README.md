@@ -42,13 +42,16 @@ Get Mesha installed quickly on Linux, macOS, or Windows (WSL2).
 
 For a real deployment, think in two phases:
 - seed the inventories once with real node targets and site context
-- let the heartbeat refresh live status under `exports/`
+- run heartbeat now, then schedule it to refresh live status under `exports/`
 
 ### First Real Mesh Status
 
 If you are a new maintainer and want the shortest path to the first real mesh status result, use this checklist:
 
 ```bash
+# 0. Safest first proof: validate the onboarding flow in isolation
+bash scripts/test-compose-phase1.sh
+
 # 1. Validate and activate the workspace
 bash scripts/doctor.sh
 bash scripts/activate-workspace.sh
@@ -65,11 +68,12 @@ bash scripts/discover-from-thisnode.sh
 bash skills/mesh-readonly/scripts/run-mesh-readonly.sh --plan
 bash skills/mesh-readonly/scripts/run-mesh-readonly.sh
 
-# 5. Start recurring cached snapshots
+# 5. Write one cached heartbeat snapshot now
 bash scripts/mesh-heartbeat.sh
 ```
 
 If you are not connected to LibreMesh yet, skip step 2 and seed `inventories/` manually from your real node targets.
+After step 5, schedule `bash scripts/mesh-heartbeat.sh` with cron or systemd so cached status stays fresh.
 
 ### Prerequisites
 
@@ -81,12 +85,13 @@ curl
 ssh client
 
 # Recommended
-docker
-docker-compose
+docker with `docker compose`
 python3
 node.js 22+
 jq
 ```
+
+The isolated onboarding stack uses `docker compose`, not the legacy standalone `docker-compose` binary.
 
 ### Install (one command)
 
@@ -169,7 +174,7 @@ If tests fail, see [docs/troubleshooting.md](docs/troubleshooting.md#section-5--
 sudo apt update && sudo apt upgrade -y
 
 # Install base tools
-sudo apt install -y git curl jq python3 openssh-client docker.io docker-compose
+sudo apt install -y git curl jq python3 openssh-client docker.io docker-compose-plugin
 
 # Clone and activate
 git clone https://github.com/ruvnet/mesha.git ~/community-ops/mesha
@@ -185,7 +190,7 @@ bash scripts/activate-workspace.sh
 /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
 
 # Install tools
-brew install git curl jq python3 docker docker-compose
+brew install git curl jq python3 docker
 
 # Clone and activate
 git clone https://github.com/ruvnet/mesha.git ~/community-ops/mesha
@@ -206,7 +211,7 @@ Then inside WSL2:
 ```bash
 # Update and install tools
 sudo apt update && sudo apt upgrade -y
-sudo apt install -y git curl jq python3 openssh-client docker.io docker-compose
+sudo apt install -y git curl jq python3 openssh-client docker.io docker-compose-plugin
 
 # Clone and activate (store in WSL2 filesystem, not /mnt/c/)
 git clone https://github.com/ruvnet/mesha.git ~/community-ops/mesha
@@ -242,11 +247,11 @@ bash scripts/discover-from-thisnode.sh
 bash skills/mesh-readonly/scripts/run-mesh-readonly.sh --plan
 bash skills/mesh-readonly/scripts/run-mesh-readonly.sh
 
-# Start recurring cached snapshots:
+# Write one cached snapshot now:
 bash scripts/mesh-heartbeat.sh
 ```
 
-`inventories/` is the human-maintained source for identity and site context. `exports/mesh/latest.json` is the machine-managed cached status written by heartbeat runs.
+`inventories/` is the human-maintained source for identity and site context. `exports/mesh/latest.json` is the machine-managed cached status written by heartbeat runs. To keep that cache fresh, schedule `bash scripts/mesh-heartbeat.sh` with cron or systemd on the ops host.
 
 ### Example Conversations
 
@@ -332,7 +337,7 @@ If Docker is available and you want an end-to-end onboarding proof without touch
 bash scripts/test-compose-phase1.sh
 ```
 
-This builds the fake LibreMesh fixtures, runs discovery, runs the live mesh reader, and verifies heartbeat output in a disposable workspace copy.
+This is the recommended first validation for a brand-new maintainer. It builds the fake LibreMesh fixtures, runs discovery, runs the live mesh reader, and verifies heartbeat output in a disposable workspace copy.
 
 ### Test Coverage
 

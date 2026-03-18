@@ -46,9 +46,15 @@ require_cmd() {
 }
 
 require_cmd docker
+require_cmd git
 require_cmd ssh-keygen
 require_cmd python3
 require_cmd tar
+
+if ! docker compose version >/dev/null 2>&1; then
+    echo "Missing required Docker Compose plugin: 'docker compose'" >&2
+    exit 1
+fi
 
 cleanup() {
     if [[ -n "${WORK_DIR:-}" ]]; then
@@ -66,14 +72,20 @@ WORK_DIR="$(mktemp -d)"
 mkdir -p "$WORK_DIR/workspace" "$WORK_DIR/keys"
 echo "Phase 1 test workspace: $WORK_DIR/workspace"
 
-(cd "$REPO_ROOT" && tar \
-    --exclude=.git \
-    --exclude=.openclaw \
-    --exclude=exports \
-    --exclude=logs \
-    --exclude=IDENTITY.md \
-    --exclude=USER.md \
-    -cf - .) | (cd "$WORK_DIR/workspace" && tar -xf -)
+git -C "$REPO_ROOT" ls-files -z \
+    --cached \
+    --modified \
+    -- ':!:.openclaw/**' \
+       ':!:exports/**' \
+       ':!:logs/**' \
+       ':!:secrets/**' \
+       ':!:IDENTITY.md' \
+       ':!:USER.md' > "$WORK_DIR/workspace-files.zlist"
+
+(cd "$REPO_ROOT" && tar --null -T "$WORK_DIR/workspace-files.zlist" -cf -) | \
+    (cd "$WORK_DIR/workspace" && tar -xf -)
+
+git -C "$WORK_DIR/workspace" init -q
 
 cp "$FIXTURE_INVENTORY_DIR/mesh-nodes.yaml" "$WORK_DIR/workspace/inventories/mesh-nodes.yaml"
 cp "$FIXTURE_INVENTORY_DIR/gateways.yaml" "$WORK_DIR/workspace/inventories/gateways.yaml"

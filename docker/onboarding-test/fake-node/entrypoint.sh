@@ -11,7 +11,6 @@ PermitRootLogin yes
 PubkeyAuthentication yes
 PasswordAuthentication no
 KbdInteractiveAuthentication no
-UsePAM no
 AuthorizedKeysFile .ssh/authorized_keys
 EOF
 
@@ -30,7 +29,7 @@ if [[ "${ENABLE_HTTP:-0}" == "1" || "${ENABLE_HTTP:-false}" == "true" ]]; then
     if [[ ! -f /fixtures/http/index.html ]]; then
         printf '<html><body><h1>Mesha fixture node</h1></body></html>\n' > /fixtures/http/index.html
     fi
-    busybox httpd -f -p 80 -h /fixtures/http &
+    python3 -m http.server 80 --directory /fixtures/http >/tmp/http-server.log 2>&1 &
 fi
 
 exec /usr/sbin/sshd -D -e

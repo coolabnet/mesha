@@ -144,6 +144,16 @@ else
     fail "ssh client not available"
 fi
 
+if command -v docker >/dev/null 2>&1; then
+    if docker compose version >/dev/null 2>&1; then
+        pass "docker compose plugin available"
+    else
+        warn "docker is installed but 'docker compose' is not available; isolated onboarding stack will not run"
+    fi
+else
+    warn "docker not available; isolated onboarding stack will not run"
+fi
+
 if [[ -n "${MESHA_ROUTER_SSH_KEY:-}" || -f "$HOME/.ssh/mesha-router-key" || -f "$HOME/.config/mesha/router-ssh-key" ]]; then
     pass "router SSH credential indicator present"
 else
@@ -199,22 +209,22 @@ if [[ "$AGENT_BRIEF" == true ]]; then
    - seeded inventories only
    - LibreMesh bootstrap via \`thisnode.info\`
    - Telegram
-4. If on a LibreMesh-connected host, run:
+4. If Docker is available, run the isolated onboarding proof first:
+   - \`bash scripts/test-compose-phase1.sh\`
+5. If on a LibreMesh-connected host, run:
    - \`bash scripts/discover-from-thisnode.sh --plan\`
    - \`bash scripts/discover-from-thisnode.sh\`
-5. Review:
+6. Review:
    - \`exports/discovery/latest.json\`
    - \`exports/discovery/latest-candidate-node.yaml\`
    - \`exports/discovery/latest-candidate-gateway.yaml\`
-6. Confirm the durable facts are merged into \`inventories/mesh-nodes.yaml\`, \`inventories/gateways.yaml\`, and \`inventories/sites.yaml\`.
-7. Run:
+7. Confirm the durable facts are merged into \`inventories/mesh-nodes.yaml\`, \`inventories/gateways.yaml\`, and \`inventories/sites.yaml\`.
+8. Run:
    - \`bash skills/mesh-readonly/scripts/run-mesh-readonly.sh --plan\`
    - \`bash skills/mesh-readonly/scripts/run-mesh-readonly.sh\`
    - \`bash scripts/mesh-heartbeat.sh\`
-8. If Telegram is in scope, copy \`adapters/channels/telegram/.env.example\` to \`.env\`, fill the required values, then run:
+9. If Telegram is in scope, copy \`adapters/channels/telegram/.env.example\` to \`.env\`, fill the required values, then run:
    - \`node adapters/channels/telegram/health.mjs\`
-9. If Docker is available and you want an isolated onboarding proof before touching a real mesh, run:
-   - \`bash scripts/test-compose-phase1.sh\`
 10. Report:
    - what is configured
    - what is still stubbed

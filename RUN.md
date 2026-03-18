@@ -3,6 +3,9 @@
 ## Fastest Path To First Real Mesh Status
 
 ```bash
+# 0. Safest first proof without touching a real mesh
+bash scripts/test-compose-phase1.sh
+
 # 1. Validate the workspace and print the activation prompt
 bash scripts/doctor.sh
 bash scripts/activate-workspace.sh
@@ -25,11 +28,12 @@ bash scripts/discover-from-thisnode.sh
 bash skills/mesh-readonly/scripts/run-mesh-readonly.sh --plan
 bash skills/mesh-readonly/scripts/run-mesh-readonly.sh
 
-# 7. Start recurring cached snapshots
+# 7. Write one cached snapshot now
 bash scripts/mesh-heartbeat.sh
 ```
 
 If you are not connected to LibreMesh yet, skip the `thisnode.info` bootstrap step and seed `inventories/` manually with real node targets first.
+After step 7, schedule `bash scripts/mesh-heartbeat.sh` with cron or systemd on the ops host.
 
 ## Telegram
 
@@ -42,6 +46,8 @@ node adapter.mjs
 
 Requires `.env` with:
 - `TELEGRAM_BOT_TOKEN`
+- `TELEGRAM_MAINTAINER_IDS`
+- `TELEGRAM_LEAD_MAINTAINER_IDS`
 - `OPERATOR_ENDPOINT` (default: http://localhost:3000)
 
 ## Notes
