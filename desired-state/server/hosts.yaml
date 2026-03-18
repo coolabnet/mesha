@@ -21,6 +21,22 @@
 #   storage       — disk/storage layout
 #   access        — how maintainers reach this host
 #   notes
+#
+# Top-level fields:
+#   maintainers   — authorized human operators for approvals and trusted channels
+
+maintainers:
+  - name: "REQUIRED"
+    role: lead_maintainer
+    approvals:
+      - C
+      - D
+    channels:
+      telegram_user_id: null
+      telegram_username: null
+    notes: >
+      Replace with a real authorized maintainer, or keep the authoritative list
+      in a local-only secrets/maintainers.yaml file instead.
 
 hosts:
   - name: "servidor-principal"

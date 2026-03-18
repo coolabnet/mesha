@@ -185,7 +185,25 @@ run_dryrun_checks() {
     fi
 
     # -----------------------------------------------------------------------
-    qa_section "H. normalize.py — stdin JSON normalization"
+    qa_section "H. qa-onboarding-readiness.sh — read-only onboarding handoff"
+    # -----------------------------------------------------------------------
+
+    local onboarding_qa="$WORKSPACE_ROOT/scripts/qa-onboarding-readiness.sh"
+    if [[ ! -x "$onboarding_qa" ]]; then
+        qa_skip "qa-onboarding-readiness.sh" "onboarding QA script missing or not executable"
+    else
+        local onboarding_qa_rc=0
+        timeout 20 bash "$onboarding_qa" --agent-brief >/tmp/qa_onboarding_readiness.out 2>&1 || onboarding_qa_rc=$?
+        if [[ $onboarding_qa_rc -eq 0 || $onboarding_qa_rc -eq 2 ]]; then
+            qa_pass "qa-onboarding-readiness.sh runs cleanly in read-only mode"
+        else
+            qa_fail "qa-onboarding-readiness.sh crashed with unexpected rc=$onboarding_qa_rc"
+            qa_info "Output tail: $(tail -10 /tmp/qa_onboarding_readiness.out 2>/dev/null || true)"
+        fi
+    fi
+
+    # -----------------------------------------------------------------------
+    qa_section "I. normalize.py — stdin JSON normalization"
     # -----------------------------------------------------------------------
     # normalize.py reads JSON from stdin.
     # An empty array [] is valid: the script outputs [] and exits 0.
@@ -231,7 +249,7 @@ run_dryrun_checks() {
     fi
 
     # -----------------------------------------------------------------------
-    qa_section "I. Telegram health.mjs — environment-aware health check"
+    qa_section "J. Telegram health.mjs — environment-aware health check"
     # -----------------------------------------------------------------------
     # health.mjs does NOT start an HTTP server; it runs checks and exits.
     # Without TELEGRAM_BOT_TOKEN it reports check failures and exits 1.

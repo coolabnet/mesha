@@ -87,6 +87,7 @@ run_file_inventory() {
     check_file "scripts/activate-workspace.sh" exec
     check_file "scripts/discover-from-thisnode.sh" exec
     check_file "scripts/mesh-heartbeat.sh" exec
+    check_file "scripts/qa-onboarding-readiness.sh" exec
     check_file "scripts/bootstrap.mjs"
     check_file "scripts/bootstrap.ps1"
 

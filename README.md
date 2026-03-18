@@ -286,7 +286,9 @@ Mesha: [produces short, simple explanation suitable for audio playback]
 | [AGENTS.md](AGENTS.md) | Agent roles and orchestration |
 | [SOUL.md](SOUL.md) | Tone, communication style, and values |
 | [TOOLS.md](TOOLS.md) | Tool permissions and risk classes |
+| [docs/configuration.md](docs/configuration.md) | Required inventories, secrets, maintainer identities, and adapter config |
 | [docs/deployment.md](docs/deployment.md) | Full deployment guide |
+| [docs/testing/isolated-compose-plan.md](docs/testing/isolated-compose-plan.md) | Plan for an isolated Compose-based onboarding test stack |
 | [docs/troubleshooting.md](docs/troubleshooting.md) | Common problems and fixes |
 | [docs/playbooks/](docs/playbooks/) | Operational procedures |
 

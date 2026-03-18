@@ -4,6 +4,8 @@
 
 By the end of this guide, the system will be running and you will be able to inspect your mesh and local server safely.
 
+For the exact configuration and secret inputs a maintainer must provide, read `docs/configuration.md` alongside this guide.
+
 The shortest successful onboarding path is:
 1. Install the workspace and confirm OpenClaw runs.
 2. Seed the inventories once with real node targets and site context.
