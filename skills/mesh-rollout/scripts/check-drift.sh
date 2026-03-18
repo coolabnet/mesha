@@ -67,9 +67,9 @@ usage() {
   echo ""
   echo "Examples:"
   echo "  $0"
-  echo "  $0 --node lm-escola-telhado"
+  echo "  $0 --node porao"
   echo "  $0 --output json"
-  echo "  $0 --node lm-clinica-antena --output json"
+  echo "  $0 --node yuri --output json"
   exit 2
 }
 

@@ -36,7 +36,7 @@ Complete this section at home or the community office, before you travel to the 
 ### Approvals
 
 - [ ] The community maintainer has approved the node configuration (hostname, role, settings)
-- [ ] I have the node hostname assigned by the maintainer (example: `lm-clinica-antena`)
+- [ ] I have the node hostname assigned by the maintainer (example: `mesh-node-site01`)
 - [ ] I have the provisional inventory entry reference (site name and node ID)
 
 ---
@@ -126,7 +126,7 @@ This section applies the community settings to the router. **Do this only after 
 ### After Reboot
 
 - [ ] SSH back into the router: `ssh root@<hostname or IP>`
-- [ ] Run: `hostname` — it should show the assigned hostname (example: `lm-clinica-antena`)
+- [ ] Run: `hostname` — it should show the assigned hostname (example: `MESH_NODE_HOSTNAME`)
 - [ ] Run: `iwinfo` — you should see the community WiFi network name (SSID) in the output
 - [ ] Run: `logread | tail -20` — check for any lines that say `error` or `failed` and report them to the maintainer
 

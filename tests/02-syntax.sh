@@ -28,6 +28,16 @@ run_syntax_checks() {
         scripts/discover-from-thisnode.sh
         scripts/mesh-heartbeat.sh
         scripts/qa-onboarding-readiness.sh
+        scripts/test-compose-phase1.sh
+        scripts/run-compose-phase1-test.sh
+        docker/onboarding-test/ops/entrypoint.sh
+        docker/onboarding-test/phase1-test.sh
+        docker/onboarding-test/fake-node/entrypoint.sh
+        docker/onboarding-test/fake-node/bin/uci
+        docker/onboarding-test/fake-node/bin/ubus
+        docker/onboarding-test/fake-node/bin/bmx7
+        docker/onboarding-test/fake-node/bin/iwinfo
+        docker/onboarding-test/fake-node/bin/ip
         skills/mesh-readonly/scripts/run-mesh-readonly.sh
         skills/mesh-rollout/scripts/run-rollout.sh
         skills/mesh-rollout/scripts/stage-upgrade.sh
@@ -173,6 +183,7 @@ run_syntax_checks() {
 
         # Telegram adapter compose file
         _add_yaml "adapters/channels/telegram/docker-compose.yaml"
+        _add_yaml "docker-compose.onboarding-test.yml"
 
         if [[ ${#YAML_FILES[@]} -eq 0 ]]; then
             qa_skip "YAML syntax checks" "no YAML files found"

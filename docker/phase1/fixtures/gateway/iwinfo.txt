@@ -1,0 +1,3 @@
+wlan0     ESSID: "mesha-gateway-2g"
+          Channel: 1
+          Signal: -41 dBm

@@ -24,10 +24,7 @@ One file per site, named after the site's slug derived from its name in `invento
 **Pattern:** `<site-slug>.md`
 
 **Examples:**
-- `escola-municipal.md` — for site "Escola Municipal"
-- `clinica-do-bairro.md` — for site "Clínica do Bairro"
-- `associacao-de-moradores.md` — for site "Associação de Moradores"
-- `ponto-comunitario-morro.md` — for site "Ponto Comunitário Morro"
+- `associacao-portal-sem-porteiras.md` — for site "Associação Portal Sem Porteiras"
 
 Use lowercase, replace spaces with hyphens, drop accents for the filename. The title inside the file should use the full proper name.
 
@@ -83,9 +80,7 @@ The `knowledge-curator` skill is responsible for updating site notes after appro
 
 | File | Site | Nodes |
 |------|------|-------|
-| `escola-municipal.md` | Escola Municipal | 2 (gateway + leaf) |
-| `clinica-do-bairro.md` | Clínica do Bairro | 1 (gateway, degraded) |
+| `associacao-portal-sem-porteiras.md` | Associação Portal Sem Porteiras | 4 (all leaf nodes) |
 
 Sites without notes yet:
-- Associação de Moradores (`associacao-de-moradores.md` — to be created)
-- Ponto Comunitário Morro (`ponto-comunitario-morro.md` — to be created)
+- None (all confirmed sites have notes)

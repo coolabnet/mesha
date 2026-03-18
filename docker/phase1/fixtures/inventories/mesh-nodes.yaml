@@ -1,0 +1,20 @@
+nodes:
+  - name: "Phase1 Thisnode"
+    hostname: "fake-thisnode"
+    mac: "02:00:00:00:10:10"
+    site: "Compose Lab"
+    model: "Phase1 Fixture Node"
+    firmware_version: "LibreMesh 2026.03 Phase1 thisnode"
+    role: leaf
+    status: unknown
+    notes: "Fixture node for onboarding stack validation."
+
+  - name: "Phase1 Gateway"
+    hostname: "fake-gateway"
+    mac: "02:00:00:00:10:01"
+    site: "Compose Lab"
+    model: "Phase1 Fixture Gateway"
+    firmware_version: "LibreMesh 2026.03 Phase1 gateway"
+    role: gateway
+    status: unknown
+    notes: "Fixture gateway for onboarding stack validation."

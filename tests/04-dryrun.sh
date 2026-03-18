@@ -203,7 +203,22 @@ run_dryrun_checks() {
     fi
 
     # -----------------------------------------------------------------------
-    qa_section "I. normalize.py — stdin JSON normalization"
+    qa_section "I. test-compose-phase1.sh --help — isolated onboarding harness entrypoint"
+    # -----------------------------------------------------------------------
+
+    local compose_phase1="$WORKSPACE_ROOT/scripts/test-compose-phase1.sh"
+    local run_compose_phase1="$WORKSPACE_ROOT/scripts/run-compose-phase1-test.sh"
+    if [[ ! -x "$compose_phase1" || ! -x "$run_compose_phase1" ]]; then
+        qa_skip "test-compose-phase1.sh --help" "compose phase 1 test script missing or not executable"
+    else
+        assert_exit_zero "test-compose-phase1.sh --help exits cleanly" \
+            timeout 10 bash "$compose_phase1" --help
+        assert_exit_zero "run-compose-phase1-test.sh --help exits cleanly" \
+            timeout 10 bash "$run_compose_phase1" --help
+    fi
+
+    # -----------------------------------------------------------------------
+    qa_section "J. normalize.py — stdin JSON normalization"
     # -----------------------------------------------------------------------
     # normalize.py reads JSON from stdin.
     # An empty array [] is valid: the script outputs [] and exits 0.
@@ -249,7 +264,7 @@ run_dryrun_checks() {
     fi
 
     # -----------------------------------------------------------------------
-    qa_section "J. Telegram health.mjs — environment-aware health check"
+    qa_section "K. Telegram health.mjs — environment-aware health check"
     # -----------------------------------------------------------------------
     # health.mjs does NOT start an HTTP server; it runs checks and exits.
     # Without TELEGRAM_BOT_TOKEN it reports check failures and exits 1.

@@ -25,22 +25,24 @@ This is a spectrum management problem, not a hardware defect. It cannot be fully
 
 | Site | Node | 2.4 GHz use | 5 GHz available | Mitigation status |
 |------|------|-------------|-----------------|------------------|
-| Escola Municipal | lm-escola-corredor (TL-WR841N v13) | Mesh + client | No (hardware limitation) | Partial — channel fixed to ch1 |
-| Clínica do Bairro | lm-clinica-antena (NanoStation M5) | Not used (5 GHz only) | Yes — backbone on 5 GHz | Not affected |
-| Associação de Moradores | lm-associacao-salao (GL-AR750S) | Client only | Yes — mesh on 5 GHz | Not affected |
-| Ponto Comunitário Morro | lm-ponto-morro (CPE510 v3) | Not used (5 GHz only) | Yes — backbone on 5 GHz | Not affected |
+| Associação Portal Sem Porteiras | porao (UniFi-AC-MESH) | Dual-band | Yes — dual-band AC | Not affected |
+| Associação Portal Sem Porteiras | yuri (NanoStation AC) | Dual-band | Yes — dual-band AC | Not affected |
+| Associação Portal Sem Porteiras | marie (TL-WDR3500 v1) | Dual-band | Yes — dual-band | Not affected |
+| Associação Portal Sem Porteiras | carlinhos (CPE210 v1.1) | 5 GHz only | Yes — 5 GHz backhaul | Not affected |
 
-The main affected node is `lm-escola-corredor`, which is a 2.4 GHz-only device and cannot use 5 GHz for either mesh or client traffic.
+**Status**: No 2.4 GHz-only devices in current confirmed inventory. All nodes support 5 GHz, reducing congestion risk.
 
 ---
 
 ## Symptoms observed
 
-- Client devices connected to `lm-escola-corredor` experience high latency (>150 ms) during evenings
-- Some clients disconnect and fail to reconnect to the 2.4 GHz SSID
-- `batctl n` on nearby nodes shows variable link quality to `lm-escola-corredor` during evening hours
-- `iwinfo` on the affected node shows high noise floor (-85 dBm or above)
-- Running a channel scan (see commands below) shows many competing networks on the same channel
+No symptoms observed in current inventory. This issue is documented for reference if 2.4 GHz-only devices are added in the future.
+
+**Symptoms to watch for if 2.4 GHz-only devices are deployed**:
+- High latency (>150 ms) during evening peak hours
+- Clients disconnecting from 2.4 GHz SSID
+- Variable link quality visible in `batctl n` during evenings
+- High noise floor (-85 dBm or above) in `iwinfo` output
 
 ---
 

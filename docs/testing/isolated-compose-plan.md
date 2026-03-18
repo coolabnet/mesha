@@ -1,8 +1,18 @@
 # Mesha Isolated Compose Test Plan
 
-This document describes the recommended path to make Mesha onboarding testable in an isolated Docker/Compose environment without touching real routers.
+This document describes the implemented Phase 1 path to make Mesha onboarding testable in an isolated Docker/Compose environment without touching real routers.
 
-It is a plan, not a finished production stack.
+Phase 1 is now implemented in:
+
+- `docker-compose.onboarding-test.yml`
+- `docker/onboarding-test/`
+- `scripts/test-compose-phase1.sh`
+
+The main command is:
+
+```bash
+bash scripts/test-compose-phase1.sh
+```
 
 ## Goal
 
@@ -88,12 +98,12 @@ Use test-only fixture inventories, not the main real inventories.
 
 Recommended approach:
 
-- mount a test workspace copy into `mesha-ops`
+- copy the repo into a disposable test workspace
 - provide fixture versions of:
   - `inventories/mesh-nodes.yaml`
   - `inventories/gateways.yaml`
   - `inventories/sites.yaml`
-- inject a test SSH key pair into the ops container and fixture SSH server
+- generate a throwaway SSH key pair for the fixture containers
 
 The fixture inventories should reference Compose hostnames, not real router names.
 
@@ -141,20 +151,19 @@ The Compose sandbox will not credibly test:
 
 That is acceptable. The sandbox is for onboarding, contracts, and regressions.
 
-## Recommended Repo Shape For This Plan
-
-If implemented, add:
+## Implemented Repo Shape
 
 ```text
 docker-compose.onboarding-test.yml
-docker/
-  fake-thisnode/
-  fake-gateway/
+docker/onboarding-test/
+  fake-node/
   fixtures/
+    gateway/
     inventories/
-    ssh/
-    ubus/
-    uci/
+    thisnode/
+scripts/
+  run-compose-phase1-test.sh
+  test-compose-phase1.sh
 ```
 
 ## Suggested Acceptance Criteria
@@ -162,7 +171,7 @@ docker/
 The isolated test stack is useful when a fresh contributor can run one command such as:
 
 ```bash
-docker compose -f docker-compose.onboarding-test.yml up --build --abort-on-container-exit
+bash scripts/test-compose-phase1.sh
 ```
 
 And get proof that:

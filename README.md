@@ -324,6 +324,16 @@ bash tests/04-dryrun.sh
 bash tests/05-healthchecks.sh
 ```
 
+### Isolated Onboarding Stack
+
+If Docker is available and you want an end-to-end onboarding proof without touching real routers:
+
+```bash
+bash scripts/test-compose-phase1.sh
+```
+
+This builds the fake LibreMesh fixtures, runs discovery, runs the live mesh reader, and verifies heartbeat output in a disposable workspace copy.
+
 ### Test Coverage
 
 - ✅ Workspace file structure

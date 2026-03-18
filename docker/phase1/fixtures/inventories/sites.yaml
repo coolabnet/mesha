@@ -1,0 +1,14 @@
+sites:
+  - name: "Compose Lab"
+    location: "Docker bridge network"
+    coordinates:
+      lat: 0
+      lon: 0
+    nodes:
+      - "Phase1 Thisnode"
+      - "Phase1 Gateway"
+    contact:
+      name: "Fixture Maintainer"
+      phone: "+00 00000-0000"
+    power: "lab"
+    notes: "Synthetic site used only for isolated onboarding tests."

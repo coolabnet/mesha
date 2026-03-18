@@ -53,10 +53,10 @@ services:
     exposed_via: reverse-proxy
     status: running
     last_checked: "2026-03-08"
-    steward: "Dona Lúcia (Escola)"
+    steward: "Presidente Marcos (Associação PSP)"
     notes: >
       KA Lite / Kolibri offline learning platform. Khan Academy content
-      downloaded for offline use. Used by students on the school network.
+      downloaded for offline use. Used by community members at Associação PSP.
       Content sync from internet needed periodically. Last sync: 2026-02-20.
 
   - name: homer-dashboard

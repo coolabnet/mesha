@@ -1,0 +1,7 @@
+wlan0     ESSID: "mesha-phase1-2g"
+          Channel: 11
+          Signal: -51 dBm
+
+wlan1     ESSID: "mesha-phase1-5g"
+          Channel: 44
+          Signal: -47 dBm

@@ -1,0 +1,9 @@
+network.loopback=interface
+network.loopback.device='lo'
+network.loopback.proto='static'
+network.loopback.ipaddr='127.0.0.1'
+network.loopback.netmask='255.0.0.0'
+network.mesh=interface
+network.mesh.proto='static'
+network.mesh.ipaddr='10.13.0.10'
+network.mesh.netmask='255.255.255.0'

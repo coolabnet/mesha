@@ -4,6 +4,10 @@ set -euo pipefail
 
 cd /workspace
 
+log() {
+    printf '[phase1-test] %s\n' "$1"
+}
+
 wait_for_http() {
     local url="$1"
     local attempts="${2:-30}"
@@ -32,11 +36,24 @@ wait_for_ssh() {
     return 1
 }
 
-wait_for_http "http://thisnode.info/" 30 1
-wait_for_ssh "thisnode.info" 30 1
-wait_for_ssh "fake-gateway" 30 1
+log "Waiting for thisnode.info HTTP"
+wait_for_http "http://thisnode.info/" 30 1 || {
+    echo "[phase1-test] http://thisnode.info/ did not become reachable" >&2
+    exit 1
+}
+log "Waiting for thisnode.info SSH"
+wait_for_ssh "thisnode.info" 30 1 || {
+    echo "[phase1-test] SSH to thisnode.info did not become reachable" >&2
+    exit 1
+}
+log "Waiting for fake-gateway SSH"
+wait_for_ssh "fake-gateway" 30 1 || {
+    echo "[phase1-test] SSH to fake-gateway did not become reachable" >&2
+    exit 1
+}
 
 doctor_rc=0
+log "Running doctor"
 bash scripts/doctor.sh >/tmp/doctor.out 2>&1 || doctor_rc=$?
 if [[ "$doctor_rc" -ne 0 && "$doctor_rc" -ne 2 ]]; then
     cat /tmp/doctor.out
@@ -44,11 +61,17 @@ if [[ "$doctor_rc" -ne 0 && "$doctor_rc" -ne 2 ]]; then
     exit 1
 fi
 
+log "Activating workspace"
 bash scripts/activate-workspace.sh >/tmp/activate.out 2>&1
+log "Planning discovery"
 bash scripts/discover-from-thisnode.sh --plan >/tmp/discover-plan.json
+log "Running discovery"
 bash scripts/discover-from-thisnode.sh >/tmp/discover.out
+log "Planning live mesh read"
 bash skills/mesh-readonly/scripts/run-mesh-readonly.sh --plan >/tmp/mesh-plan.json
+log "Running live mesh read"
 bash skills/mesh-readonly/scripts/run-mesh-readonly.sh >/tmp/mesh-live.json
+log "Running heartbeat"
 bash scripts/mesh-heartbeat.sh >/tmp/heartbeat.out
 
 python3 - <<'PYEOF'

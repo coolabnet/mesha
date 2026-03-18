@@ -213,7 +213,9 @@ if [[ "$AGENT_BRIEF" == true ]]; then
    - \`bash scripts/mesh-heartbeat.sh\`
 8. If Telegram is in scope, copy \`adapters/channels/telegram/.env.example\` to \`.env\`, fill the required values, then run:
    - \`node adapters/channels/telegram/health.mjs\`
-9. Report:
+9. If Docker is available and you want an isolated onboarding proof before touching a real mesh, run:
+   - \`bash scripts/test-compose-phase1.sh\`
+10. Report:
    - what is configured
    - what is still stubbed
    - whether live mesh status works

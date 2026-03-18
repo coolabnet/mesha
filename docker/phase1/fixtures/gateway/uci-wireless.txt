@@ -1,0 +1,7 @@
+wireless.radio0=wifi-device
+wireless.radio0.type='mac80211'
+wireless.radio0.channel='1'
+wireless.radio0.band='2g'
+wireless.default_radio0=wifi-iface
+wireless.default_radio0.device='radio0'
+wireless.default_radio0.ssid='mesha-gateway-2g'

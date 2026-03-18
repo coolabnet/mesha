@@ -25,7 +25,7 @@ This is not a manufacturing defect unique to a single unit — it is a known beh
 
 | Node | Site | UPS? | Risk level |
 |------|------|------|-----------|
-| Escola Municipal - Corredor (`lm-escola-corredor`) | Escola Municipal | No | High (grid power only on hallway strip) |
+| None | — | — | No TL-WR841N v13 devices confirmed in current inventory |
 
 ---
 
@@ -116,6 +116,4 @@ The TL-WR841N v13 is at the absolute minimum flash size for OpenWrt/LibreMesh. F
 
 | Date | Node | Trigger | Recovery |
 |------|------|---------|----------|
-| 2025-06-12 | lm-escola-corredor | Grid power cut during thunderstorm | Manual power-cycle, back online in 5 min |
-| 2025-09-30 | lm-escola-corredor | Brief power fluctuation (no full outage) | Manual power-cycle, back online in 3 min |
-| 2025-10-08 | lm-escola-corredor | Grid power cut during circuit maintenance | Booted into failsafe mode; physical access required; overlay reset; config restored from backup |
+| None | — | No TL-WR841N v13 devices in current inventory | — |

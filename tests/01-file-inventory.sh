@@ -88,8 +88,21 @@ run_file_inventory() {
     check_file "scripts/discover-from-thisnode.sh" exec
     check_file "scripts/mesh-heartbeat.sh" exec
     check_file "scripts/qa-onboarding-readiness.sh" exec
+    check_file "scripts/test-compose-phase1.sh" exec
+    check_file "scripts/run-compose-phase1-test.sh" exec
     check_file "scripts/bootstrap.mjs"
     check_file "scripts/bootstrap.ps1"
+    check_file "docker-compose.onboarding-test.yml"
+    check_file "docker/onboarding-test/ops/Dockerfile"
+    check_file "docker/onboarding-test/fake-node/Dockerfile"
+    check_file "docker/onboarding-test/ops/entrypoint.sh" exec
+    check_file "docker/onboarding-test/phase1-test.sh" exec
+    check_file "docker/onboarding-test/fake-node/entrypoint.sh" exec
+    check_file "docker/onboarding-test/fake-node/bin/uci" exec
+    check_file "docker/onboarding-test/fake-node/bin/ubus" exec
+    check_file "docker/onboarding-test/fake-node/bin/bmx7" exec
+    check_file "docker/onboarding-test/fake-node/bin/iwinfo" exec
+    check_file "docker/onboarding-test/fake-node/bin/ip" exec
 
     # -----------------------------------------------------------------------
     qa_section "Mesh-rollout scripts"

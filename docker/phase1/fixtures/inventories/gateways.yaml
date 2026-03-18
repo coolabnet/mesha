@@ -1,0 +1,10 @@
+gateways:
+  - node: "Phase1 Gateway"
+    hostname: "fake-gateway"
+    uplink_type: "fiber"
+    uplink_isp: "Phase1 ISP"
+    uplink_speed: "100/100"
+    uplink_ip: "dhcp"
+    priority: 10
+    status: online
+    notes: "Fixture gateway for onboarding stack validation."

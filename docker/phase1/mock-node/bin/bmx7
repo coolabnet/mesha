@@ -1,0 +1,21 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+if [[ "${1:-}" != "-c" ]]; then
+    exit 1
+fi
+
+case "${2:-}" in
+    --links)
+        cat /mock-current/bmx7-links.txt
+        ;;
+    --originators)
+        cat /mock-current/bmx7-originators.txt
+        ;;
+    --interfaces)
+        cat /mock-current/bmx7-interfaces.txt
+        ;;
+    *)
+        exit 1
+        ;;
+esac

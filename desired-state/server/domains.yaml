@@ -5,7 +5,7 @@
 # These are LAN-only DNS names — they resolve only inside the mesh network.
 # They are NOT public internet DNS entries.
 #
-# DNS resolution is handled by dnsmasq running on the mesh gateway (lm-escola-telhado)
+# DNS resolution is handled by dnsmasq running on the mesh gateway
 # or by a local resolver on servidor-principal, depending on configuration.
 #
 # The server-executor skill is responsible for:
@@ -98,7 +98,9 @@ records:
     service: null
     tls: none
     notes: >
-      Points to the LibreMesh LuCI web interface on lm-escola-telhado.
+      Points to the LibreMesh LuCI web interface on the mesh gateway.
+      NOTE: No gateway has been confirmed yet in the live mesh.
+      Update this record when a gateway is discovered and configured.
       Credentials managed separately — never committed here.
 
   # Wildcard catch-all (handled by reverse proxy, not DNS)
@@ -116,13 +118,14 @@ records:
 # DNS server configuration
 # -----------------------------------------------------------------------
 dns_server:
-  host: "lm-escola-telhado"  # dnsmasq on the gateway router
+  host: "GATEWAY_HOSTNAME"  # dnsmasq on the gateway router - UPDATE WHEN GATEWAY CONFIRMED
   listen_interface: "br-lan"
   upstream_dns:
     - "1.1.1.1"   # used only when internet is available
     - "8.8.8.8"
   local_search_domain: "bairro.local"
   notes: >
+    NOTE: No gateway has been confirmed yet in the live mesh.
     dnsmasq is configured as part of the LibreMesh community profile.
     Local records are added via /etc/dnsmasq.d/community-hosts.conf on the router.
     If the gateway is offline, local DNS resolution fails for mesh clients.
