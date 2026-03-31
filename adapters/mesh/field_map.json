@@ -1,0 +1,47 @@
+{
+  "field_map": {
+    "hostname": "hostname",
+    "system_hostname": "hostname",
+    "node_hostname": "hostname",
+
+    "firmware_version": "firmware_version",
+    "firmware": "firmware_version",
+    "openwrt_version": "firmware_version",
+    "libremesh_version": "firmware_version",
+    "distrib_description": "firmware_version",
+
+    "status": "status",
+    "node_status": "status",
+    "reachable": "status",
+
+    "role": "role",
+    "node_role": "role",
+
+    "mac": "mac",
+    "primary_mac": "mac",
+    "eth_mac": "mac",
+
+    "site": "site",
+    "site_name": "site",
+
+    "model": "model",
+    "hardware_model": "model",
+    "board": "model",
+
+    "uptime_seconds": "uptime_seconds",
+    "uptime": "uptime_seconds",
+
+    "notes": "notes"
+  },
+
+  "severity_map": {
+    "firmware_version": "warning",
+    "status": "warning",
+    "hostname": "error",
+    "mac": "error",
+    "model": "warning",
+    "role": "error",
+    "site": "info",
+    "notes": "info"
+  }
+}

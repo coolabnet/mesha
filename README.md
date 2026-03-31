@@ -38,11 +38,44 @@ It runs on community-controlled hardware, works offline when needed, and keeps r
 
 ## Quick Start
 
-Get Mesha installed quickly on Linux, macOS, or Windows (WSL2).
+Mesha runs on top of **OpenClaw (Claude Code)**, an AI CLI agent. Follow these steps to get Mesha installed quickly on Linux, macOS, or Windows (WSL2).
 
-For a real deployment, think in two phases:
-- seed the inventories once with real node targets and site context
-- run heartbeat now, then schedule it to refresh live status under `exports/`
+### 1. Install OpenClaw (Claude Code)
+
+Before using Mesha, you need to install the Claude Code CLI globally via npm and authenticate:
+
+```bash
+# Install Claude Code CLI
+npm install -g @anthropic-ai/claude-code
+
+# Authenticate with your Anthropic account
+claude setup-token
+```
+
+### 2. Install Mesha Workspace
+
+```bash
+# Clone Mesha workspace
+git clone https://github.com/ruvnet/mesha.git ~/community-ops/mesha
+cd ~/community-ops/mesha
+
+# Run one-time setup and verify environment
+bash scripts/bootstrap.sh --check-only
+
+# Activate the workspace
+bash scripts/activate-workspace.sh
+```
+
+### 3. Run Mesha
+
+Start the interactive AI agent inside the workspace:
+
+```bash
+claude
+```
+*The agent will automatically read the workspace instructions and assume its role as the Mesha operator.*
+
+---
 
 ### First Real Mesh Status
 
@@ -93,19 +126,6 @@ jq
 
 The isolated onboarding stack uses `docker compose`, not the legacy standalone `docker-compose` binary.
 
-### Install (one command)
-
-```bash
-# Clone Mesha workspace
-git clone https://github.com/ruvnet/mesha.git ~/community-ops/mesha
-cd ~/community-ops/mesha
-
-# Run one-time setup
-bash scripts/bootstrap.sh --check-only
-
-# Activate the workspace
-bash scripts/activate-workspace.sh
-```
 
 ### Verify Installation
 

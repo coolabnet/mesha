@@ -2,13 +2,14 @@
 # run-rollout.sh — Orchestrate a full ring-based firmware rollout across the community mesh
 #
 # Usage:
-#   ./run-rollout.sh --firmware-url <url-or-path> [--dry-run] [--ring <ring-name>] [--resume]
+#   ./run-rollout.sh --firmware-url <url-or-path> [--dry-run] [--ring <ring-name>] [--resume] [--checksum <sha256>]
 #
 # Options:
 #   --firmware-url   URL or local path to the firmware image (required)
 #   --dry-run        Print the full rollout plan but make no changes
 #   --ring           Execute only a specific ring (e.g. --ring canary)
 #   --resume         Resume from a previously saved rollout-state.yaml
+#   --checksum       Expected SHA-256 checksum of the firmware image (recommended for HTTP URLs)
 #
 # Risk class: Class D (firmware rollout — multi-node)
 # Requires: explicit approval, defined change window, canary-first execution
@@ -17,8 +18,8 @@
 #   desired-state/mesh/community-profile/rollout-policy.yaml
 #   inventories/mesh-nodes.yaml
 #
-# Reads node IPs from inventories/mesh-nodes.yaml using inline Python 3.
-# No yq dependency required.
+# Inline Python helpers have been extracted to scripts/helpers/ for
+# testability and to eliminate repeated interpreter startup overhead.
 #
 # NOTE: This script calls stage-upgrade.sh with --auto to suppress the per-node
 # interactive YES prompt. The single top-level YES confirmation (below) covers
@@ -47,6 +48,9 @@ STATE_FILE="${WORKSPACE_ROOT}/desired-state/mesh/rollout-state.yaml"
 STAGE_UPGRADE="${SCRIPT_DIR}/stage-upgrade.sh"
 VALIDATE_NODE="${SCRIPT_DIR}/validate-node.sh"
 
+# Helper scripts directory (extracted Python helpers)
+HELPERS_DIR="${SCRIPT_DIR}/helpers"
+
 # ---------------------------------------------------------------------------
 # Helpers
 # ---------------------------------------------------------------------------
@@ -69,16 +73,22 @@ banner() {
 }
 
 usage() {
-  echo "Usage: $0 --firmware-url <url-or-path> [--dry-run] [--ring <ring-name>] [--resume]"
+  echo "Usage: $0 --firmware-url <url-or-path> [--dry-run] [--ring <ring-name>] [--resume] [--checksum <sha256>]"
   echo ""
   echo "Options:"
   echo "  --firmware-url   URL or local path to firmware image (required)"
   echo "  --dry-run        Print the full rollout plan without making changes"
   echo "  --ring           Execute only a named ring (e.g. canary, stable, trailing)"
   echo "  --resume         Resume from rollout-state.yaml left by a halted rollout"
+  echo "  --checksum       Expected SHA-256 checksum of the firmware image"
+  echo ""
+  echo "Security notes:"
+  echo "  HTTP URLs are insecure and require --checksum for firmware verification."
+  echo "  HTTPS URLs or local paths are accepted without --checksum (checksum still recommended)."
   echo ""
   echo "Examples:"
-  echo "  $0 --firmware-url http://192.168.1.50/firmware/lm-2023.09.bin"
+  echo "  $0 --firmware-url https://firmware.example.com/lm-2023.09.bin"
+  echo "  $0 --firmware-url http://192.168.1.50/firmware/lm-2023.09.bin --checksum abc123..."
   echo "  $0 --firmware-url /data/firmware-cache/lm-2023.09.bin --dry-run"
   echo "  $0 --firmware-url /data/firmware-cache/lm-2023.09.bin --ring canary"
   echo "  $0 --firmware-url /data/firmware-cache/lm-2023.09.bin --resume"
@@ -93,6 +103,7 @@ FIRMWARE_URL=""
 DRY_RUN=false
 ONLY_RING=""
 RESUME=false
+CHECKSUM=""
 
 while [[ $# -gt 0 ]]; do
   case "$1" in
@@ -114,6 +125,11 @@ while [[ $# -gt 0 ]]; do
       RESUME=true
       shift
       ;;
+    --checksum)
+      [[ $# -lt 2 ]] && die "--checksum requires a value"
+      CHECKSUM="$2"
+      shift 2
+      ;;
     -h|--help)
       usage
       ;;
@@ -126,6 +142,19 @@ done
 [[ -z "${FIRMWARE_URL}" ]] && usage
 
 # ---------------------------------------------------------------------------
+# Firmware URL security validation
+# ---------------------------------------------------------------------------
+
+if [[ "${FIRMWARE_URL}" == http://* ]]; then
+  if [[ -z "${CHECKSUM}" ]]; then
+    die "Insecure HTTP URL detected without --checksum. " \
+        "Firmware delivered over plain HTTP can be tampered with in transit. " \
+        "Either use an HTTPS URL, a local file path, or provide --checksum <sha256> to verify integrity."
+  fi
+  log "WARNING: Firmware URL uses insecure HTTP. Checksum verification will be enforced."
+fi
+
+# ---------------------------------------------------------------------------
 # Prerequisite checks
 # ---------------------------------------------------------------------------
 
@@ -136,51 +165,20 @@ done
 
 command -v python3 &>/dev/null || die "python3 is required but not found in PATH"
 
+# Verify helper scripts exist
+for helper in parse_rings.py parse_ring_nodes.py check_change_window.py \
+             write_rollout_state.py update_node_state.py parse_resume_state.py; do
+  [[ -f "${HELPERS_DIR}/${helper}" ]] || die "Helper script not found: ${HELPERS_DIR}/${helper}"
+done
+
 # ---------------------------------------------------------------------------
-# Python helpers — parse YAML using stdlib only (no PyYAML required)
+# Helper wrappers — call extracted Python scripts
 # ---------------------------------------------------------------------------
 
 # Extract ring names and stabilization periods from rollout-policy.yaml.
 # Outputs: ring_name|stabilization_hours per line.
 get_rings() {
-  python3 - "${POLICY_FILE}" <<'PYEOF'
-import sys, re
-
-path = sys.argv[1]
-with open(path) as f:
-    content = f.read()
-
-# Find the upgrade_rings block and parse ring names and stabilization_period_hours
-# This is a simple line-oriented parser for the known YAML structure.
-in_rings = False
-current_ring = None
-current_stab = "0"
-
-for line in content.splitlines():
-    stripped = line.strip()
-    if stripped == "upgrade_rings:":
-        in_rings = True
-        continue
-    if in_rings:
-        # Top-level key after upgrade_rings ends the block
-        if stripped and not stripped.startswith("-") and not stripped.startswith("#") \
-           and not line.startswith(" ") and not line.startswith("\t"):
-            in_rings = False
-            continue
-        ring_match = re.match(r'\s*-\s*ring:\s*["\']?(\w+)["\']?', line)
-        if ring_match:
-            if current_ring:
-                print(f"{current_ring}|{current_stab}")
-            current_ring = ring_match.group(1)
-            current_stab = "0"
-            continue
-        stab_match = re.match(r'\s+stabilization_period_hours:\s*(\d+)', line)
-        if stab_match and current_ring:
-            current_stab = stab_match.group(1)
-
-if current_ring:
-    print(f"{current_ring}|{current_stab}")
-PYEOF
+  python3 "${HELPERS_DIR}/parse_rings.py" "${POLICY_FILE}"
 }
 
 # Resolve node hostnames that belong to a given ring by cross-referencing
@@ -188,169 +186,13 @@ PYEOF
 # Outputs: hostname per line.
 get_nodes_for_ring() {
   local ring_name="$1"
-  python3 - "${POLICY_FILE}" "${INVENTORY_FILE}" "${ring_name}" <<'PYEOF'
-import sys, re
-
-policy_path = sys.argv[1]
-inventory_path = sys.argv[2]
-target_ring = sys.argv[3]
-
-# --- Parse rollout-policy.yaml: find node display names for the target ring ---
-ring_node_names = []
-with open(policy_path) as f:
-    content = f.read()
-
-in_rings = False
-in_target_ring = False
-in_nodes = False
-
-for line in content.splitlines():
-    stripped = line.strip()
-    if stripped == "upgrade_rings:":
-        in_rings = True
-        continue
-    if in_rings:
-        # End of upgrade_rings block
-        if stripped and not stripped.startswith("-") and not stripped.startswith("#") \
-           and not line.startswith(" ") and not line.startswith("\t"):
-            in_rings = False
-            continue
-        ring_match = re.match(r'\s*-\s*ring:\s*["\']?(\w+)["\']?', line)
-        if ring_match:
-            in_target_ring = (ring_match.group(1) == target_ring)
-            in_nodes = False
-            continue
-        if in_target_ring:
-            if re.match(r'\s+nodes:', line):
-                in_nodes = True
-                continue
-            # Another ring key ends the nodes block
-            if in_nodes and re.match(r'\s+\w+:', line) and not re.match(r'\s+-', line):
-                in_nodes = False
-                continue
-            if in_nodes:
-                node_match = re.match(r'\s+-\s+"([^"]+)"', line)
-                if not node_match:
-                    node_match = re.match(r"\s+-\s+'([^']+)'", line)
-                if not node_match:
-                    node_match = re.match(r'\s+-\s+(.+)', line)
-                if node_match:
-                    ring_node_names.append(node_match.group(1).strip().strip('"\''))
-
-# --- Parse inventories/mesh-nodes.yaml: resolve hostnames by name ---
-with open(inventory_path) as f:
-    inv_content = f.read()
-
-in_nodes_block = False
-current_name = None
-current_hostname = None
-
-for line in inv_content.splitlines():
-    stripped = line.strip()
-    if stripped == "nodes:":
-        in_nodes_block = True
-        continue
-    if in_nodes_block:
-        if re.match(r'\s*-\s+name:', line):
-            # Flush previous node
-            if current_name and current_hostname and current_name in ring_node_names:
-                print(current_hostname)
-            name_match = re.match(r'\s*-\s+name:\s*"([^"]+)"', line)
-            if not name_match:
-                name_match = re.match(r"\s*-\s+name:\s*'([^']+)'", line)
-            if not name_match:
-                name_match = re.match(r'\s*-\s+name:\s+(.+)', line)
-            current_name = name_match.group(1).strip().strip('"\'') if name_match else None
-            current_hostname = None
-            continue
-        host_match = re.match(r'\s+hostname:\s*"?([^\s"]+)"?', line)
-        if host_match and current_name:
-            current_hostname = host_match.group(1).strip().strip('"')
-
-# Flush last node
-if current_name and current_hostname and current_name in ring_node_names:
-    print(current_hostname)
-PYEOF
+  python3 "${HELPERS_DIR}/parse_ring_nodes.py" "${POLICY_FILE}" "${INVENTORY_FILE}" "${ring_name}"
 }
 
 # Check if current time falls within a preferred change window.
 # Outputs "yes" or "no".
 check_change_window() {
-  python3 - "${POLICY_FILE}" <<'PYEOF'
-import sys, re
-from datetime import datetime, timezone
-
-try:
-    import zoneinfo
-    def get_tz(name):
-        return zoneinfo.ZoneInfo(name)
-except ImportError:
-    # Python < 3.9 fallback — use UTC as approximation
-    def get_tz(name):
-        return timezone.utc
-
-path = sys.argv[1]
-with open(path) as f:
-    content = f.read()
-
-# Extract preferred windows
-windows = []
-current = {}
-in_preferred = False
-
-for line in content.splitlines():
-    stripped = line.strip()
-    if re.match(r'\s+preferred:', line):
-        in_preferred = True
-        continue
-    if in_preferred:
-        if re.match(r'\s+blackout_periods:', line):
-            in_preferred = False
-            continue
-        if re.match(r'\s+-\s+description:', line):
-            if current:
-                windows.append(current)
-            current = {}
-            continue
-        days_match = re.match(r'\s+days:\s*\[([^\]]+)\]', line)
-        if days_match:
-            current['days'] = [d.strip().strip('"') for d in days_match.group(1).split(',')]
-        start_match = re.match(r'\s+start_time:\s*"?(\d+:\d+)"?', line)
-        if start_match:
-            current['start'] = start_match.group(1)
-        end_match = re.match(r'\s+end_time:\s*"?(\d+:\d+)"?', line)
-        if end_match:
-            current['end'] = end_match.group(1)
-        tz_match = re.match(r'\s+timezone:\s*"?([^\s"]+)"?', line)
-        if tz_match:
-            current['tz'] = tz_match.group(1)
-
-if current:
-    windows.append(current)
-
-day_names = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday']
-
-for w in windows:
-    tz_name = w.get('tz', 'UTC')
-    try:
-        tz = get_tz(tz_name)
-    except Exception:
-        tz = timezone.utc
-    now = datetime.now(tz)
-    today = day_names[now.weekday()]
-    if today not in w.get('days', []):
-        continue
-    start_h, start_m = map(int, w.get('start', '00:00').split(':'))
-    end_h, end_m = map(int, w.get('end', '23:59').split(':'))
-    now_minutes = now.hour * 60 + now.minute
-    start_minutes = start_h * 60 + start_m
-    end_minutes = end_h * 60 + end_m
-    if start_minutes <= now_minutes <= end_minutes:
-        print("yes")
-        sys.exit(0)
-
-print("no")
-PYEOF
+  python3 "${HELPERS_DIR}/check_change_window.py" "${POLICY_FILE}"
 }
 
 # ---------------------------------------------------------------------------
@@ -370,44 +212,7 @@ if [[ "${RESUME}" == true ]]; then
   [[ -f "${STATE_FILE}" ]] || die "--resume specified but no rollout-state.yaml found at: ${STATE_FILE}"
   log "Loading previous rollout state from: ${STATE_FILE}"
 
-  # Extract resume information using Python
-  RESUME_INFO="$(python3 - "${STATE_FILE}" <<'PYEOF'
-import sys, re
-
-path = sys.argv[1]
-with open(path) as f:
-    content = f.read()
-
-status_match = re.search(r'^status:\s*(\S+)', content, re.MULTILINE)
-status = status_match.group(1) if status_match else 'unknown'
-
-fw_match = re.search(r'^firmware_url:\s*(.+)', content, re.MULTILINE)
-fw = fw_match.group(1).strip().strip('"') if fw_match else ''
-
-id_match = re.search(r'^rollout_id:\s*(.+)', content, re.MULTILINE)
-rid = id_match.group(1).strip().strip('"') if id_match else ''
-
-print(f"status={status}")
-print(f"firmware_url={fw}")
-print(f"rollout_id={rid}")
-
-# Find nodes that are already validated/upgraded — output as validated:<hostname>
-in_nodes = False
-current_host = None
-current_status = None
-for line in content.splitlines():
-    if re.match(r'\s+-\s+hostname:', line):
-        hm = re.match(r'\s+-\s+hostname:\s*"?([^\s"]+)"?', line)
-        current_host = hm.group(1).strip().strip('"') if hm else None
-        current_status = None
-    sm = re.match(r'\s+status:\s*(\S+)', line)
-    if sm and current_host:
-        current_status = sm.group(1).strip()
-        if current_status in ('validated', 'upgraded'):
-            print(f"done:{current_host}")
-        current_host = None
-PYEOF
-)"
+  RESUME_INFO="$(python3 "${HELPERS_DIR}/parse_resume_state.py" "${STATE_FILE}")"
 
   PREV_STATUS="$(echo "${RESUME_INFO}" | grep '^status=' | cut -d= -f2)"
   PREV_FW="$(echo "${RESUME_INFO}" | grep '^firmware_url=' | cut -d= -f2)"
@@ -446,171 +251,11 @@ write_state() {
   local now
   now="$(date '+%Y-%m-%dT%H:%M:%S')"
 
-  # Build rings section using current tracking state
-  # RINGS_YAML is populated incrementally below
-  python3 - "${POLICY_FILE}" "${INVENTORY_FILE}" \
-            "${ROLLOUT_ID}" "${FIRMWARE_URL}" "${status}" \
-            "${timestamp_field}" "${now}" \
-            "${STATE_FILE}" <<'PYEOF'
-import sys, re, os
-
-policy_path  = sys.argv[1]
-inv_path     = sys.argv[2]
-rollout_id   = sys.argv[3]
-firmware_url = sys.argv[4]
-status       = sys.argv[5]
-ts_field     = sys.argv[6]
-now          = sys.argv[7]
-state_path   = sys.argv[8]
-
-# ------------------------------------------------------------------
-# Load existing state if present (to preserve per-node timestamps)
-# ------------------------------------------------------------------
-existing_nodes = {}   # hostname -> {status, upgraded_at, validated_at, failed_at}
-existing_ts = {}      # field_name -> value  (started_at etc.)
-
-if os.path.exists(state_path):
-    with open(state_path) as f:
-        econtent = f.read()
-    in_nodes_sec = False
-    cur_host = None
-    cur_node = {}
-    for line in econtent.splitlines():
-        ts_m = re.match(r'^(started_at|completed_at|halted_at):\s*(.+)', line)
-        if ts_m:
-            existing_ts[ts_m.group(1)] = ts_m.group(2).strip().strip('"')
-        if re.match(r'\s+-\s+hostname:', line):
-            if cur_host:
-                existing_nodes[cur_host] = cur_node
-            hm = re.match(r'\s+-\s+hostname:\s*"?([^\s"]+)"?', line)
-            cur_host = hm.group(1).strip().strip('"') if hm else None
-            cur_node = {}
-        if cur_host:
-            for f2 in ('status', 'upgraded_at', 'validated_at', 'failed_at'):
-                fm = re.match(rf'\s+{f2}:\s*(.+)', line)
-                if fm:
-                    cur_node[f2] = fm.group(1).strip().strip('"')
-    if cur_host:
-        existing_nodes[cur_host] = cur_node
-
-# Determine timestamps
-started_at  = existing_ts.get('started_at',  (now if ts_field == 'started_at'  else 'null'))
-completed_at = existing_ts.get('completed_at', (now if ts_field == 'completed_at' else 'null'))
-halted_at   = existing_ts.get('halted_at',   (now if ts_field == 'halted_at'   else 'null'))
-if ts_field == 'started_at':
-    started_at = now
-elif ts_field == 'completed_at':
-    completed_at = now
-elif ts_field == 'halted_at':
-    halted_at = now
-
-# ------------------------------------------------------------------
-# Parse rings from policy
-# ------------------------------------------------------------------
-with open(policy_path) as f:
-    pcontent = f.read()
-with open(inv_path) as f:
-    icontent = f.read()
-
-# Parse ring names
-ring_names = []
-ring_nodes = {}   # ring_name -> [display_names]
-in_rings = False
-cur_ring = None
-in_nodes_sec2 = False
-
-for line in pcontent.splitlines():
-    stripped = line.strip()
-    if stripped == "upgrade_rings:":
-        in_rings = True
-        continue
-    if in_rings:
-        if stripped and not stripped.startswith('-') and not stripped.startswith('#') \
-           and not line.startswith(' ') and not line.startswith('\t'):
-            in_rings = False
-            continue
-        rm = re.match(r'\s*-\s*ring:\s*["\']?(\w+)["\']?', line)
-        if rm:
-            cur_ring = rm.group(1)
-            ring_names.append(cur_ring)
-            ring_nodes[cur_ring] = []
-            in_nodes_sec2 = False
-            continue
-        if cur_ring:
-            if re.match(r'\s+nodes:', line):
-                in_nodes_sec2 = True
-                continue
-            if in_nodes_sec2 and re.match(r'\s+\w+:', line) and not re.match(r'\s+-', line):
-                in_nodes_sec2 = False
-                continue
-            if in_nodes_sec2:
-                nm = re.match(r'\s+-\s+"([^"]+)"', line)
-                if not nm:
-                    nm = re.match(r"\s+-\s+'([^']+)'", line)
-                if not nm:
-                    nm = re.match(r'\s+-\s+(.+)', line)
-                if nm:
-                    ring_nodes[cur_ring].append(nm.group(1).strip().strip('"\''))
-
-# Parse inventory: name -> hostname
-name_to_host = {}
-in_inv = False
-cur_name = None
-for line in icontent.splitlines():
-    stripped = line.strip()
-    if stripped == "nodes:":
-        in_inv = True
-        continue
-    if in_inv:
-        nm = re.match(r'\s*-\s+name:\s*"([^"]+)"', line)
-        if not nm:
-            nm = re.match(r"\s*-\s+name:\s*'([^']+)'", line)
-        if not nm:
-            nm = re.match(r'\s*-\s+name:\s+(.+)', line)
-        if nm:
-            cur_name = nm.group(1).strip().strip('"\'')
-        hm = re.match(r'\s+hostname:\s*"?([^\s"]+)"?', line)
-        if hm and cur_name:
-            name_to_host[cur_name] = hm.group(1).strip().strip('"')
-
-# ------------------------------------------------------------------
-# Write state file
-# ------------------------------------------------------------------
-def yaml_ts(val):
-    """Return a quoted timestamp string or bare null."""
-    if val in (None, 'null', ''):
-        return 'null'
-    return f'"{val}"'
-
-lines = [
-    f'rollout_id: "{rollout_id}"',
-    f'firmware_url: "{firmware_url}"',
-    f'started_at: {yaml_ts(started_at)}',
-    f'completed_at: {yaml_ts(completed_at)}',
-    f'halted_at: {yaml_ts(halted_at)}',
-    f'status: {status}',
-    'rings:',
-]
-
-for rname in ring_names:
-    lines.append(f'  - name: {rname}')
-    lines.append(f'    nodes:')
-    for display_name in ring_nodes.get(rname, []):
-        hostname = name_to_host.get(display_name, display_name.lower().replace(' ', '-'))
-        enode = existing_nodes.get(hostname, {})
-        node_status = enode.get('status', 'pending')
-        lines.append(f'      - hostname: "{hostname}"')
-        lines.append(f'        display_name: "{display_name}"')
-        lines.append(f'        status: {node_status}')
-        for tsf in ('upgraded_at', 'validated_at', 'failed_at'):
-            val = enode.get(tsf, 'null')
-            lines.append(f'        {tsf}: {val}')
-
-with open(state_path, 'w') as f:
-    f.write('\n'.join(lines) + '\n')
-
-print(f"State written: {state_path}")
-PYEOF
+  python3 "${HELPERS_DIR}/write_rollout_state.py" \
+    "${POLICY_FILE}" "${INVENTORY_FILE}" \
+    "${ROLLOUT_ID}" "${FIRMWARE_URL}" "${status}" \
+    "${timestamp_field}" "${now}" \
+    "${STATE_FILE}"
 }
 
 # Update the status of a single node in rollout-state.yaml
@@ -621,45 +266,8 @@ update_node_state() {
   local now
   now="$(date '+%Y-%m-%dT%H:%M:%S')"
 
-  python3 - "${STATE_FILE}" "${hostname}" "${new_status}" "${ts_field}" "${now}" <<'PYEOF'
-import sys, re
-
-state_path = sys.argv[1]
-hostname   = sys.argv[2]
-new_status = sys.argv[3]
-ts_field   = sys.argv[4]
-now        = sys.argv[5]
-
-with open(state_path) as f:
-    lines = f.readlines()
-
-in_node = False
-updated = False
-out = []
-i = 0
-while i < len(lines):
-    line = lines[i]
-    # Detect start of this node's block
-    hm = re.match(r'\s+-\s+hostname:\s*"?([^\s"]+)"?', line)
-    if hm and hm.group(1).strip().strip('"') == hostname:
-        in_node = True
-    if in_node:
-        sm = re.match(r'(\s+)status:\s*\S+', line)
-        if sm:
-            line = f"{sm.group(1)}status: {new_status}\n"
-            updated = True
-        tf_m = re.match(r'(\s+)' + re.escape(ts_field) + r':\s*\S+', line)
-        if tf_m:
-            line = f"{tf_m.group(1)}{ts_field}: \"{now}\"\n"
-        # Next node block ends this one
-        if i > 0 and re.match(r'\s+-\s+hostname:', line) and not (hm and hm.group(1).strip().strip('"') == hostname):
-            in_node = False
-    out.append(line)
-    i += 1
-
-with open(state_path, 'w') as f:
-    f.writelines(out)
-PYEOF
+  python3 "${HELPERS_DIR}/update_node_state.py" \
+    "${STATE_FILE}" "${hostname}" "${new_status}" "${ts_field}" "${now}"
 }
 
 # ---------------------------------------------------------------------------
@@ -679,12 +287,47 @@ if [[ -n "${ONLY_RING}" ]]; then
 fi
 
 # ---------------------------------------------------------------------------
+# Firmware checksum verification
+# ---------------------------------------------------------------------------
+
+if [[ -n "${CHECKSUM}" ]]; then
+  log "Verifying firmware checksum..."
+  if [[ "${FIRMWARE_URL}" == http://* || "${FIRMWARE_URL}" == https://* ]]; then
+    # For remote URLs, download to a temp file first for checksum verification
+    FIRMWARE_TMP="$(mktemp --suffix=.firmware)"
+    log "Downloading firmware for checksum verification: ${FIRMWARE_URL}"
+    if command -v curl &>/dev/null; then
+      curl -fL -o "${FIRMWARE_TMP}" "${FIRMWARE_URL}" || die "Failed to download firmware from: ${FIRMWARE_URL}"
+    elif command -v wget &>/dev/null; then
+      wget -O "${FIRMWARE_TMP}" "${FIRMWARE_URL}" || die "Failed to download firmware from: ${FIRMWARE_URL}"
+    else
+      die "Neither curl nor wget found. Cannot download firmware for checksum verification."
+    fi
+    ACTUAL_CHECKSUM="$(sha256sum "${FIRMWARE_TMP}" | cut -d' ' -f1)"
+    rm -f "${FIRMWARE_TMP}"
+  else
+    # Local file path
+    [[ -f "${FIRMWARE_URL}" ]] || die "Firmware file not found: ${FIRMWARE_URL}"
+    ACTUAL_CHECKSUM="$(sha256sum "${FIRMWARE_URL}" | cut -d' ' -f1)"
+  fi
+
+  if [[ "${ACTUAL_CHECKSUM}" != "${CHECKSUM}" ]]; then
+    die "Firmware checksum mismatch! Expected: ${CHECKSUM}, Got: ${ACTUAL_CHECKSUM}. " \
+        "Do NOT proceed — the firmware image may be corrupted or tampered with."
+  fi
+  log "Checksum verified: ${ACTUAL_CHECKSUM}"
+fi
+
+# ---------------------------------------------------------------------------
 # Print rollout plan
 # ---------------------------------------------------------------------------
 
 banner "ROLLOUT PLAN"
 echo "  Rollout ID:    ${ROLLOUT_ID}"
 echo "  Firmware URL:  ${FIRMWARE_URL}"
+if [[ -n "${CHECKSUM}" ]]; then
+  echo "  Checksum:      ${CHECKSUM} (verified)"
+fi
 echo "  Policy file:   ${POLICY_FILE}"
 echo "  State file:    ${STATE_FILE}"
 [[ -n "${ONLY_RING}" ]] && echo "  Scope:         Ring '${ONLY_RING}' only"
@@ -779,7 +422,7 @@ if [[ "${RESUME}" == false ]]; then
   write_state "in_progress" "started_at"
 else
   log "Resuming — updating state to in_progress"
-  # Update status field only via a simple sed replacement
+  # Update status field only via a simple inline replacement
   python3 - "${STATE_FILE}" <<'PYEOF'
 import sys, re
 with open(sys.argv[1]) as f:

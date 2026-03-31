@@ -50,8 +50,10 @@ Exit codes:
 
 import sys
 import json
+import re
 import argparse
 from datetime import datetime, timezone
+from pathlib import Path
 from typing import Optional
 
 try:
@@ -62,74 +64,65 @@ except ImportError:
 
 
 # ---------------------------------------------------------------------------
-# Field name mappings: raw field → normalized inventory field name
-#
-# The keys are field names that may appear in raw collect-nodes.sh output.
-# The values are the canonical field names used in mesh-nodes.yaml.
+# Configuration loading: field_map.json alongside this script
 # ---------------------------------------------------------------------------
-FIELD_MAP = {
-    # Hostname variants
-    "hostname":         "hostname",
-    "system_hostname":  "hostname",
-    "node_hostname":    "hostname",
 
-    # Firmware version variants
-    "firmware_version":        "firmware_version",
-    "firmware":                "firmware_version",
-    "openwrt_version":         "firmware_version",
-    "libremesh_version":       "firmware_version",
-    "distrib_description":     "firmware_version",
-
-    # Status
-    "status":           "status",
-    "node_status":      "status",
-    "reachable":        "status",   # bool → mapped to "online"/"offline" in normalize
-
-    # Role
-    "role":             "role",
-    "node_role":        "role",
-
-    # MAC address
-    "mac":              "mac",
-    "primary_mac":      "mac",
-    "eth_mac":          "mac",
-
-    # Site
-    "site":             "site",
-    "site_name":        "site",
-
-    # Model
-    "model":            "model",
-    "hardware_model":   "model",
-    "board":            "model",
-
-    # Uptime
-    "uptime_seconds":   "uptime_seconds",
-    "uptime":           "uptime_seconds",
-
-    # Notes
-    "notes":            "notes",
+# Minimal fallback maps used when field_map.json is missing
+_FALLBACK_FIELD_MAP = {
+    "hostname": "hostname",
+    "firmware_version": "firmware_version",
+    "status": "status",
+    "role": "role",
+    "mac": "mac",
+    "site": "site",
+    "model": "model",
+    "uptime_seconds": "uptime_seconds",
+    "notes": "notes",
 }
+
+_FALLBACK_SEVERITY_MAP = {
+    "firmware_version": "warning",
+    "status": "warning",
+    "hostname": "error",
+    "mac": "error",
+    "model": "warning",
+    "role": "error",
+    "site": "info",
+    "notes": "info",
+}
+
+
+def _load_config():
+    """
+    Load FIELD_MAP and SEVERITY_MAP from field_map.json located next to this
+    script.  Falls back to minimal built-in maps with a stderr warning if the
+    file is missing or invalid.
+    """
+    config_path = Path(__file__).resolve().parent / "field_map.json"
+    try:
+        with open(config_path, "r", encoding="utf-8") as fh:
+            cfg = json.load(fh)
+        field_map = cfg.get("field_map", {})
+        severity_map = cfg.get("severity_map", {})
+        if not field_map:
+            raise ValueError("field_map key is empty or missing")
+        return field_map, severity_map
+    except (FileNotFoundError, json.JSONDecodeError, ValueError) as exc:
+        print(
+            f"WARNING: Could not load {config_path} ({exc}); "
+            "using minimal built-in field map.",
+            file=sys.stderr,
+        )
+        return dict(_FALLBACK_FIELD_MAP), dict(_FALLBACK_SEVERITY_MAP)
+
+
+# Load at module import time so every function sees the maps.
+FIELD_MAP, SEVERITY_MAP = _load_config()
 
 # Fields that are expected in a fully normalized inventory record
 INVENTORY_FIELDS = {
     "name", "hostname", "mac", "site", "model",
     "firmware_version", "role", "status", "notes",
-}
-
-# Drift severity rules:
-#   error   — field mismatch that indicates a real operational problem
-#   warning — field mismatch that should be reviewed but is not critical
-#   info    — informational difference (e.g. uptime, notes)
-SEVERITY_MAP = {
-    "firmware_version": "warning",
-    "status":           "warning",
-    "hostname":         "error",
-    "mac":              "error",
-    "model":            "warning",
-    "role":             "error",
-    "site":             "info",
-    "notes":            "info",
 }
 
 
@@ -199,6 +192,16 @@ def load_inventory(path: str) -> list:
     return data.get("nodes", [])
 
 
+def _clean_mac(mac) -> str:
+    """
+    Strip all non-hex-digit characters and lowercase, so that MAC addresses
+    with different separators (colons, hyphens, dots, or no separator) are
+    compared correctly.
+    Examples:  "AA:BB:CC:DD:EE:FF" == "aa-bb-cc-dd-ee-ff" == "aabb.ccdd.eeff"
+    """
+    return re.sub(r'[^a-fA-F0-9]', '', str(mac)).lower()
+
+
 def find_inventory_node(normalized_live: dict, inventory: list) -> Optional[dict]:
     """
     Find the inventory record that matches the live node.
@@ -206,12 +209,12 @@ def find_inventory_node(normalized_live: dict, inventory: list) -> Optional[dict
     Returns the inventory dict or None if not found.
     """
     live_hostname = normalized_live.get("hostname")
-    live_mac = normalized_live.get("mac", "").lower()
+    live_mac_clean = _clean_mac(normalized_live.get("mac", ""))
 
     for inv_node in inventory:
         if live_hostname and inv_node.get("hostname") == live_hostname:
             return inv_node
-        if live_mac and inv_node.get("mac", "").lower() == live_mac:
+        if live_mac_clean and _clean_mac(inv_node.get("mac", "")) == live_mac_clean:
             return inv_node
     return None
 
