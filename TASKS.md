@@ -229,47 +229,47 @@ Items not yet implemented. Left for future maintainers.
 ## Post-Bootstrap Findings (2026-03-30)
 
 ### Security Vulnerabilities
-- [ ] **Missing Webhook Authentication** (Complexity: Medium)
+- [x] **Missing Webhook Authentication** (Complexity: Medium)
   - **Location**: `adapters/channels/telegram/adapter.mjs`
   - **Impact**: Potential for spoofed requests and unauthorized commands.
   - **Action**: Implement header validation for webhook requests (`X-Telegram-Bot-Api-Secret-Token`).
-- [ ] **Insecure Firmware Distribution Risk** (Complexity: High)
+- [x] **Insecure Firmware Distribution Risk** (Complexity: High)
   - **Location**: `skills/mesh-rollout/scripts/run-rollout.sh`
   - **Impact**: Risk of installing compromised firmware via MitM.
   - **Action**: Enforce HTTPS for firmware URLs or require an accompanying `--checksum` argument.
 
 ### Potential Bugs
-- [ ] **Unsafe Property Access on Fallback Payloads** (Complexity: Low)
+- [x] **Unsafe Property Access on Fallback Payloads** (Complexity: Low)
   - **Location**: `adapters/channels/telegram/adapter.mjs`
   - **Impact**: Silent failures or obscure errors on malformed API responses.
   - **Action**: Validate the type of `result.body` before property access or distinguish JSON from raw text.
-- [ ] **Fragile MAC Address Comparison** (Complexity: Low)
+- [x] **Fragile MAC Address Comparison** (Complexity: Low)
   - **Location**: `adapters/mesh/normalize.py`
   - **Impact**: Live MAC addresses might fail to match inventory due to separator differences.
   - **Action**: Strip all non-alphanumeric characters before comparing MAC addresses.
 
 ### Architecture and Design Problems
-- [ ] **Fragile YAML Parsing via Regex** (Complexity: Medium)
+- [x] **Fragile YAML Parsing via Regex** (Complexity: Medium)
   - **Location**: `skills/mesh-rollout/scripts/run-rollout.sh`
   - **Impact**: Changes in YAML formatting could break parsing and halt rollouts.
   - **Action**: Replace inline Python regex parsers with `yq` or externalize to a dedicated Python script using `PyYAML`.
-- [ ] **Global State Management in Node Adapters** (Complexity: Medium)
+- [x] **Global State Management in Node Adapters** (Complexity: Medium)
   - **Location**: `adapters/channels/telegram/adapter.mjs`
   - **Impact**: Difficult to test, scale, or restart safely.
   - **Action**: Encapsulate adapter logic and state within an ES6 Class or factory function.
 
 ### Performance Issues
-- [ ] **Excessive Python Interpreter Overhead** (Complexity: Medium)
+- [x] **Excessive Python Interpreter Overhead** (Complexity: Medium)
   - **Location**: `skills/mesh-rollout/scripts/run-rollout.sh`
   - **Impact**: Noticeable latency during rollouts due to repeated Python interpreter startups.
   - **Action**: Run a single Python extraction script upfront and output mappings into Bash associative arrays.
 
 ### Maintainability Concerns
-- [ ] **Hardcoded Normalization Maps** (Complexity: Low)
+- [x] **Hardcoded Normalization Maps** (Complexity: Low)
   - **Location**: `adapters/mesh/normalize.py`
   - **Impact**: Manual maintenance required when API evolves.
   - **Action**: Externalize `FIELD_MAP` into a JSON or YAML configuration file.
-- [ ] **Untestable Inline Code** (Complexity: Low)
+- [x] **Untestable Inline Code** (Complexity: Low)
   - **Location**: `skills/mesh-rollout/scripts/run-rollout.sh`
   - **Impact**: Inline Python bypasses linters and tests, risking syntax errors.
   - **Action**: Extract inline Python blocks into standalone `.py` scripts in a `helpers/` directory.
