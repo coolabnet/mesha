@@ -51,3 +51,5 @@ venv/
 *.tmp
 *.bak
 .superset/
+.openclaw/
+.junie/
