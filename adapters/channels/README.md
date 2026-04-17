@@ -6,7 +6,7 @@ Channel adapters are the bridges between external messaging platforms and the Me
 
 The channel layer is the outermost shell of the system. It deals only with message format, authentication tokens, and platform APIs — it has no knowledge of mesh networks, server operations, or operator logic. All operator logic lives in the skills and agent layer.
 
-```
+```text
 User message
     │
     ▼
@@ -115,6 +115,7 @@ The frontdesk agent returns a response object. The adapter must deliver it to th
 ### Error handling
 
 If delivery fails, the adapter must:
+
 1. Log the failure with the original message envelope and error reason.
 2. Retry once after a short delay (3–5 seconds).
 3. On second failure, write a failure record to `logs/channel-errors/`.
@@ -141,6 +142,7 @@ Telegram is the recommended first channel adapter because:
 5. **Available in Brazil** — Widely used by the target community.
 
 To implement the Telegram adapter, create `adapters/channels/telegram/` with:
+
 - `bot.js` or `bot.py` — the adapter script that handles webhook events
 - `README.md` — setup instructions (bot token from BotFather, webhook registration)
 - Reference the trust model above to map Telegram user IDs to trust levels

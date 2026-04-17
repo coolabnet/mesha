@@ -1,6 +1,6 @@
 # secrets/
 
-## This directory must NEVER contain committed secrets.
+## This directory must NEVER contain committed secrets
 
 This directory is a reference point for how secrets are managed in this workspace. It does not store any actual credentials, keys, or tokens. Every file in this directory that is not this README must be listed in `.gitignore`.
 
@@ -41,6 +41,7 @@ The following must never appear in any committed file in this directory or anywh
 Store secrets as environment variables on the host running the workspace. Reference them by name in scripts and configuration.
 
 Example pattern in a script:
+
 ```sh
 SSH_KEY_PATH="${MESHA_ROUTER_SSH_KEY:-$HOME/.ssh/mesha-router-key}"
 ```
@@ -52,7 +53,8 @@ Document the required variable names in this README and in `BOOTSTRAP.md`. Do no
 Store credentials in files on the local host that are explicitly listed in `.gitignore`. Use a consistent naming convention so maintainers know where to look.
 
 Recommended local credential paths:
-```
+
+```text
 ~/.config/mesha/
   router-ssh-key          (SSH key for router access)
   server-ssh-key          (SSH key for server access)
@@ -77,7 +79,8 @@ Document which secret manager is in use and how to retrieve each credential in t
 A `.env` file at the workspace root is acceptable for local development, but must be listed in `.gitignore`. Never commit it.
 
 Template for the `.env` file (document the expected keys here without values):
-```
+
+```text
 MESHA_ROUTER_SSH_KEY=
 MESHA_SERVER_SSH_KEY=
 MESHA_TELEGRAM_BOT_TOKEN=
@@ -91,7 +94,7 @@ MESHA_APPROVAL_CHANNEL_ID=
 
 The following patterns must be present in the root `.gitignore` for this workspace:
 
-```
+```text
 secrets/*.key
 secrets/*.pem
 secrets/*.token

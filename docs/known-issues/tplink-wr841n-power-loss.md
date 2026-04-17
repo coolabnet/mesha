@@ -1,6 +1,6 @@
 # Known Issue: TP-Link TL-WR841N v13 — Does not recover after power loss
 
-```
+```text
 hardware-model-or-pattern: TP-Link TL-WR841N v13
 symptoms: Node goes offline after power fluctuation or unclean shutdown and does not recover without manual reboot or physical power-cycle
 confirmed-root-cause: Flash filesystem corruption under unclean shutdown on 4 MB flash with JFFS2/SquashFS overlay
@@ -52,11 +52,13 @@ Reference: OpenWrt forum thread on TL-WR841N stability (search "WR841N failsafe 
 ### Immediate workaround: power-cycle the node
 
 If the node does not recover after a power cut:
+
 1. Physically power-cycle the PoE injector or USB power adapter.
 2. Wait 2–3 minutes for the node to boot.
 3. Check if it rejoins the mesh (`batctl n` from a neighboring node).
 
 If it boots into failsafe mode (LED blinks rapidly):
+
 1. Connect via a wired Ethernet cable from a laptop.
 2. Set laptop IP to `192.168.1.2`, mask `255.255.255.0`.
 3. SSH to `192.168.1.1` (no password in failsafe mode).
@@ -93,6 +95,7 @@ uci commit system
 ```
 
 To verify the watchdog is active:
+
 ```bash
 # Check watchdog process
 ps | grep watchdog

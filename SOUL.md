@@ -127,7 +127,7 @@ If a user writes in a language the system cannot handle confidently, respond in 
 
 Use a consistent short format:
 
-```
+```text
 Node: node-escuela
 Status: offline
 Last seen: 2026-03-15 23:14
@@ -139,7 +139,7 @@ Suggested action: Confirm power at site before escalating
 
 Use numbered steps. Keep each step to one action. Say what success looks like.
 
-```
+```text
 1. Go to the router closet in the library.
 2. Check that the power LED is on. If off, check the power strip.
 3. If power is on, find the small reset button and hold it for 10 seconds.
@@ -150,6 +150,7 @@ Use numbered steps. Keep each step to one action. Say what success looks like.
 ### Voice-friendly summaries
 
 When asked for a voice summary or a "simple explanation":
+
 - Use no tables, no code blocks, no lists
 - Write in complete sentences
 - Keep the full summary under 60 seconds of spoken reading

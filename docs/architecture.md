@@ -18,7 +18,7 @@ It is not a generic chatbot. Every action is traceable, explainable, and either 
 
 The entire system is organized into three layers. Each layer has a strict boundary — lower layers cannot be bypassed by higher layers for risky operations.
 
-```
+```text
 ┌─────────────────────────────────────────────────────────┐
 │                  CONVERSATION LAYER                     │
 │                                                         │
@@ -69,6 +69,7 @@ The entire system is organized into three layers. Each layer has a strict bounda
 ## Agent Roles
 
 ### `community-ops-frontdesk`
+
 The single public-facing entry point for all requests.
 
 - Receives messages from chat channels
@@ -80,6 +81,7 @@ The single public-facing entry point for all requests.
 - **Must not** directly perform risky router or server changes
 
 ### `mesh-planner`
+
 Translates mesh-related user intent into structured, safe plans.
 
 - Converts requests like "upgrade the rooftop nodes" into step-by-step plans
@@ -89,6 +91,7 @@ Translates mesh-related user intent into structured, safe plans.
 - Produces a maintenance log entry after execution
 
 ### `mesh-collector`
+
 Gathers facts about the mesh network safely.
 
 - Reads node inventory from `inventories/mesh-nodes.yaml`
@@ -98,6 +101,7 @@ Gathers facts about the mesh network safely.
 - Outputs normalized JSON/YAML snapshots — never raw shell output
 
 ### `mesh-executor`
+
 Performs approved mesh changes — and nothing else.
 
 - Only runs after a plan has been approved
@@ -108,6 +112,7 @@ Performs approved mesh changes — and nothing else.
 - Writes a log entry for every approved action
 
 ### `server-planner`
+
 Translates local-server requests into structured plans.
 
 - Determines dependencies, risk class, and rollback path for each operation
@@ -115,6 +120,7 @@ Translates local-server requests into structured plans.
 - Does not approve its own plans — approval comes from a maintainer
 
 ### `server-executor`
+
 Performs approved local server changes.
 
 - Uses approved service install recipes only
@@ -124,6 +130,7 @@ Performs approved local server changes.
 - Rolls back on failure
 
 ### `knowledge-curator`
+
 Keeps the project durable and teachable.
 
 - Maintains `inventories/` files (mesh-nodes, sites, services)
@@ -165,6 +172,7 @@ Adapters convert raw infrastructure state into normalized data that planners can
 ### Mesh adapters (`adapters/mesh/`)
 
 Read from:
+
 - OpenWrt/LibreMesh configuration files (`/etc/config/lime-node`, `lime-community`, `lime-defaults`)
 - UCI-backed configuration state
 - `ubus` exposed information (network interfaces, wireless state, system info)
@@ -174,6 +182,7 @@ Read from:
 - Optional: Prometheus exporters, custom collectors
 
 Output:
+
 - Normalized YAML or JSON snapshot of node state
 - Topology graph with link quality scores
 - Drift report comparing live state to `desired-state/mesh/`
@@ -181,6 +190,7 @@ Output:
 ### Server adapters (`adapters/server/`)
 
 Read from:
+
 - SSH-accessible host diagnostics (`df`, `free`, `systemctl status`)
 - Container runtime state (Docker, Podman)
 - Reverse proxy configuration (Nginx, Caddy)
@@ -189,6 +199,7 @@ Read from:
 - Backup hook outputs
 
 Output:
+
 - Normalized host health snapshot
 - Service reachability map
 - Offline validation results
@@ -198,9 +209,11 @@ Output:
 Channel adapters are the outermost layer — they bridge external messaging platforms to the `community-ops-frontdesk` agent. They handle platform-specific message format, sender authentication, and trust level assignment. They have no knowledge of mesh networks or server operations.
 
 **Implemented:**
+
 - `adapters/channels/telegram/` — Telegram Bot API adapter (long-polling or webhook, trust level assignment by user ID, Docker Compose deployment). See `adapters/channels/telegram/README.md`.
 
 **Planned (future implementation):**
+
 - `adapters/channels/whatsapp/` — WhatsApp Business API adapter
 - `adapters/channels/web-dashboard/` — Local web interface adapter
 
@@ -278,7 +291,7 @@ Every operation is assigned a risk class before it runs. The class determines wh
 
 Here is how a request flows through the system end to end:
 
-```
+```text
 User in WhatsApp: "Why is the school offline?"
         │
         ▼
@@ -318,7 +331,7 @@ community-ops-frontdesk
 
 ## Workspace Layout Summary
 
-```
+```text
 workspace/
   BOOTSTRAP.md        ← source of truth for architecture and setup
   AGENTS.md           ← agent role boundaries and routing rules

@@ -24,6 +24,7 @@ One file per site, named after the site's slug derived from its name in `invento
 **Pattern:** `<site-slug>.md`
 
 **Examples:**
+
 - `associacao-portal-sem-porteiras.md` — for site "Associação Portal Sem Porteiras"
 
 Use lowercase, replace spaces with hyphens, drop accents for the filename. The title inside the file should use the full proper name.
@@ -43,6 +44,7 @@ Every site note must include all of the following sections:
 7. **Photos and diagrams** — a note on where installation photos are stored, or "none taken yet"
 
 Optional sections (add when relevant):
+
 - Power supply details (UPS capacity, solar system specs, known failure patterns)
 - Coverage map or signal notes
 - Security or safety notes (locked rooms, access cards, night watchman)
@@ -83,4 +85,5 @@ The `knowledge-curator` skill is responsible for updating site notes after appro
 | `associacao-portal-sem-porteiras.md` | Associação Portal Sem Porteiras | 4 (all leaf nodes) |
 
 Sites without notes yet:
+
 - None (all confirmed sites have notes)

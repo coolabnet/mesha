@@ -24,11 +24,13 @@ Each problem uses this structure:
 **Problem:** A node that should be online is not responding.
 
 **Symptoms:**
+
 - The operator says "node not found" or "no response from node"
 - `mesh-readonly` shows the node as missing from topology
 - Users at that site report no connectivity
 
 **Diagnosis:**
+
 ```bash
 # From a host on the local network, try to ping the node
 ping <node-ip>
@@ -43,6 +45,7 @@ batctl n   # if using batman-adv
 ```
 
 Check the operator's inventory:
+
 ```bash
 grep -A5 "<node-name>" inventories/mesh-nodes.yaml
 ```
@@ -61,11 +64,13 @@ grep -A5 "<node-name>" inventories/mesh-nodes.yaml
 **Problem:** A link exists but is unstable or has high packet loss.
 
 **Symptoms:**
+
 - `mesh-readonly` reports poor link quality scores
 - Users experience slow or dropping connections
 - The operator flags this as a weak link in summaries
 
 **Diagnosis:**
+
 ```bash
 # On one of the affected nodes
 ssh root@<node-ip>
@@ -96,11 +101,13 @@ ping -c 20 <neighbor-ip>
 **Problem:** A node's running config does not match the community desired state.
 
 **Symptoms:**
+
 - `mesh-readonly` diff report shows differences
 - The operator says "this node differs from the community standard"
 - The node was manually configured by someone outside the normal workflow
 
 **Diagnosis:**
+
 ```bash
 # Review the desired state
 cat desired-state/mesh/community-profile/lime-community
@@ -126,11 +133,13 @@ Compare the two manually or use the operator's diff skill.
 **Problem:** The mesh is up internally but has no internet access or no uplink.
 
 **Symptoms:**
+
 - Nodes can reach each other but not external addresses
 - The operator reports gateway as unreachable
 - DNS lookups fail
 
 **Diagnosis:**
+
 ```bash
 # On the gateway node
 ssh root@<gateway-ip>
@@ -155,11 +164,13 @@ logread | tail -50     # check recent logs
 **Problem:** A service that should be running is not accessible on its local domain.
 
 **Symptoms:**
+
 - Browser shows "connection refused" or "site not found" on the local domain
 - The operator's `server-readonly` health check fails for this service
 - Users report the service is down
 
 **Diagnosis:**
+
 ```bash
 # Check if the container or service process is running
 docker ps | grep <service-name>
@@ -194,11 +205,13 @@ nslookup <local-domain> localhost
 **Problem:** The local server is running out of disk space.
 
 **Symptoms:**
+
 - `server-readonly` reports disk usage above 80% or 90%
 - Services start failing with "no space left on device" errors
 - Logs stop writing
 
 **Diagnosis:**
+
 ```bash
 # Check disk usage by filesystem
 df -h
@@ -224,10 +237,12 @@ du -sh /opt/*               # Installed services
 **Problem:** The service is running and reachable by IP, but the local domain does not work.
 
 **Symptoms:**
+
 - `http://localhost:<port>` works
 - `http://<service>.local` or `http://<service>.community` does not work
 
 **Diagnosis:**
+
 ```bash
 # Test DNS resolution
 nslookup <local-domain>
@@ -256,11 +271,13 @@ cat /etc/nginx/sites-enabled/<service>
 **Problem:** SSH connection is refused or times out.
 
 **Symptoms:**
+
 - `ssh: connect to host <ip> port 22: Connection refused`
 - `ssh: connect to host <ip> port 22: Connection timed out`
 - Password prompt appears but authentication fails
 
 **Diagnosis:**
+
 ```bash
 # Test if the host is reachable at all
 ping <ip>
@@ -286,11 +303,13 @@ ssh -v root@<ip>
 **Problem:** Messages sent to the bot are not receiving responses.
 
 **Symptoms:**
+
 - Messages to the WhatsApp/Telegram bot go unanswered
 - The channel was working before but stopped
 - Some channels work but others do not
 
 **Diagnosis:**
+
 ```bash
 # Check if OpenClaw is running
 openclaw status
@@ -318,6 +337,7 @@ curl https://api.telegram.org/bot<token>/getMe   # Telegram example
 **Problem:** The frontdesk agent is handling requests itself or sending them to the wrong specialist.
 
 **Symptoms:**
+
 - Mesh questions are answered by the server planner
 - The response is generic and not specialized
 - The operator says "I can't handle that" for requests it should handle
@@ -338,6 +358,7 @@ Look at the routing logic in `skills/community-ops-frontdesk/SKILL.md`. Check wh
 **Problem:** The operator is performing write operations without requesting explicit approval.
 
 **Symptoms:**
+
 - Infrastructure changes happen without a confirmation step
 - The operator says "done" without asking first
 - A Class C or D operation ran from an untrusted channel
@@ -360,11 +381,13 @@ Check the relevant skill file (e.g., `skills/mesh-rollout/SKILL.md`) and verify 
 **Problem:** The operator says it cannot find a node, site, or service that exists.
 
 **Symptoms:**
+
 - "I don't have information about that node"
 - Topology maps are empty
 - Site names are not recognized
 
 **Diagnosis:**
+
 ```bash
 # Check that inventory files exist and have content
 cat inventories/mesh-nodes.yaml
@@ -385,6 +408,7 @@ cat inventories/local-services.yaml
 **Problem:** The operator is responding in a language the user does not understand, or using technical jargon.
 
 **Symptoms:**
+
 - Responses are in English but the community uses Portuguese (or another language)
 - Explanations are full of network terminology
 - Voice summaries are too long or too complex
@@ -435,6 +459,7 @@ Check `SOUL.md` for the community's preferred language and tone settings. Check 
 **Problem:** On Windows with WSL2, the network tools cannot reach the local LAN.
 
 **Symptoms:**
+
 - Can ping internet but not LAN devices from WSL2
 - SSH to LAN hosts fails
 - `ping 192.168.x.x` times out

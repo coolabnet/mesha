@@ -7,6 +7,7 @@ By the end of this guide, the system will be running and you will be able to ins
 For the exact configuration and secret inputs a maintainer must provide, read `docs/configuration.md` alongside this guide.
 
 The shortest successful onboarding path is:
+
 1. Install the workspace and confirm OpenClaw runs.
 2. Seed the inventories once with real node targets and site context.
 3. Verify SSH access manually to one router.
@@ -60,6 +61,7 @@ sudo apt install -y git curl jq python3 python3-pip openssh-client
 Do not use the default `apt` Node.js package — it is usually too old. Use the NodeSource repository or `nvm`.
 
 **Option A — NodeSource:**
+
 ```bash
 curl -fsSL https://deb.nodesource.com/setup_22.x | sudo -E bash -
 sudo apt install -y nodejs
@@ -67,6 +69,7 @@ node --version   # should print v22.x.x
 ```
 
 **Option B — nvm (recommended for flexibility):**
+
 ```bash
 curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.39.7/install.sh | bash
 source ~/.bashrc
@@ -83,6 +86,7 @@ openclaw --version
 ```
 
 If the install fails, try:
+
 ```bash
 npm install -g @openclaw/cli --unsafe-perm
 ```
@@ -129,6 +133,7 @@ openclaw config get agents.defaults.workspace
 ```
 
 If you prefer the repo helper, you can also run:
+
 ```bash
 bash scripts/activate-workspace.sh
 ```
@@ -223,13 +228,14 @@ Tested on macOS 13 (Ventura) and 14 (Sonoma) with Apple Silicon and Intel.
 ### Step 1 — Install Homebrew
 
 If you do not have Homebrew:
+
 ```bash
 /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
 ```
 
 After install, follow the instructions to add Homebrew to your PATH (especially on Apple Silicon).
 
-### Step 2 — Install base tools
+### Step 2 — Install base tools (macOS)
 
 ```bash
 brew install git curl jq python3
@@ -237,7 +243,7 @@ brew install git curl jq python3
 
 SSH client is already included with macOS.
 
-### Step 3 — Install Node.js 22
+### Step 3 — Install Node.js 22 (macOS)
 
 ```bash
 brew install node@22
@@ -248,27 +254,28 @@ node --version   # should print v22.x.x
 
 Or use `nvm` (same commands as Linux above).
 
-### Step 4 — Install OpenClaw CLI
+### Step 4 — Install OpenClaw CLI (macOS)
 
 ```bash
 npm install -g @openclaw/cli
 openclaw --version
 ```
 
-### Step 5 — Install Docker (recommended)
+### Step 5 — Install Docker (recommended, macOS)
 
-Download Docker Desktop from https://www.docker.com/products/docker-desktop/ and install it. Start Docker Desktop before running any container commands.
+Download Docker Desktop from <https://www.docker.com/products/docker-desktop/> and install it. Start Docker Desktop before running any container commands.
 
-### Step 6 — Install Tailscale (recommended)
+### Step 6 — Install Tailscale (recommended, macOS)
 
-Download from https://tailscale.com/download/mac or:
+Download from <https://tailscale.com/download/mac> or:
+
 ```bash
 brew install --cask tailscale
 ```
 
 Open Tailscale from the menu bar and log in.
 
-### Step 7 — Clone the workspace repo
+### Step 7 — Clone the workspace repo (macOS)
 
 ```bash
 mkdir -p ~/community-ops
@@ -277,7 +284,7 @@ git clone <your-repo-url> mesha
 cd mesha
 ```
 
-### Step 8 — Run OpenClaw onboarding
+### Step 8 — Run OpenClaw onboarding (macOS)
 
 ```bash
 openclaw onboard --workspace .
@@ -285,7 +292,7 @@ openclaw onboard --workspace .
 
 The `--workspace .` flag points OpenClaw at the `mesha` directory or merge target described in the Linux steps.
 
-### Step 9 — Confirm the workspace path
+### Step 9 — Confirm the workspace path (macOS)
 
 ```bash
 cd ~/community-ops/mesha
@@ -294,13 +301,14 @@ openclaw config get agents.defaults.workspace
 ```
 
 If you prefer the repo helper, you can also run:
+
 ```bash
 bash scripts/activate-workspace.sh
 ```
 
 This helper creates the local runtime directories under `logs/` and `exports/`, then prints the activation prompt from `BOOTSTRAP.md`.
 
-### Step 10 — Run the health check
+### Step 10 — Run the health check (macOS)
 
 ```bash
 bash scripts/doctor.sh
@@ -317,6 +325,7 @@ WSL2 (Windows Subsystem for Linux 2) is the standard path for Windows. Do not tr
 ### Step 1 — Enable WSL2
 
 Open PowerShell as Administrator and run:
+
 ```powershell
 wsl --install
 ```
@@ -324,27 +333,29 @@ wsl --install
 This installs WSL2 and Ubuntu. Restart your computer when prompted.
 
 If you already have WSL1:
+
 ```powershell
 wsl --set-default-version 2
 ```
 
-### Step 2 — Open Ubuntu in WSL2
+### Step 2 — Open Ubuntu in WSL2 (Windows)
 
 Launch "Ubuntu" from the Start menu or run:
+
 ```powershell
 wsl
 ```
 
 You are now inside a Linux shell. All following steps run inside this Linux shell.
 
-### Step 3 — Install base tools (inside WSL2)
+### Step 3 — Install base tools (inside WSL2, Windows)
 
 ```bash
 sudo apt update && sudo apt upgrade -y
 sudo apt install -y git curl jq python3 python3-pip openssh-client
 ```
 
-### Step 4 — Install Node.js 22 (inside WSL2)
+### Step 4 — Install Node.js 22 (inside WSL2, Windows)
 
 ```bash
 curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.39.7/install.sh | bash
@@ -354,22 +365,24 @@ nvm use 22
 node --version
 ```
 
-### Step 5 — Install OpenClaw CLI (inside WSL2)
+### Step 5 — Install OpenClaw CLI (inside WSL2, Windows)
 
 ```bash
 npm install -g @openclaw/cli
 openclaw --version
 ```
 
-### Step 6 — Install Docker
+### Step 6 — Install Docker (Windows)
 
 **Option A — Docker Desktop with WSL2 integration (easiest):**
-1. Download Docker Desktop from https://www.docker.com/products/docker-desktop/
+
+1. Download Docker Desktop from <https://www.docker.com/products/docker-desktop/>
 2. During setup, enable WSL2 integration.
 3. In Docker Desktop settings → Resources → WSL Integration, enable your Ubuntu distro.
 4. Test inside WSL2: `docker run hello-world`
 
 **Option B — Docker Engine directly in WSL2:**
+
 ```bash
 sudo apt install -y docker.io
 sudo usermod -aG docker $USER
@@ -377,17 +390,19 @@ sudo usermod -aG docker $USER
 docker run hello-world
 ```
 
-### Step 7 — Install Tailscale (recommended)
+### Step 7 — Install Tailscale (recommended, Windows)
 
 Inside WSL2:
+
 ```bash
 curl -fsSL https://tailscale.com/install.sh | sh
 sudo tailscale up
 ```
 
-### Step 8 — Clone the workspace repo (inside WSL2)
+### Step 8 — Clone the workspace repo (inside WSL2, Windows)
 
 Store the repo inside the WSL2 filesystem (not under `/mnt/c/`) for best performance:
+
 ```bash
 mkdir -p ~/community-ops
 cd ~/community-ops
@@ -395,13 +410,13 @@ git clone <your-repo-url> mesha
 cd mesha
 ```
 
-### Step 9 — Run OpenClaw onboarding (inside WSL2)
+### Step 9 — Run OpenClaw onboarding (inside WSL2, Windows)
 
 ```bash
 openclaw onboard --workspace .
 ```
 
-### Step 10 — Confirm the workspace path (inside WSL2)
+### Step 10 — Confirm the workspace path (inside WSL2, Windows)
 
 ```bash
 cd ~/community-ops/mesha
@@ -409,7 +424,7 @@ openclaw config set agents.defaults.workspace "$(pwd)"
 openclaw config get agents.defaults.workspace
 ```
 
-### Step 11 — Run the health check (inside WSL2)
+### Step 11 — Run the health check (inside WSL2, Windows)
 
 ```bash
 bash scripts/doctor.sh
@@ -423,13 +438,14 @@ If the doctor warns that `logs/` or `exports/` are missing, run `bash scripts/ac
 
 After installation, activate the operator using the activation prompt from BOOTSTRAP.md. In your OpenClaw chat or CLI:
 
-```
+```text
 Read BOOTSTRAP.md, AGENTS.md, SOUL.md, TOOLS.md, MEMORY.md, and WORKING.md
 from the workspace root and activate this project as a Community Infrastructure
 Operator for LibreMesh/OpenWrt networks and local offline-first servers.
 ```
 
 The system will respond by:
+
 1. Summarizing the mission
 2. Listing the available agents and skills
 3. Identifying any missing files or inventories
@@ -440,6 +456,7 @@ The system will respond by:
 ## Health Check
 
 Use the doctor script first:
+
 ```bash
 bash scripts/doctor.sh
 ```
@@ -487,6 +504,7 @@ The same workspace repo is used on all roles. Host-specific configuration (secre
 Never store secrets in committed files. The `secrets/` directory exists as a local-only store.
 
 Read `secrets/README.md` for the approved approach. In brief:
+
 - SSH keys: store in `~/.ssh/` on each host, not in the repo
 - API tokens: use environment variables or a local secrets manager
 - Passwords: use a local password manager or a separate `.env` file that is listed in `.gitignore`

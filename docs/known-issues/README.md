@@ -11,6 +11,7 @@ When the same root cause appears twice or more, it belongs here.
 ## When to create a known-issue entry
 
 Create an entry when:
+
 - A problem has been observed at least twice with the same root cause
 - A hardware model has a confirmed design limitation affecting field operations
 - A configuration pattern reliably causes a specific failure
@@ -29,6 +30,7 @@ One file per issue, named descriptively:
 **Pattern:** `<hardware-or-pattern-slug>-<brief-issue-name>.md`
 
 **Examples:**
+
 - `tplink-wr841n-power-loss.md` — hardware model + failure type
 - `channel-congestion-2ghz.md` — environmental pattern
 - `ubiquiti-nanostation-m5-link-degradation.md` — hardware model + failure type

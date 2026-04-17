@@ -2,9 +2,9 @@
 
 > A local-first, offline-capable AI assistant for managing LibreMesh/OpenWrt community networks and offline-first local servers. Read-only by default, with safety-gated write operations.
 
-[![Status](https://img.shields.io/badge/status-production--ready-success)]()
+[![Status](https://img.shields.io/badge/status-production--ready-success)](#status)
 [![License](https://img.shields.io/badge/license-MIT-blue)](LICENSE)
-[![Platform](https://img.shields.io/badge/platform-linux%20%7C%20macos%20%7C%20wsl2-lightgrey)]()
+[![Platform](https://img.shields.io/badge/platform-linux%20%7C%20macos%20%7C%20wsl2-lightgrey)](#platform)
 
 ---
 
@@ -73,6 +73,7 @@ Start the interactive AI agent inside the workspace:
 ```bash
 claude
 ```
+
 *The agent will automatically read the workspace instructions and assume its role as the Mesha operator.*
 
 ---
@@ -126,7 +127,6 @@ jq
 
 The isolated onboarding stack uses `docker compose`, not the legacy standalone `docker-compose` binary.
 
-
 ### Verify Installation
 
 ```bash
@@ -141,7 +141,8 @@ ls -la logs/ exports/
 ```
 
 **Expected output:** You should see test results similar to:
-```
+
+```text
 PASS: 219   FAIL: 0   SKIP: 14
 ```
 
@@ -275,7 +276,7 @@ bash scripts/mesh-heartbeat.sh
 
 ### Example Conversations
 
-```
+```text
 # Check mesh status
 You: "Why is the school offline?"
 Mesha: "Node at the school (node-escuela) has not responded since 11pm last night.
@@ -372,7 +373,7 @@ This is the recommended first validation for a brand-new maintainer. It builds t
 
 ## Project Structure
 
-```
+```text
 mesha/
 ├── README.md              # This file
 ├── BOOTSTRAP.md           # Architecture & activation
@@ -457,7 +458,7 @@ git push origin feature/your-feature-name
 
 Mesha uses a **three-layer model**:
 
-```
+```text
 ┌─────────────────────────────────────┐
 │     Conversation Layer              │
 │  community-ops-frontdesk             │

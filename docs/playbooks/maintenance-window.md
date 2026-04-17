@@ -26,6 +26,7 @@ A maintenance window is recommended (but not strictly required) for:
 **When in doubt, schedule a window.** An unscheduled disruption is always worse than a scheduled one that was communicated clearly.
 
 Blackout periods (from `desired-state/mesh/community-profile/rollout-policy.yaml`):
+
 - School exam weeks — check the school calendar
 - Thursday evenings 18h30–22h30 (community assembly)
 - National and local public holidays
@@ -58,6 +59,7 @@ For site-specific constraints (e.g., clinic hours), check the site note in `docs
 ```
 
 This script:
+
 - Validates that the proposed time is not in a blackout period
 - Creates a draft maintenance entry in `logs/maintenance/`
 - Outputs the community notification templates (see Section 4)
@@ -105,6 +107,7 @@ Record the output. This is your before-state. If the check reveals unexpected is
 ### Step 2 — Execute changes
 
 Follow the appropriate playbook for the type of work:
+
 - Firmware rollout: `docs/playbooks/firmware-rollout.md`
 - Rollout orchestration with scripts: `docs/playbooks/rollout-orchestration.md`
 - Node onboarding: `docs/playbooks/node-onboarding.md`
@@ -167,7 +170,7 @@ Ask the `knowledge-curator` skill to file the log entry if working through the o
 
 If any node changed firmware version, status, or configuration, update `inventories/mesh-nodes.yaml` to reflect the new state.
 
-### Step 4 — Notify the community
+### Step 4 — Notify the community (post-window)
 
 Send the post-window message (template below) to the community group.
 
@@ -177,7 +180,7 @@ Send the post-window message (template below) to the community group.
 
 ### Pre-window message (send before the window)
 
-```
+```text
 [MANUTENÇÃO PROGRAMADA]
 
 Olá pessoal! Vamos realizar uma manutenção na rede comunitária no horário abaixo:
@@ -196,7 +199,7 @@ Obrigado pela compreensão!
 
 ### Post-window message (send after the window closes)
 
-```
+```text
 [MANUTENÇÃO CONCLUÍDA]
 
 A manutenção programada foi finalizada às [HORA FIM].
@@ -212,7 +215,7 @@ Obrigado!
 
 ### Post-window message when something went wrong
 
-```
+```text
 [ATUALIZAÇÃO DE MANUTENÇÃO]
 
 A manutenção de hoje encontrou um problema.
@@ -251,7 +254,7 @@ An emergency window is used when something breaks outside of a scheduled window 
 
 ### Emergency notification template
 
-```
+```text
 [MANUTENÇÃO DE EMERGÊNCIA]
 
 Identificamos um problema na rede e precisamos fazer uma intervenção agora.
@@ -269,6 +272,7 @@ Vamos avisar quando estiver resolvido.
 ## Quick checklist
 
 ### Before the window
+
 - [ ] Time chosen within a preferred window, no blackout period
 - [ ] Site notes checked for access and operating hour constraints
 - [ ] Advance notice sent to community group
@@ -278,12 +282,14 @@ Vamos avisar quando estiver resolvido.
 - [ ] Rollback firmware/config staged
 
 ### During the window
+
 - [ ] Pre-window drift check completed
 - [ ] Changes executed per approved plan
 - [ ] Validated after each step
 - [ ] Stopped immediately on any unexpected failure
 
 ### After the window
+
 - [ ] Final drift check completed
 - [ ] Maintenance log entry written and filed
 - [ ] Inventory updated

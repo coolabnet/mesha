@@ -17,6 +17,7 @@ Classify the incident immediately. The classification determines how urgently yo
 **Definition:** One or more sites have no connectivity. End users cannot reach the internet or community services.
 
 **Examples:**
+
 - Gateway node is offline and not recovering
 - Internet uplink is down at the primary site (Escola Municipal)
 - All nodes at a site are unreachable
@@ -32,6 +33,7 @@ Classify the incident immediately. The classification determines how urgently yo
 **Definition:** The network is partially working but with reduced coverage, increased latency, or intermittent drops.
 
 **Examples:**
+
 - One non-gateway node is offline
 - Mesh link quality is poor but traffic is still flowing via alternate paths
 - One site has reduced but not zero connectivity
@@ -48,6 +50,7 @@ Classify the incident immediately. The classification determines how urgently yo
 **Definition:** A configuration problem, a single node anomaly, or an issue affecting only internal tooling. No end-user service impact.
 
 **Examples:**
+
 - A node is on old firmware but otherwise functional
 - Dashboard or monitoring is not updating
 - An inventory file is out of date
@@ -67,13 +70,17 @@ These steps apply to any P1. For P2, start with Step 2.
 
 - [ ] **Note the time** you detected the issue and what triggered it (alert, user report, etc.)
 - [ ] **Run server-readonly** to check if the local server and local services are reachable:
-  ```
+
+  ```text
   Ask the operator: "Run server-readonly and tell me what is up and what is down."
   ```
+
 - [ ] **Run mesh-readonly** to get a current mesh snapshot:
-  ```
+
+  ```text
   Ask the operator: "Run mesh-readonly and show me the current node status."
   ```
+
 - [ ] **Identify the scope:** which nodes are offline? Which sites? Is it isolated or widespread?
 - [ ] **Check if it is an uplink issue:** is the internet down at Escola Municipal, or is the mesh itself broken?
 - [ ] **Check if it is a power issue:** was there a storm? Call the site contact if needed.
@@ -85,11 +92,12 @@ These steps apply to any P1. For P2, start with Step 2.
 
 ### Using the incident-triage skill
 
-```
+```text
 Ask the operator: "Run incident triage for [affected site or node]. I am seeing [describe symptoms]."
 ```
 
 The incident-triage skill will:
+
 - Check node reachability and topology
 - Look for recent log entries and error patterns
 - Compare current state to desired state
@@ -99,11 +107,13 @@ The incident-triage skill will:
 ### Checking logs
 
 On any node that is reachable:
+
 ```bash
 ssh root@<node-ip> "logread | tail -50"
 ```
 
 Look for:
+
 - `kernel: Oops` or `kernel panic` — hardware or driver failure
 - `uhttpd` errors — management interface problem
 - `batadv` warnings — mesh protocol issues
@@ -152,7 +162,7 @@ If a node shows no neighbors, it is isolated from the mesh even if it is technic
 
 **Initial notification (P1 — send within 15 minutes):**
 
-```
+```text
 [PROBLEMA NA REDE]
 
 Identificamos uma interrupção na rede comunitária. Já estamos investigando.
@@ -167,7 +177,7 @@ Vamos atualizar aqui assim que tivermos mais informações.
 
 **Update during investigation:**
 
-```
+```text
 [ATUALIZAÇÃO — PROBLEMA NA REDE]
 
 Ainda estamos investigando o problema em [SITE].
@@ -180,7 +190,7 @@ Estimativa de resolução: [HORA ESTIMADA, ou "ainda não definida"]
 
 **Resolution notification:**
 
-```
+```text
 [REDE RESTAURADA]
 
 ✅ O problema em [SITE] foi resolvido às [HORÁRIO].
@@ -195,7 +205,7 @@ Obrigado pela paciência!
 
 **Still unresolved at end of day:**
 
-```
+```text
 [ATUALIZAÇÃO FINAL DO DIA — PROBLEMA NA REDE]
 
 Infelizmente ainda não conseguimos resolver o problema em [SITE] hoje.
@@ -214,6 +224,7 @@ Pedimos desculpas pelo transtorno.
 ### Before making any change during an incident
 
 Even in an emergency:
+
 1. Know what you are about to do and why.
 2. Know what the rollback is if the change makes things worse.
 3. Announce to the lead maintainer what you are about to do.
@@ -223,6 +234,7 @@ For Class D emergency changes (e.g., gateway failover), get verbal or message ap
 ### Fixing the issue
 
 Follow the relevant procedure:
+
 - Power recovery: contact site contact, power-cycle PoE injector or router
 - Node reboot: `ssh root@<node-ip> "reboot"` (requires approval if it will cause an outage)
 - Config rollback: see `docs/playbooks/firmware-rollout.md` rollback section
@@ -232,6 +244,7 @@ Follow the relevant procedure:
 ### Validating the fix
 
 After the fix is applied:
+
 - [ ] Affected node is reachable via SSH
 - [ ] Mesh interface is up and shows neighbors
 - [ ] Sites downstream of the fixed node have connectivity
@@ -241,6 +254,7 @@ After the fix is applied:
 ### Confirming service restored
 
 Do not close the incident until you have confirmed:
+
 - [ ] All affected sites are back online
 - [ ] No residual degradation
 - [ ] Post-fix mesh snapshot looks healthy
@@ -285,17 +299,20 @@ Reported by: [person or automated alert]
 ### Updating known issues
 
 If this incident is a **recurrence of a known pattern** (same hardware model, same symptom, same root cause), update the relevant file in `docs/known-issues/`:
+
 - Increment `recurrence-count`
 - Add the date of this occurrence in a note
 - Update the workaround if you found a better one
 
 If this is a **new pattern** that has appeared twice or more:
+
 - Ask `knowledge-curator` to create a new known-issue file
 - Document the pattern, symptoms, root cause, and workaround
 
 ### Reviewing for systemic issues
 
 After any P1, ask:
+
 - Could this have been prevented?
 - Is there a desired-state change that would reduce this risk? (e.g., adding a UPS, repositioning an antenna)
 - Should this change a maintenance priority?
@@ -309,11 +326,13 @@ Document the answers in the incident log under "Follow-up."
 Use this during an active P1 outage. Read it fast and check boxes as you go.
 
 **Detection**
+
 - [ ] Time noted: ___________
 - [ ] Who reported it: ___________
 - [ ] Lead maintainer notified (DM)
 
 **First 5 minutes**
+
 - [ ] server-readonly run — results noted
 - [ ] mesh-readonly run — results noted
 - [ ] Scope determined: which sites/nodes affected
@@ -321,6 +340,7 @@ Use this during an active P1 outage. Read it fast and check boxes as you go.
 - [ ] Power issue ruled in or out
 
 **Investigation**
+
 - [ ] incident-triage skill run
 - [ ] Logs checked on reachable nodes
 - [ ] Topology checked (`batctl n`)
@@ -328,6 +348,7 @@ Use this during an active P1 outage. Read it fast and check boxes as you go.
 - [ ] Community group notified (within 15 min)
 
 **Resolution**
+
 - [ ] Fix identified
 - [ ] Rollback for fix identified
 - [ ] Fix announced to lead maintainer before execution
@@ -336,6 +357,7 @@ Use this during an active P1 outage. Read it fast and check boxes as you go.
 - [ ] Community group notified (service restored)
 
 **Post-incident**
+
 - [ ] Incident log written (`logs/incidents/`)
 - [ ] Known issues updated if recurrence
 - [ ] Inventory updated if any node state changed

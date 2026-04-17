@@ -4,11 +4,12 @@
 
 This adapter bridges the Telegram Bot API to the Mesha Community Infrastructure Operator. It receives messages sent to your Telegram bot, normalizes them into the standard channel envelope format, forwards them to the `community-ops-frontdesk` agent via HTTP, and delivers the agent's response back to the sender in Telegram.
 
-```
+```text
 User → Telegram → adapter.mjs → community-ops-frontdesk → adapter.mjs → Telegram → User
 ```
 
 The adapter handles:
+
 - Message reception via long-polling (default) or webhook
 - Sender identity and trust level assignment
 - Message normalization into the standard envelope format
@@ -92,6 +93,7 @@ The adapter assigns a trust level to every incoming message based on the sender'
 | Any other DM sender | `public` |
 
 **Rules:**
+
 - Group chat messages are always assigned `public` trust regardless of sender, because group membership cannot be verified in real time.
 - Trust is determined entirely by numeric user ID. Display names and usernames are not trusted for access control.
 - `lead_maintainer` trust grants approval rights for Class C and Class D operations (see `TOOLS.md`).
@@ -101,7 +103,8 @@ The adapter assigns a trust level to every incoming message based on the sender'
 To configure the maintainer list, set `TELEGRAM_MAINTAINER_IDS` and `TELEGRAM_LEAD_MAINTAINER_IDS` in `.env` as comma-separated lists of numeric Telegram user IDs.
 
 Example:
-```
+
+```text
 TELEGRAM_MAINTAINER_IDS=123456789,987654321
 TELEGRAM_LEAD_MAINTAINER_IDS=123456789
 ```
@@ -110,7 +113,7 @@ TELEGRAM_LEAD_MAINTAINER_IDS=123456789
 
 ## How messages flow
 
-```
+```text
 1. User sends a message to the bot in Telegram.
 
 2. Adapter receives the update via long-polling (getUpdates) or webhook push.
@@ -163,6 +166,7 @@ Set `TELEGRAM_WEBHOOK_URL` to empty (or omit it) to use polling mode.
 If you have a publicly reachable HTTPS URL, set `TELEGRAM_WEBHOOK_URL` to that URL. The adapter will register the webhook with Telegram on startup. Telegram will push updates to your URL instead of the adapter polling.
 
 Webhook mode is more efficient for production deployments. It requires:
+
 - A valid HTTPS URL (self-signed certificates are not accepted by Telegram)
 - The adapter to be running and reachable at that URL
 
@@ -198,16 +202,20 @@ docker network create community-net
 ## Troubleshooting
 
 **Adapter starts but receives no messages:**
+
 - Confirm the bot token is correct by running `node health.mjs`
 - Ensure no other process is polling the same bot token (only one polling client allowed per token)
 - If using webhook mode, verify the webhook URL is reachable from the internet via HTTPS
 
 **Operator endpoint returns errors:**
+
 - Check that the operator is running at the configured `OPERATOR_ENDPOINT`
 - The adapter sends a "having trouble connecting" message to the user when the endpoint is unreachable
 
 **Voice messages:**
+
 - Voice notes receive a "Voice processing is not yet configured" reply. This is intentional — voice transcription requires a separate pipeline.
 
 **Rate limit errors (HTTP 429):**
+
 - The adapter implements exponential backoff when Telegram returns 429. This is handled automatically.

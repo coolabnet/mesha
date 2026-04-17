@@ -45,10 +45,11 @@ node adapter.mjs
 ```
 
 Requires `.env` with:
+
 - `TELEGRAM_BOT_TOKEN`
 - `TELEGRAM_MAINTAINER_IDS`
 - `TELEGRAM_LEAD_MAINTAINER_IDS`
-- `OPERATOR_ENDPOINT` (default: http://localhost:3000)
+- `OPERATOR_ENDPOINT` (default: <http://localhost:3000>)
 
 ## Notes
 

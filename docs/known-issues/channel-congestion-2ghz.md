@@ -1,6 +1,6 @@
 # Known Issue: Channel congestion on 2.4 GHz in dense urban deployments
 
-```
+```text
 hardware-model-or-pattern: Any LibreMesh node in a dense urban deployment using 2.4 GHz for mesh or client access
 symptoms: Mesh link quality degrades during peak hours (evenings), clients disconnect or see high latency, throughput drops noticeably
 confirmed-root-cause: 2.4 GHz channel congestion from neighboring WiFi networks (apartments, businesses) sharing the same or adjacent channels
@@ -39,6 +39,7 @@ This is a spectrum management problem, not a hardware defect. It cannot be fully
 No symptoms observed in current inventory. This issue is documented for reference if 2.4 GHz-only devices are added in the future.
 
 **Symptoms to watch for if 2.4 GHz-only devices are deployed**:
+
 - High latency (>150 ms) during evening peak hours
 - Clients disconnecting from 2.4 GHz SSID
 - Variable link quality visible in `batctl n` during evenings
@@ -51,6 +52,7 @@ No symptoms observed in current inventory. This issue is documented for referenc
 2.4 GHz channel congestion from neighboring networks. The community mesh uses channel 6 by default in LibreMesh's default community profile, which is the most commonly used channel and thus the most congested.
 
 A channel scan in the Escola Municipal area during evening hours typically shows:
+
 - 8–15 competing networks on channel 6
 - 3–6 competing networks on channel 1
 - 4–8 competing networks on channel 11
