@@ -1,4 +1,7 @@
 #!/usr/bin/env sh
+# SPDX-License-Identifier: MIT
+# Copyright (c) 2026 Mesha Community Infrastructure Project
+# Licensed under the MIT License; see LICENSE file for details.
 # stage-upgrade.sh — Firmware upgrade for a single mesh node (canary stage)
 #
 # Usage: ./stage-upgrade.sh <node-hostname-or-ip> <firmware-image-url> [--dry-run] [--auto]

@@ -1,4 +1,7 @@
 #!/usr/bin/env bash
+# SPDX-License-Identifier: MIT
+# Copyright (c) 2026 Mesha Community Infrastructure Project
+# Licensed under the MIT License; see LICENSE file for details.
 # tests/05-healthchecks.sh — Healthchecks for running Docker services.
 #
 # Each check SKIPs (never fails) when a service is not running or not reachable.

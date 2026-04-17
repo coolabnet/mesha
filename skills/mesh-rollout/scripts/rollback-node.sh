@@ -1,4 +1,7 @@
 #!/usr/bin/env sh
+# SPDX-License-Identifier: MIT
+# Copyright (c) 2026 Mesha Community Infrastructure Project
+# Licensed under the MIT License; see LICENSE file for details.
 # rollback-node.sh — Restore a node to a previous configuration state (UCI config rollback)
 #
 # Usage: ./rollback-node.sh <node-hostname-or-ip> <backup-file.uci.gz>

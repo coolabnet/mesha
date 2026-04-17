@@ -1,4 +1,7 @@
 #!/usr/bin/env bash
+# SPDX-License-Identifier: MIT
+# Copyright (c) 2026 Mesha Community Infrastructure Project
+# Licensed under the MIT License; see LICENSE file for details.
 # schedule-maintenance.sh — Create and manage scheduled maintenance windows
 #
 # Usage:

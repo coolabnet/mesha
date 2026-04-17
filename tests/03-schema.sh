@@ -1,4 +1,7 @@
 #!/usr/bin/env bash
+# SPDX-License-Identifier: MIT
+# Copyright (c) 2026 Mesha Community Infrastructure Project
+# Licensed under the MIT License; see LICENSE file for details.
 # tests/03-schema.sh — Schema validation and cross-reference checks.
 #
 # Validates that YAML files have correct structure and that references

@@ -1,4 +1,7 @@
 #!/usr/bin/env python3
+# SPDX-License-Identifier: MIT
+# Copyright (c) 2026 Mesha Community Infrastructure Project
+# Licensed under the MIT License; see LICENSE file for details.
 """Check if current time falls within a preferred change window.
 
 Reads rollout-policy.yaml and prints "yes" or "no" to stdout.

@@ -1,4 +1,7 @@
 #!/usr/bin/env bash
+# SPDX-License-Identifier: MIT
+# Copyright (c) 2026 Mesha Community Infrastructure Project
+# Licensed under the MIT License; see LICENSE file for details.
 # scripts/mesh-heartbeat.sh
 #
 # Collect a live mesh snapshot on a schedule and persist it under exports/mesh/.

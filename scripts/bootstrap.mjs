@@ -1,4 +1,7 @@
 #!/usr/bin/env node
+// SPDX-License-Identifier: MIT
+// Copyright (c) 2026 Mesha Community Infrastructure Project
+// Licensed under the MIT License; see LICENSE file for details.
 // =============================================================================
 // scripts/bootstrap.mjs
 // Mesha Community Infrastructure Operator — Node.js Bootstrap Check

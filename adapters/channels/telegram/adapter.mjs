@@ -1,4 +1,7 @@
 /**
+ * SPDX-License-Identifier: MIT
+ * Copyright (c) 2026 Mesha Community Infrastructure Project
+ * Licensed under the MIT License; see LICENSE file for details.
  * adapters/channels/telegram/adapter.mjs
  *
  * Telegram channel adapter for the Mesha Community Infrastructure Operator.

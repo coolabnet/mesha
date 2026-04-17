@@ -1,4 +1,7 @@
 #!/usr/bin/env python3
+# SPDX-License-Identifier: MIT
+# Copyright (c) 2026 Mesha Community Infrastructure Project
+# Licensed under the MIT License; see LICENSE file for details.
 """Extract ring names and stabilization periods from rollout-policy.yaml.
 
 Reads the policy file and outputs one line per ring:
