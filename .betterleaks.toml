@@ -1,0 +1,9 @@
+useDefault = true
+
+[global]
+allowlist = [
+  ".env.example",
+  "secrets/README.md",
+  ".betterleaks.toml",
+  "docker/*"
+]

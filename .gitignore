@@ -11,6 +11,10 @@ secrets/*.json
 secrets/*.env
 secrets/*.key
 secrets/*.pem
+secrets/*.token
+secrets/*.password
+secrets/credentials
+*.private
 !secrets/README.md
 
 # Environment files
