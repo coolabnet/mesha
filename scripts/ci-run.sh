@@ -160,20 +160,22 @@ fi
 step_header "JSON syntax validation"
 
 if command -v python3 &>/dev/null; then
-  json_files="$(find . -name '*.json' -not -path './.git/*' -not -path './node_modules/*' -print0 2>/dev/null)"
-  if [[ -n $json_files ]]; then
-    # shellcheck disable=SC2034
-    json_out="$(printf '%s' "$json_files" \
-      | xargs -0 python3 -m json.tool --no-ensure-ascii >/dev/null 2>&1)" && json_rc=$? || json_rc=$?
-    if [[ $json_rc -eq 0 ]]; then
-      ok "All JSON files are syntactically valid"
-    else
-      # Re-run without redirecting stderr to show which file failed
-      printf '%s' "$json_files" | xargs -0 python3 -m json.tool --no-ensure-ascii >/dev/null 2>&1 || true
-      fail "JSON syntax error detected — check JSON files for correctness"
+  json_found=0
+  json_failed=0
+  while IFS= read -r -d '' json_file; do
+    json_found=1
+    if ! python3 -m json.tool --no-ensure-ascii "$json_file" >/dev/null 2>&1; then
+      printf "  ${RED}FAIL${RESET} — %s\n" "$json_file" >&2
+      json_failed=1
     fi
-  else
+  done < <(find . -name '*.json' -not -path './.git/*' -not -path './node_modules/*' -print0 2>/dev/null)
+
+  if [[ $json_failed -eq 1 ]]; then
+    fail "JSON syntax error detected — check JSON files for correctness"
+  elif [[ $json_found -eq 0 ]]; then
     ok "No JSON files found — nothing to validate"
+  else
+    ok "All JSON files are syntactically valid"
   fi
 else
   warn "python3 not installed — skipping JSON syntax validation"
