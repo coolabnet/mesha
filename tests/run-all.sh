@@ -32,30 +32,36 @@ source "${TESTS_DIR}/lib.sh"
 # Category registry
 # ---------------------------------------------------------------------------
 declare -A CATEGORY_NAME=(
-    [01]="File Inventory"
-    [02]="Syntax Checks"
-    [03]="Schema & Cross-References"
-    [04]="Dry-Run Smoke Tests"
-    [05]="Service Healthchecks"
+  [01]="File Inventory"
+  [02]="Syntax Checks"
+  [03]="Schema & Cross-References"
+  [04]="Dry-Run Smoke Tests"
+  [05]="Service Healthchecks"
+  [06]="UCI Validation"
+  [07]="Inline Python"
 )
 
 declare -A CATEGORY_FILE=(
-    [01]="${TESTS_DIR}/01-file-inventory.sh"
-    [02]="${TESTS_DIR}/02-syntax.sh"
-    [03]="${TESTS_DIR}/03-schema.sh"
-    [04]="${TESTS_DIR}/04-dryrun.sh"
-    [05]="${TESTS_DIR}/05-healthchecks.sh"
+  [01]="${TESTS_DIR}/01-file-inventory.sh"
+  [02]="${TESTS_DIR}/02-syntax.sh"
+  [03]="${TESTS_DIR}/03-schema.sh"
+  [04]="${TESTS_DIR}/04-dryrun.sh"
+  [05]="${TESTS_DIR}/05-healthchecks.sh"
+  [06]="${TESTS_DIR}/06-uci-validate.sh"
+  [07]="${TESTS_DIR}/07-inline-python.sh"
 )
 
 declare -A CATEGORY_FN=(
-    [01]="run_file_inventory"
-    [02]="run_syntax_checks"
-    [03]="run_schema_checks"
-    [04]="run_dryrun_checks"
-    [05]="run_healthchecks"
+  [01]="run_file_inventory"
+  [02]="run_syntax_checks"
+  [03]="run_schema_checks"
+  [04]="run_dryrun_checks"
+  [05]="run_healthchecks"
+  [06]="run_uci_checks"
+  [07]="run_inline_python_checks"
 )
 
-ALL_CATEGORIES=(01 02 03 04 05)
+ALL_CATEGORIES=(01 02 03 04 05 06 07)
 
 # ---------------------------------------------------------------------------
 # Argument parsing
@@ -65,28 +71,28 @@ SHOW_HELP=0
 LIST_ONLY=0
 
 while [[ $# -gt 0 ]]; do
-    case "$1" in
-        --category|-c)
-            shift
-            IFS=',' read -ra cats <<< "${1:-}"
-            SELECTED_CATEGORIES+=("${cats[@]}")
-            ;;
-        --list|-l)
-            LIST_ONLY=1
-            ;;
-        --help|-h)
-            SHOW_HELP=1
-            ;;
-        *)
-            printf "Unknown option: %s\n" "$1" >&2
-            exit 1
-            ;;
-    esac
+  case "$1" in
+  --category | -c)
     shift
+    IFS=',' read -ra cats <<<"${1:-}"
+    SELECTED_CATEGORIES+=("${cats[@]}")
+    ;;
+  --list | -l)
+    LIST_ONLY=1
+    ;;
+  --help | -h)
+    SHOW_HELP=1
+    ;;
+  *)
+    printf "Unknown option: %s\n" "$1" >&2
+    exit 1
+    ;;
+  esac
+  shift
 done
 
 if [[ $SHOW_HELP -eq 1 ]]; then
-    cat <<'EOF'
+  cat <<'EOF'
 Usage: tests/run-all.sh [OPTIONS]
 
 Options:
@@ -100,6 +106,8 @@ Categories:
   03   Schema & Cross-References — YAML structure, node/gateway/site cross-refs
   04   Dry-Run Smoke Tests      — doctor.sh, run-rollout --dry-run, normalize.py
   05   Service Healthchecks     — HTTP health probes (skipped if services not running)
+  06   UCI Validation            — UCI syntax, hostname cross-refs, secret detection
+  07   Inline Python             — Python embedded in shell heredocs
 
 Examples:
   ./tests/run-all.sh                   # run everything
@@ -107,29 +115,29 @@ Examples:
   ./tests/run-all.sh -c 03             # schema validation only
   ./tests/run-all.sh -c 05             # live service health probes
 EOF
-    exit 0
+  exit 0
 fi
 
 if [[ $LIST_ONLY -eq 1 ]]; then
-    printf "\nAvailable QA categories:\n\n"
-    for id in "${ALL_CATEGORIES[@]}"; do
-        printf "  %s   %s\n" "$id" "${CATEGORY_NAME[$id]}"
-    done
-    printf "\n"
-    exit 0
+  printf "\nAvailable QA categories:\n\n"
+  for id in "${ALL_CATEGORIES[@]}"; do
+    printf "  %s   %s\n" "$id" "${CATEGORY_NAME[$id]}"
+  done
+  printf "\n"
+  exit 0
 fi
 
 # Default: run all
 if [[ ${#SELECTED_CATEGORIES[@]} -eq 0 ]]; then
-    SELECTED_CATEGORIES=("${ALL_CATEGORIES[@]}")
+  SELECTED_CATEGORIES=("${ALL_CATEGORIES[@]}")
 fi
 
 # Validate selected categories
 for cat in "${SELECTED_CATEGORIES[@]}"; do
-    if [[ -z "${CATEGORY_FILE[$cat]:-}" ]]; then
-        printf "Unknown category: %s (run --list to see valid categories)\n" "$cat" >&2
-        exit 1
-    fi
+  if [[ -z ${CATEGORY_FILE[$cat]:-} ]]; then
+    printf "Unknown category: %s (run --list to see valid categories)\n" "$cat" >&2
+    exit 1
+  fi
 done
 
 # ---------------------------------------------------------------------------
@@ -145,29 +153,29 @@ printf "${BOLD}═════════════════════�
 # lib.sh idempotency guard ensures counters are NOT reset on re-source.
 # ---------------------------------------------------------------------------
 for cat in "${SELECTED_CATEGORIES[@]}"; do
-    file="${CATEGORY_FILE[$cat]}"
-    if [[ ! -f "$file" ]]; then
-        qa_fail "test file missing: $file"
-        continue
-    fi
-    # shellcheck disable=SC1090
-    source "$file"
+  file="${CATEGORY_FILE[$cat]}"
+  if [[ ! -f $file ]]; then
+    qa_fail "test file missing: $file"
+    continue
+  fi
+  # shellcheck disable=SC1090
+  source "$file"
 done
 
 # ---------------------------------------------------------------------------
 # Run each category in order
 # ---------------------------------------------------------------------------
 for cat in "${SELECTED_CATEGORIES[@]}"; do
-    fn="${CATEGORY_FN[$cat]}"
-    name="${CATEGORY_NAME[$cat]}"
+  fn="${CATEGORY_FN[$cat]}"
+  name="${CATEGORY_NAME[$cat]}"
 
-    printf "\n${BOLD}━━━  Category %s — %s  ━━━${RESET}\n\n" "$cat" "$name"
+  printf "\n${BOLD}━━━  Category %s — %s  ━━━${RESET}\n\n" "$cat" "$name"
 
-    if declare -f "$fn" > /dev/null 2>&1; then
-        "$fn"
-    else
-        qa_fail "run function not found: ${fn} (sourcing ${CATEGORY_FILE[$cat]} may have failed)"
-    fi
+  if declare -f "$fn" >/dev/null 2>&1; then
+    "$fn"
+  else
+    qa_fail "run function not found: ${fn} (sourcing ${CATEGORY_FILE[$cat]} may have failed)"
+  fi
 done
 
 # ---------------------------------------------------------------------------
@@ -176,21 +184,21 @@ done
 printf "\n${BOLD}═══════════════════════════════════════${RESET}\n"
 printf "${BOLD}  Aggregate QA Results${RESET}\n"
 printf "  ${GREEN}PASS: %d${RESET}   ${RED}FAIL: %d${RESET}   ${YELLOW}SKIP: %d${RESET}\n" \
-    "$QA_PASS" "$QA_FAIL" "$QA_SKIP"
+  "$QA_PASS" "$QA_FAIL" "$QA_SKIP"
 printf "${BOLD}═══════════════════════════════════════${RESET}\n"
 
 if [[ ${#QA_ERRORS[@]} -gt 0 ]]; then
-    printf "\n${BOLD}${RED}  FAILED TESTS:${RESET}\n"
-    for err in "${QA_ERRORS[@]}"; do
-        printf "  ${RED}✗ %s${RESET}\n" "$err"
-    done
-    printf "${BOLD}═══════════════════════════════════════${RESET}\n"
+  printf "\n${BOLD}${RED}  FAILED TESTS:${RESET}\n"
+  for err in "${QA_ERRORS[@]}"; do
+    printf "  ${RED}✗ %s${RESET}\n" "$err"
+  done
+  printf "${BOLD}═══════════════════════════════════════${RESET}\n"
 fi
 
 if [[ $QA_FAIL -eq 0 ]]; then
-    printf "\n${GREEN}${BOLD}  All tests passed.${RESET}\n\n"
-    exit 0
+  printf "\n${GREEN}${BOLD}  All tests passed.${RESET}\n\n"
+  exit 0
 else
-    printf "\n${RED}${BOLD}  %d test(s) failed.${RESET}\n\n" "$QA_FAIL"
-    exit 1
+  printf "\n${RED}${BOLD}  %d test(s) failed.${RESET}\n\n" "$QA_FAIL"
+  exit 1
 fi
