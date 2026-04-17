@@ -110,49 +110,49 @@ CHECKSUM=""
 
 while [[ $# -gt 0 ]]; do
   case "$1" in
-    --firmware-url)
-      [[ $# -lt 2 ]] && die "--firmware-url requires a value"
-      FIRMWARE_URL="$2"
-      shift 2
-      ;;
-    --dry-run)
-      DRY_RUN=true
-      shift
-      ;;
-    --ring)
-      [[ $# -lt 2 ]] && die "--ring requires a value"
-      ONLY_RING="$2"
-      shift 2
-      ;;
-    --resume)
-      RESUME=true
-      shift
-      ;;
-    --checksum)
-      [[ $# -lt 2 ]] && die "--checksum requires a value"
-      CHECKSUM="$2"
-      shift 2
-      ;;
-    -h|--help)
-      usage
-      ;;
-    *)
-      die "Unknown argument: $1"
-      ;;
+  --firmware-url)
+    [[ $# -lt 2 ]] && die "--firmware-url requires a value"
+    FIRMWARE_URL="$2"
+    shift 2
+    ;;
+  --dry-run)
+    DRY_RUN=true
+    shift
+    ;;
+  --ring)
+    [[ $# -lt 2 ]] && die "--ring requires a value"
+    ONLY_RING="$2"
+    shift 2
+    ;;
+  --resume)
+    RESUME=true
+    shift
+    ;;
+  --checksum)
+    [[ $# -lt 2 ]] && die "--checksum requires a value"
+    CHECKSUM="$2"
+    shift 2
+    ;;
+  -h | --help)
+    usage
+    ;;
+  *)
+    die "Unknown argument: $1"
+    ;;
   esac
 done
 
-[[ -z "${FIRMWARE_URL}" ]] && usage
+[[ -z ${FIRMWARE_URL} ]] && usage
 
 # ---------------------------------------------------------------------------
 # Firmware URL security validation
 # ---------------------------------------------------------------------------
 
-if [[ "${FIRMWARE_URL}" == http://* ]]; then
-  if [[ -z "${CHECKSUM}" ]]; then
+if [[ ${FIRMWARE_URL} == http://* ]]; then
+  if [[ -z ${CHECKSUM} ]]; then
     die "Insecure HTTP URL detected without --checksum. " \
-        "Firmware delivered over plain HTTP can be tampered with in transit. " \
-        "Either use an HTTPS URL, a local file path, or provide --checksum <sha256> to verify integrity."
+      "Firmware delivered over plain HTTP can be tampered with in transit. " \
+      "Either use an HTTPS URL, a local file path, or provide --checksum <sha256> to verify integrity."
   fi
   log "WARNING: Firmware URL uses insecure HTTP. Checksum verification will be enforced."
 fi
@@ -161,16 +161,16 @@ fi
 # Prerequisite checks
 # ---------------------------------------------------------------------------
 
-[[ -f "${POLICY_FILE}" ]]    || die "Rollout policy not found: ${POLICY_FILE}"
-[[ -f "${INVENTORY_FILE}" ]] || die "Node inventory not found: ${INVENTORY_FILE}"
-[[ -x "${STAGE_UPGRADE}" ]]  || die "stage-upgrade.sh not found or not executable: ${STAGE_UPGRADE}"
-[[ -x "${VALIDATE_NODE}" ]]  || die "validate-node.sh not found or not executable: ${VALIDATE_NODE}"
+[[ -f ${POLICY_FILE} ]] || die "Rollout policy not found: ${POLICY_FILE}"
+[[ -f ${INVENTORY_FILE} ]] || die "Node inventory not found: ${INVENTORY_FILE}"
+[[ -x ${STAGE_UPGRADE} ]] || die "stage-upgrade.sh not found or not executable: ${STAGE_UPGRADE}"
+[[ -x ${VALIDATE_NODE} ]] || die "validate-node.sh not found or not executable: ${VALIDATE_NODE}"
 
 command -v python3 &>/dev/null || die "python3 is required but not found in PATH"
 
 # Verify helper scripts exist
 for helper in parse_rings.py parse_ring_nodes.py check_change_window.py \
-             write_rollout_state.py update_node_state.py parse_resume_state.py; do
+  write_rollout_state.py update_node_state.py parse_resume_state.py; do
   [[ -f "${HELPERS_DIR}/${helper}" ]] || die "Helper script not found: ${HELPERS_DIR}/${helper}"
 done
 
@@ -208,24 +208,26 @@ ROLLOUT_ID="rollout-$(date '+%Y%m%dT%H%M%S')"
 # Resume logic — load existing state
 # ---------------------------------------------------------------------------
 
+# shellcheck disable=SC2034
 RESUME_FROM_RING=""
 declare -A NODE_DONE_MAP=()
 
-if [[ "${RESUME}" == true ]]; then
-  [[ -f "${STATE_FILE}" ]] || die "--resume specified but no rollout-state.yaml found at: ${STATE_FILE}"
+if [[ ${RESUME} == true ]]; then
+  [[ -f ${STATE_FILE} ]] || die "--resume specified but no rollout-state.yaml found at: ${STATE_FILE}"
   log "Loading previous rollout state from: ${STATE_FILE}"
 
   RESUME_INFO="$(python3 "${HELPERS_DIR}/parse_resume_state.py" "${STATE_FILE}")"
 
   PREV_STATUS="$(echo "${RESUME_INFO}" | grep '^status=' | cut -d= -f2)"
+  # shellcheck disable=SC2034
   PREV_FW="$(echo "${RESUME_INFO}" | grep '^firmware_url=' | cut -d= -f2)"
   PREV_ID="$(echo "${RESUME_INFO}" | grep '^rollout_id=' | cut -d= -f2)"
 
-  if [[ "${PREV_STATUS}" == "completed" ]]; then
+  if [[ ${PREV_STATUS} == "completed" ]]; then
     die "Previous rollout is already completed. Nothing to resume."
   fi
 
-  if [[ "${PREV_STATUS}" != "halted" && "${PREV_STATUS}" != "in_progress" ]]; then
+  if [[ ${PREV_STATUS} != "halted" && ${PREV_STATUS} != "in_progress" ]]; then
     die "Cannot resume rollout with status '${PREV_STATUS}'. Expected: halted or in_progress."
   fi
 
@@ -234,11 +236,11 @@ if [[ "${RESUME}" == true ]]; then
 
   # Load already-done nodes
   while IFS= read -r line; do
-    if [[ "${line}" == done:* ]]; then
+    if [[ ${line} == done:* ]]; then
       done_host="${line#done:}"
       NODE_DONE_MAP["${done_host}"]="validated"
     fi
-  done <<< "${RESUME_INFO}"
+  done <<<"${RESUME_INFO}"
 
   log "Resuming rollout ID: ${ROLLOUT_ID} (previous status: ${PREV_STATUS})"
   log "Nodes already completed: ${!NODE_DONE_MAP[*]:-none}"
@@ -250,7 +252,7 @@ fi
 
 write_state() {
   local status="$1"
-  local timestamp_field="$2"   # e.g. "started_at" | "completed_at" | "halted_at"
+  local timestamp_field="$2" # e.g. "started_at" | "completed_at" | "halted_at"
   local now
   now="$(date '+%Y-%m-%dT%H:%M:%S')"
 
@@ -265,7 +267,7 @@ write_state() {
 update_node_state() {
   local hostname="$1"
   local new_status="$2"
-  local ts_field="$3"   # e.g. upgraded_at | validated_at | failed_at
+  local ts_field="$3" # e.g. upgraded_at | validated_at | failed_at
   local now
   now="$(date '+%Y-%m-%dT%H:%M:%S')"
 
@@ -280,10 +282,10 @@ update_node_state() {
 log "Loading rollout policy from: ${POLICY_FILE}"
 
 RING_DEFS="$(get_rings)"
-[[ -z "${RING_DEFS}" ]] && die "No rings found in rollout policy: ${POLICY_FILE}"
+[[ -z ${RING_DEFS} ]] && die "No rings found in rollout policy: ${POLICY_FILE}"
 
 # Validate --ring argument if given
-if [[ -n "${ONLY_RING}" ]]; then
+if [[ -n ${ONLY_RING} ]]; then
   if ! echo "${RING_DEFS}" | grep -q "^${ONLY_RING}|"; then
     die "Ring '${ONLY_RING}' not found in rollout policy. Available rings: $(echo "${RING_DEFS}" | cut -d'|' -f1 | tr '\n' ' ')"
   fi
@@ -293,9 +295,9 @@ fi
 # Firmware checksum verification
 # ---------------------------------------------------------------------------
 
-if [[ -n "${CHECKSUM}" ]]; then
+if [[ -n ${CHECKSUM} ]]; then
   log "Verifying firmware checksum..."
-  if [[ "${FIRMWARE_URL}" == http://* || "${FIRMWARE_URL}" == https://* ]]; then
+  if [[ ${FIRMWARE_URL} == http://* || ${FIRMWARE_URL} == https://* ]]; then
     # For remote URLs, download to a temp file first for checksum verification
     FIRMWARE_TMP="$(mktemp --suffix=.firmware)"
     log "Downloading firmware for checksum verification: ${FIRMWARE_URL}"
@@ -310,13 +312,13 @@ if [[ -n "${CHECKSUM}" ]]; then
     rm -f "${FIRMWARE_TMP}"
   else
     # Local file path
-    [[ -f "${FIRMWARE_URL}" ]] || die "Firmware file not found: ${FIRMWARE_URL}"
+    [[ -f ${FIRMWARE_URL} ]] || die "Firmware file not found: ${FIRMWARE_URL}"
     ACTUAL_CHECKSUM="$(sha256sum "${FIRMWARE_URL}" | cut -d' ' -f1)"
   fi
 
-  if [[ "${ACTUAL_CHECKSUM}" != "${CHECKSUM}" ]]; then
+  if [[ ${ACTUAL_CHECKSUM} != "${CHECKSUM}" ]]; then
     die "Firmware checksum mismatch! Expected: ${CHECKSUM}, Got: ${ACTUAL_CHECKSUM}. " \
-        "Do NOT proceed — the firmware image may be corrupted or tampered with."
+      "Do NOT proceed — the firmware image may be corrupted or tampered with."
   fi
   log "Checksum verified: ${ACTUAL_CHECKSUM}"
 fi
@@ -328,13 +330,13 @@ fi
 banner "ROLLOUT PLAN"
 echo "  Rollout ID:    ${ROLLOUT_ID}"
 echo "  Firmware URL:  ${FIRMWARE_URL}"
-if [[ -n "${CHECKSUM}" ]]; then
+if [[ -n ${CHECKSUM} ]]; then
   echo "  Checksum:      ${CHECKSUM} (verified)"
 fi
 echo "  Policy file:   ${POLICY_FILE}"
 echo "  State file:    ${STATE_FILE}"
-[[ -n "${ONLY_RING}" ]] && echo "  Scope:         Ring '${ONLY_RING}' only"
-[[ "${RESUME}" == true ]] && echo "  Mode:          RESUME"
+[[ -n ${ONLY_RING} ]] && echo "  Scope:         Ring '${ONLY_RING}' only"
+[[ ${RESUME} == true ]] && echo "  Mode:          RESUME"
 echo ""
 
 TOTAL_NODES=0
@@ -348,31 +350,31 @@ while IFS='|' read -r ring_name stab_hours; do
   ring_nodes="$(get_nodes_for_ring "${ring_name}")"
   RING_NODE_LISTS["${ring_name}"]="${ring_nodes}"
   node_count=0
-  if [[ -n "${ring_nodes}" ]]; then
+  if [[ -n ${ring_nodes} ]]; then
     node_count="$(echo "${ring_nodes}" | wc -l)"
   fi
   TOTAL_NODES=$((TOTAL_NODES + node_count))
   echo "  Ring: ${ring_name} (${node_count} node(s), stabilization: ${stab_hours}h)"
-  if [[ -n "${ring_nodes}" ]]; then
+  if [[ -n ${ring_nodes} ]]; then
     while IFS= read -r n; do
-      if [[ -n "${NODE_DONE_MAP[${n}]+_}" ]]; then
+      if [[ -n ${NODE_DONE_MAP[${n}]+_} ]]; then
         echo "    - ${n}  [ALREADY DONE — will skip]"
       else
         echo "    - ${n}"
       fi
-    done <<< "${ring_nodes}"
+    done <<<"${ring_nodes}"
   else
     echo "    (no nodes resolved from inventory for this ring)"
   fi
   echo ""
-done <<< "${RING_DEFS}"
+done <<<"${RING_DEFS}"
 
 echo "  Total nodes: ${TOTAL_NODES}"
 echo ""
 
 # Change window check
 IN_WINDOW="$(check_change_window)"
-if [[ "${IN_WINDOW}" == "yes" ]]; then
+if [[ ${IN_WINDOW} == "yes" ]]; then
   echo "  Change window: ACTIVE (current time is within a preferred window)"
 else
   echo "  Change window: NOT ACTIVE (current time is outside preferred windows)"
@@ -393,7 +395,7 @@ echo ""
 # Dry-run: exit here
 # ---------------------------------------------------------------------------
 
-if [[ "${DRY_RUN}" == true ]]; then
+if [[ ${DRY_RUN} == true ]]; then
   echo "DRY RUN complete. No changes made. Remove --dry-run to execute the rollout."
   exit 0
 fi
@@ -411,7 +413,7 @@ echo "  [ ] The canary node tested and validated before promoting to stable"
 echo ""
 echo "Type YES to proceed with the rollout (anything else aborts):"
 read -r CONFIRM
-if [[ "${CONFIRM}" != "YES" ]]; then
+if [[ ${CONFIRM} != "YES" ]]; then
   log "Confirmation not given. Rollout aborted."
   exit 0
 fi
@@ -420,7 +422,7 @@ fi
 # Initialize state file (unless resuming)
 # ---------------------------------------------------------------------------
 
-if [[ "${RESUME}" == false ]]; then
+if [[ ${RESUME} == false ]]; then
   log "Initializing rollout state file: ${STATE_FILE}"
   write_state "in_progress" "started_at"
 else
@@ -451,15 +453,16 @@ SKIPPED_COUNT=0
 
 for ring_name in "${RING_NAMES[@]}"; do
   # Skip rings not requested (when --ring is set)
-  if [[ -n "${ONLY_RING}" ]] && [[ "${ring_name}" != "${ONLY_RING}" ]]; then
+  if [[ -n ${ONLY_RING} ]] && [[ ${ring_name} != "${ONLY_RING}" ]]; then
     continue
   fi
 
   stab_hours="${RING_STAB[${ring_name}]}"
+  # shellcheck disable=SC2034
   stab_seconds=$((stab_hours * 3600))
   ring_nodes="${RING_NODE_LISTS[${ring_name}]}"
 
-  if [[ -z "${ring_nodes}" ]]; then
+  if [[ -z ${ring_nodes} ]]; then
     log "Ring '${ring_name}': no nodes resolved from inventory. Skipping."
     continue
   fi
@@ -471,10 +474,10 @@ for ring_name in "${RING_NAMES[@]}"; do
   RING_SKIPPED=0
 
   while IFS= read -r node_host; do
-    [[ -z "${node_host}" ]] && continue
+    [[ -z ${node_host} ]] && continue
 
     # Skip nodes already validated in a resume scenario
-    if [[ -n "${NODE_DONE_MAP[${node_host}]+_}" ]]; then
+    if [[ -n ${NODE_DONE_MAP[${node_host}]+_} ]]; then
       log "  [SKIP] ${node_host} — already validated in previous session"
       RING_SKIPPED=$((RING_SKIPPED + 1))
       SKIPPED_COUNT=$((SKIPPED_COUNT + 1))
@@ -576,7 +579,7 @@ for ring_name in "${RING_NAMES[@]}"; do
     fi
 
     echo ""
-  done <<< "${ring_nodes}"
+  done <<<"${ring_nodes}"
 
   # ------------------------------------------------------------------
   # Ring summary
@@ -598,16 +601,16 @@ for ring_name in "${RING_NAMES[@]}"; do
   FOUND_CURRENT=false
   HAS_NEXT_RING=false
   for rn in "${RING_NAMES[@]}"; do
-    if [[ "${FOUND_CURRENT}" == true ]]; then
-      if [[ -z "${ONLY_RING}" ]] || [[ "${rn}" == "${ONLY_RING}" ]]; then
+    if [[ ${FOUND_CURRENT} == true ]]; then
+      if [[ -z ${ONLY_RING} ]] || [[ ${rn} == "${ONLY_RING}" ]]; then
         HAS_NEXT_RING=true
         break
       fi
     fi
-    [[ "${rn}" == "${ring_name}" ]] && FOUND_CURRENT=true
+    [[ ${rn} == "${ring_name}" ]] && FOUND_CURRENT=true
   done
 
-  if [[ "${HAS_NEXT_RING}" == true ]]; then
+  if [[ ${HAS_NEXT_RING} == true ]]; then
     ADVISORY_PAUSE=30
     log "Ring '${ring_name}' complete. Policy requires ${stab_hours}h stabilization before next ring."
     log "Per rollout-policy.yaml (auto_promote: false), promotion to the next ring"

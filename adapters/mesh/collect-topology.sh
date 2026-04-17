@@ -1,4 +1,4 @@
-#!/usr/bin/env sh
+#!/usr/bin/env bash
 # SPDX-License-Identifier: MIT
 # Copyright (c) 2026 Mesha Community Infrastructure Project
 # Licensed under the MIT License; see LICENSE file for details.
@@ -45,14 +45,14 @@
 #
 # Dependencies: ssh, python3 (stdlib only, for JSON construction)
 
-set -e
+set -e # originally POSIX sh; now bash, kept for error-on-fail behavior
 
 # ---------------------------------------------------------------------------
 # Argument validation
 # ---------------------------------------------------------------------------
 if [ $# -ne 1 ]; then
-    echo "Usage: $0 <gateway-ip>" >&2
-    exit 1
+  echo "Usage: $0 <gateway-ip>" >&2
+  exit 1
 fi
 
 GATEWAY_IP="$1"
@@ -66,8 +66,8 @@ SSH_OPTS="-o ConnectTimeout=${SSH_TIMEOUT} -o StrictHostKeyChecking=no -o BatchM
 # of whether the gateway was reachable.
 # ---------------------------------------------------------------------------
 emit_error() {
-    local msg="$1"
-    python3 -c "
+  local msg="$1"
+  python3 -c "
 import json, sys
 print(json.dumps({
     'collected_at': '${COLLECTED_AT}',
@@ -80,20 +80,21 @@ print(json.dumps({
     'links': []
 }, indent=2))
 " "$msg"
-    exit 0
+  exit 0
 }
 
 # ---------------------------------------------------------------------------
 # Connectivity check
 # ---------------------------------------------------------------------------
 if ! ssh $SSH_OPTS root@"$GATEWAY_IP" "true" 2>/dev/null; then
-    emit_error "SSH connection to gateway ${GATEWAY_IP} failed (timeout=${SSH_TIMEOUT}s)"
+  emit_error "SSH connection to gateway ${GATEWAY_IP} failed (timeout=${SSH_TIMEOUT}s)"
 fi
 
 # ---------------------------------------------------------------------------
 # Collect topology data from the gateway in a single SSH session
 # ---------------------------------------------------------------------------
-RAW_TOPO="$(ssh $SSH_OPTS root@"$GATEWAY_IP" sh -s <<'REMOTE_SCRIPT'
+RAW_TOPO="$(
+  ssh $SSH_OPTS root@"$GATEWAY_IP" sh -s <<'REMOTE_SCRIPT'
 
 # --- BMX7 originators table ---
 # `bmx7 -c --originators` lists all known mesh nodes (originators) with

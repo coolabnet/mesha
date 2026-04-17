@@ -19,15 +19,15 @@ LATEST_FILE="$EXPORT_DIR/latest.json"
 SUMMARY_FILE="$EXPORT_DIR/latest-summary.txt"
 
 for arg in "$@"; do
-    if [[ "$arg" == "--plan" ]]; then
-        bash "$RUNNER" "$@"
-        exit 0
-    fi
+  if [[ $arg == "--plan" ]]; then
+    bash "$RUNNER" "$@"
+    exit 0
+  fi
 done
 
 mkdir -p "$SNAPSHOT_DIR"
 
-bash "$RUNNER" "$@" > "$SNAPSHOT_FILE"
+bash "$RUNNER" "$@" >"$SNAPSHOT_FILE"
 
 python3 - "$LATEST_FILE" "$SUMMARY_FILE" "$SNAPSHOT_FILE" <<'PYEOF'
 import json

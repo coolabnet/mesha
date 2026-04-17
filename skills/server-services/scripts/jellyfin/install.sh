@@ -13,13 +13,17 @@ set -euo pipefail
 # ---------------------------------------------------------------------------
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+# shellcheck disable=SC2034
 SERVICE_NAME="jellyfin"
 LOCAL_DOMAIN="midia.bairro.local"
-HEALTH_URL="http://localhost:8096/health"  # polled via docker exec inside the container
+HEALTH_URL="http://localhost:8096/health" # polled via docker exec inside the container
 STARTUP_WAIT=15
 
-log()  { echo "[$(date '+%Y-%m-%d %H:%M:%S')] [jellyfin] $*"; }
-fail() { echo "[$(date '+%Y-%m-%d %H:%M:%S')] [jellyfin] ERROR: $*" >&2; exit 1; }
+log() { echo "[$(date '+%Y-%m-%d %H:%M:%S')] [jellyfin] $*"; }
+fail() {
+  echo "[$(date '+%Y-%m-%d %H:%M:%S')] [jellyfin] ERROR: $*" >&2
+  exit 1
+}
 
 # ---------------------------------------------------------------------------
 # Step 1 — Prerequisites check
@@ -61,7 +65,7 @@ log ".env file found."
 
 # Load .env
 set -o allexport
-# shellcheck disable=SC1091
+# shellcheck source=/dev/null
 source <(grep -v '^\s*#' .env | grep -v '^\s*$')
 set +o allexport
 
@@ -111,7 +115,7 @@ HEALTHY=false
 
 while [[ $ELAPSED -lt $HEALTH_TIMEOUT ]]; do
   HTTP_STATUS=$(docker exec jellyfin curl -s -o /dev/null -w "%{http_code}" "${HEALTH_URL}" 2>/dev/null || true)
-  if [[ "$HTTP_STATUS" == "200" ]]; then
+  if [[ $HTTP_STATUS == "200" ]]; then
     HEALTHY=true
     break
   fi
@@ -120,7 +124,7 @@ while [[ $ELAPSED -lt $HEALTH_TIMEOUT ]]; do
   ELAPSED=$((ELAPSED + INTERVAL))
 done
 
-if [[ "$HEALTHY" != "true" ]]; then
+if [[ $HEALTHY != "true" ]]; then
   fail "Jellyfin did not respond at ${HEALTH_URL} within the timeout. Check logs: docker compose logs jellyfin"
 fi
 

@@ -16,13 +16,17 @@ set -euo pipefail
 # ---------------------------------------------------------------------------
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+# shellcheck disable=SC2034
 SERVICE_NAME="homer"
 LOCAL_DOMAIN="inicio.bairro.local"
 CONTAINER_PORT=8080
 STARTUP_WAIT=5
 
-log()  { echo "[$(date '+%Y-%m-%d %H:%M:%S')] [homer] $*"; }
-fail() { echo "[$(date '+%Y-%m-%d %H:%M:%S')] [homer] ERROR: $*" >&2; exit 1; }
+log() { echo "[$(date '+%Y-%m-%d %H:%M:%S')] [homer] $*"; }
+fail() {
+  echo "[$(date '+%Y-%m-%d %H:%M:%S')] [homer] ERROR: $*" >&2
+  exit 1
+}
 
 # ---------------------------------------------------------------------------
 # Step 1 — Prerequisites check

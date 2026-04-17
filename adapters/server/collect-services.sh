@@ -49,20 +49,20 @@ set -e
 INVENTORY_FILE="inventories/local-services.yaml"
 
 while [ $# -gt 0 ]; do
-    case "$1" in
-        --inventory)
-            INVENTORY_FILE="$2"
-            shift 2
-            ;;
-        -h|--help)
-            head -30 "$0" | grep '^#' | cut -c3-
-            exit 0
-            ;;
-        *)
-            echo "Unknown argument: $1" >&2
-            exit 1
-            ;;
-    esac
+  case "$1" in
+  --inventory)
+    INVENTORY_FILE="$2"
+    shift 2
+    ;;
+  -h | --help)
+    head -30 "$0" | grep '^#' | cut -c3-
+    exit 0
+    ;;
+  *)
+    echo "Unknown argument: $1" >&2
+    exit 1
+    ;;
+  esac
 done
 
 # ---------------------------------------------------------------------------
@@ -72,30 +72,30 @@ SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 WORKSPACE_ROOT="$(cd "${SCRIPT_DIR}/../.." && pwd)"
 
 case "$INVENTORY_FILE" in
-    /*)
-        # Already absolute path
-        ;;
-    *)
-        # Relative path, make it absolute
-        INVENTORY_FILE="${WORKSPACE_ROOT}/${INVENTORY_FILE}"
-        ;;
+/*)
+  # Already absolute path
+  ;;
+*)
+  # Relative path, make it absolute
+  INVENTORY_FILE="${WORKSPACE_ROOT}/${INVENTORY_FILE}"
+  ;;
 esac
 
 if [ ! -f "$INVENTORY_FILE" ]; then
-    python3 -c "
+  python3 -c "
 import json
 print(json.dumps([{'name': 'error', 'status': 'unknown', 'detail': 'Inventory file not found: $INVENTORY_FILE', 'last_checked': '$(date -u +"%Y-%m-%dT%H:%M:%SZ")'}], indent=2))
 "
-    exit 0
+  exit 0
 fi
 
 # ---------------------------------------------------------------------------
 # Check if PyYAML is available
 # ---------------------------------------------------------------------------
 if ! python3 -c "import yaml" 2>/dev/null; then
-    echo "Error: python3-yaml is required. Install with: pip install pyyaml" >&2
-    echo "  or: apt install python3-yaml" >&2
-    exit 1
+  echo "Error: python3-yaml is required. Install with: pip install pyyaml" >&2
+  echo "  or: apt install python3-yaml" >&2
+  exit 1
 fi
 
 # ---------------------------------------------------------------------------
@@ -105,14 +105,14 @@ fi
 # We try /health first (common health endpoint), then fall back to root /.
 # ---------------------------------------------------------------------------
 http_check() {
-    url="$1"
-    timeout_sec=5
+  url="$1"
+  timeout_sec=5
 
-    # curl writes response code and timing to stdout, errors to /dev/null
-    curl -s -o /dev/null \
-        --max-time "$timeout_sec" \
-        --write-out "%{http_code} %{time_total}" \
-        "$url" 2>/dev/null || echo "000 0"
+  # curl writes response code and timing to stdout, errors to /dev/null
+  curl -s -o /dev/null \
+    --max-time "$timeout_sec" \
+    --write-out "%{http_code} %{time_total}" \
+    "$url" 2>/dev/null || echo "000 0"
 }
 
 # ---------------------------------------------------------------------------
@@ -120,17 +120,17 @@ http_check() {
 # Returns "running", "exited", "paused", or "not_found"
 # ---------------------------------------------------------------------------
 docker_status() {
-    container_name="$1"
-    if ! command -v docker >/dev/null 2>&1; then
-        echo "docker_unavailable"
-        return
-    fi
-    if ! docker info >/dev/null 2>&1; then
-        echo "docker_unavailable"
-        return
-    fi
-    status="$(docker inspect --format='{{.State.Status}}' "$container_name" 2>/dev/null || echo "not_found")"
-    echo "$status"
+  container_name="$1"
+  if ! command -v docker >/dev/null 2>&1; then
+    echo "docker_unavailable"
+    return
+  fi
+  if ! docker info >/dev/null 2>&1; then
+    echo "docker_unavailable"
+    return
+  fi
+  status="$(docker inspect --format='{{.State.Status}}' "$container_name" 2>/dev/null || echo "not_found")"
+  echo "$status"
 }
 
 # ---------------------------------------------------------------------------

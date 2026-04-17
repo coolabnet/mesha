@@ -43,14 +43,14 @@ set -euo pipefail
 # Argument validation
 # ---------------------------------------------------------------------------
 if [[ $# -ne 1 ]]; then
-    echo "Usage: $0 <node-ip-or-hostname>" >&2
-    exit 1
+  echo "Usage: $0 <node-ip-or-hostname>" >&2
+  exit 1
 fi
 
 NODE_IP="$1"
 COLLECTED_AT="$(date -u +"%Y-%m-%dT%H:%M:%SZ")"
-SSH_TIMEOUT=10          # seconds before SSH gives up
-SSH_OPTS=( -o "ConnectTimeout=${SSH_TIMEOUT}" -o StrictHostKeyChecking=no -o BatchMode=yes -o LogLevel=ERROR )
+SSH_TIMEOUT=10 # seconds before SSH gives up
+SSH_OPTS=(-o "ConnectTimeout=${SSH_TIMEOUT}" -o StrictHostKeyChecking=no -o BatchMode=yes -o LogLevel=ERROR)
 
 # ---------------------------------------------------------------------------
 # Helper: emit an error JSON object and exit 0
@@ -58,12 +58,12 @@ SSH_OPTS=( -o "ConnectTimeout=${SSH_TIMEOUT}" -o StrictHostKeyChecking=no -o Bat
 # structured output rather than a bare non-zero exit code.
 # ---------------------------------------------------------------------------
 emit_error() {
-    local error_msg="$1"
-    jq -n \
-        --arg collected_at "$COLLECTED_AT" \
-        --arg node_ip "$NODE_IP" \
-        --arg error "$error_msg" \
-        '{
+  local error_msg="$1"
+  jq -n \
+    --arg collected_at "$COLLECTED_AT" \
+    --arg node_ip "$NODE_IP" \
+    --arg error "$error_msg" \
+    '{
             collected_at: $collected_at,
             node_ip: $node_ip,
             reachable: false,
@@ -76,14 +76,14 @@ emit_error() {
             radios: [],
             mesh_neighbors: []
         }'
-    exit 0
+  exit 0
 }
 
 # ---------------------------------------------------------------------------
 # Connectivity check: attempt SSH before running full data collection
 # ---------------------------------------------------------------------------
 if ! ssh "${SSH_OPTS[@]}" root@"$NODE_IP" "true" 2>/dev/null; then
-    emit_error "SSH connection failed to ${NODE_IP} (timeout=${SSH_TIMEOUT}s)"
+  emit_error "SSH connection failed to ${NODE_IP} (timeout=${SSH_TIMEOUT}s)"
 fi
 
 # ---------------------------------------------------------------------------
@@ -91,7 +91,8 @@ fi
 # All commands are read-only. Each command block is explained with comments.
 # We run everything in a single SSH session to minimize round-trip overhead.
 # ---------------------------------------------------------------------------
-RAW_DATA="$(ssh "${SSH_OPTS[@]}" root@"$NODE_IP" sh -s <<'REMOTE_SCRIPT'
+RAW_DATA="$(
+  ssh "${SSH_OPTS[@]}" root@"$NODE_IP" sh -s <<'REMOTE_SCRIPT'
 
 # --- Hostname ---
 # uci show: reads the OpenWrt UCI configuration key directly.

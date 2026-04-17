@@ -31,7 +31,7 @@ REQUESTED_HOSTNAME=""
 COLLECTED_AT="$(date -u +"%Y-%m-%dT%H:%M:%SZ")"
 
 usage() {
-    cat <<EOF >&2
+  cat <<EOF >&2
 Usage: $0 [--hostname <node-hostname>] [--plan] [--skip-topology]
 
 Options:
@@ -40,27 +40,27 @@ Options:
   --skip-topology             Skip the topology adapter even in live mode
   -h, --help                  Show this help
 EOF
-    exit 1
+  exit 1
 }
 
 trim_quotes() {
-    local value="$1"
-    value="${value#\"}"
-    value="${value%\"}"
-    value="${value#\'}"
-    value="${value%\'}"
-    printf '%s\n' "$value"
+  local value="$1"
+  value="${value#\"}"
+  value="${value%\"}"
+  value="${value#\'}"
+  value="${value%\'}"
+  printf '%s\n' "$value"
 }
 
 extract_yaml_values() {
-    local file="$1"
-    local key="$2"
+  local file="$1"
+  local key="$2"
 
-    if [[ ! -f "$file" ]]; then
-        return 0
-    fi
+  if [[ ! -f $file ]]; then
+    return 0
+  fi
 
-    awk -v key="$key" '
+  awk -v key="$key" '
         $0 ~ "^[[:space:]]*" key ":[[:space:]]*" {
             line = $0
             sub("^[[:space:]]*" key ":[[:space:]]*", "", line)
@@ -68,13 +68,13 @@ extract_yaml_values() {
             print line
         }
     ' "$file" | while IFS= read -r raw_value; do
-        trim_quotes "$raw_value"
-    done | awk 'NF && !seen[$0]++'
+    trim_quotes "$raw_value"
+  done | awk 'NF && !seen[$0]++'
 }
 
 emit_json_error() {
-    local message="$1"
-    python3 - "$COLLECTED_AT" "$REQUESTED_HOSTNAME" "$message" <<'PYEOF'
+  local message="$1"
+  python3 - "$COLLECTED_AT" "$REQUESTED_HOSTNAME" "$message" <<'PYEOF'
 import json
 import sys
 
@@ -103,84 +103,84 @@ PYEOF
 }
 
 while [[ $# -gt 0 ]]; do
-    case "$1" in
-        --hostname)
-            [[ $# -ge 2 ]] || usage
-            REQUESTED_HOSTNAME="$2"
-            shift 2
-            ;;
-        --plan)
-            PLAN_ONLY=true
-            shift
-            ;;
-        --skip-topology)
-            SKIP_TOPOLOGY=true
-            shift
-            ;;
-        -h|--help)
-            usage
-            ;;
-        *)
-            usage
-            ;;
-    esac
+  case "$1" in
+  --hostname)
+    [[ $# -ge 2 ]] || usage
+    REQUESTED_HOSTNAME="$2"
+    shift 2
+    ;;
+  --plan)
+    PLAN_ONLY=true
+    shift
+    ;;
+  --skip-topology)
+    SKIP_TOPOLOGY=true
+    shift
+    ;;
+  -h | --help)
+    usage
+    ;;
+  *)
+    usage
+    ;;
+  esac
 done
 
-[[ -x "$COLLECT_NODES" ]] || {
-    emit_json_error "Mesh node adapter not executable: $COLLECT_NODES"
-    exit 0
+[[ -x $COLLECT_NODES ]] || {
+  emit_json_error "Mesh node adapter not executable: $COLLECT_NODES"
+  exit 0
 }
 
-[[ -x "$COLLECT_TOPOLOGY" ]] || {
-    emit_json_error "Mesh topology adapter not executable: $COLLECT_TOPOLOGY"
-    exit 0
+[[ -x $COLLECT_TOPOLOGY ]] || {
+  emit_json_error "Mesh topology adapter not executable: $COLLECT_TOPOLOGY"
+  exit 0
 }
 
-if [[ ! -f "$NODES_FILE" ]]; then
-    emit_json_error "Node inventory not found: $NODES_FILE"
-    exit 0
+if [[ ! -f $NODES_FILE ]]; then
+  emit_json_error "Node inventory not found: $NODES_FILE"
+  exit 0
 fi
 
 mapfile -t INVENTORY_HOSTS < <(extract_yaml_values "$NODES_FILE" "hostname")
 
 if [[ ${#INVENTORY_HOSTS[@]} -eq 0 ]]; then
-    emit_json_error "Node inventory has no hostnames to query."
-    exit 0
+  emit_json_error "Node inventory has no hostnames to query."
+  exit 0
 fi
 
 TARGET_HOSTS=()
-if [[ -n "$REQUESTED_HOSTNAME" ]]; then
-    found_match=false
-    for host in "${INVENTORY_HOSTS[@]}"; do
-        if [[ "$host" == "$REQUESTED_HOSTNAME" ]]; then
-            TARGET_HOSTS+=("$host")
-            found_match=true
-            break
-        fi
-    done
-
-    if [[ "$found_match" == false ]]; then
-        emit_json_error "Requested hostname not found in inventory: $REQUESTED_HOSTNAME"
-        exit 0
+if [[ -n $REQUESTED_HOSTNAME ]]; then
+  found_match=false
+  for host in "${INVENTORY_HOSTS[@]}"; do
+    if [[ $host == "$REQUESTED_HOSTNAME" ]]; then
+      TARGET_HOSTS+=("$host")
+      found_match=true
+      break
     fi
+  done
+
+  if [[ $found_match == false ]]; then
+    emit_json_error "Requested hostname not found in inventory: $REQUESTED_HOSTNAME"
+    exit 0
+  fi
 else
-    TARGET_HOSTS=("${INVENTORY_HOSTS[@]}")
+  TARGET_HOSTS=("${INVENTORY_HOSTS[@]}")
 fi
 
 TOPOLOGY_TARGET=""
-if [[ "$SKIP_TOPOLOGY" == false ]]; then
-    while IFS= read -r gateway; do
-        TOPOLOGY_TARGET="$gateway"
-        break
-    done < <(extract_yaml_values "$GATEWAYS_FILE" "hostname")
+if [[ $SKIP_TOPOLOGY == false ]]; then
+  while IFS= read -r gateway; do
+    TOPOLOGY_TARGET="$gateway"
+    break
+  done < <(extract_yaml_values "$GATEWAYS_FILE" "hostname")
 
-    if [[ -z "$TOPOLOGY_TARGET" && ${#TARGET_HOSTS[@]} -gt 0 ]]; then
-        TOPOLOGY_TARGET="${TARGET_HOSTS[0]}"
-    fi
+  if [[ -z $TOPOLOGY_TARGET && ${#TARGET_HOSTS[@]} -gt 0 ]]; then
+    TOPOLOGY_TARGET="${TARGET_HOSTS[0]}"
+  fi
 fi
 
-if [[ "$PLAN_ONLY" == true ]]; then
-    python3 - "$COLLECTED_AT" "$REQUESTED_HOSTNAME" "$TOPOLOGY_TARGET" "${TARGET_HOSTS[@]}" <<'PYEOF'
+if [[ $PLAN_ONLY == true ]]; then
+  python3 - "$COLLECTED_AT" "$REQUESTED_HOSTNAME" "$TOPOLOGY_TARGET" "${TARGET_HOSTS[@]}" <<'PYEOF'
 import json
 import sys
 
@@ -207,7 +207,7 @@ print(json.dumps({
     }
 }, indent=2))
 PYEOF
-    exit 0
+  exit 0
 fi
 
 TMP_DIR="$(mktemp -d)"
@@ -216,12 +216,12 @@ mkdir -p "$TMP_DIR/nodes"
 
 index=0
 for host in "${TARGET_HOSTS[@]}"; do
-    bash "$COLLECT_NODES" "$host" > "$TMP_DIR/nodes/$(printf '%03d' "$index").json"
-    index=$((index + 1))
+  bash "$COLLECT_NODES" "$host" >"$TMP_DIR/nodes/$(printf '%03d' "$index").json"
+  index=$((index + 1))
 done
 
-if [[ -n "$TOPOLOGY_TARGET" ]]; then
-    bash "$COLLECT_TOPOLOGY" "$TOPOLOGY_TARGET" > "$TMP_DIR/topology.json"
+if [[ -n $TOPOLOGY_TARGET ]]; then
+  bash "$COLLECT_TOPOLOGY" "$TOPOLOGY_TARGET" >"$TMP_DIR/topology.json"
 fi
 
 python3 - "$TMP_DIR" "$COLLECTED_AT" "$REQUESTED_HOSTNAME" "$TOPOLOGY_TARGET" "${TARGET_HOSTS[@]}" <<'PYEOF'

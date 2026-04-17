@@ -20,33 +20,33 @@ TARGET_HOST="thisnode.info"
 PLAN_ONLY=false
 
 usage() {
-    cat <<EOF >&2
+  cat <<EOF >&2
 Usage: $0 [--plan]
 
 Options:
   --plan             Show what would run without touching the network
   -h, --help         Show this help
 EOF
-    exit 1
+  exit 1
 }
 
 while [[ $# -gt 0 ]]; do
-    case "$1" in
-        --plan)
-            PLAN_ONLY=true
-            shift
-            ;;
-        -h|--help)
-            usage
-            ;;
-        *)
-            usage
-            ;;
-    esac
+  case "$1" in
+  --plan)
+    PLAN_ONLY=true
+    shift
+    ;;
+  -h | --help)
+    usage
+    ;;
+  *)
+    usage
+    ;;
+  esac
 done
 
-if [[ "$PLAN_ONLY" == true ]]; then
-    python3 - "$TARGET_HOST" "$EXPORT_ROOT" "$RAW_DIR" <<'PYEOF'
+if [[ $PLAN_ONLY == true ]]; then
+  python3 - "$TARGET_HOST" "$EXPORT_ROOT" "$RAW_DIR" <<'PYEOF'
 import json
 import sys
 
@@ -75,7 +75,7 @@ print(json.dumps({
     ],
 }, indent=2))
 PYEOF
-    exit 0
+  exit 0
 fi
 
 mkdir -p "$RAW_DIR"
@@ -95,10 +95,10 @@ trap 'rm -f "$TMP_JSON"' EXIT
 
 SSH_TIMEOUT=10
 SSH_OPTS=(
-    -o "ConnectTimeout=${SSH_TIMEOUT}"
-    -o StrictHostKeyChecking=no
-    -o BatchMode=yes
-    -o LogLevel=ERROR
+  -o "ConnectTimeout=${SSH_TIMEOUT}"
+  -o StrictHostKeyChecking=no
+  -o BatchMode=yes
+  -o LogLevel=ERROR
 )
 
 HTTP_OK=false
@@ -106,39 +106,39 @@ SSH_OK=false
 HTTP_ERROR=""
 SSH_ERROR=""
 
-if curl -fsSL "http://${TARGET_HOST}/" > "$RAW_HTTP" 2>/dev/null; then
-    HTTP_OK=true
+if curl -fsSL "http://${TARGET_HOST}/" >"$RAW_HTTP" 2>/dev/null; then
+  HTTP_OK=true
 else
-    HTTP_ERROR="HTTP request to http://${TARGET_HOST}/ failed"
-    : > "$RAW_HTTP"
+  HTTP_ERROR="HTTP request to http://${TARGET_HOST}/ failed"
+  : >"$RAW_HTTP"
 fi
 
 if ssh "${SSH_OPTS[@]}" root@"$TARGET_HOST" "true" 2>/dev/null; then
-    SSH_OK=true
-    if ! ssh "${SSH_OPTS[@]}" root@"$TARGET_HOST" "uci show network" > "$RAW_NETWORK" 2>/dev/null; then
-        SSH_ERROR="SSH connected but 'uci show network' failed"
-        : > "$RAW_NETWORK"
-    fi
-    if ! ssh "${SSH_OPTS[@]}" root@"$TARGET_HOST" "ubus call network.interface dump" > "$RAW_INTERFACES" 2>/dev/null; then
-        SSH_ERROR="SSH connected but 'ubus call network.interface dump' failed"
-        : > "$RAW_INTERFACES"
-    fi
-    if ! ssh "${SSH_OPTS[@]}" root@"$TARGET_HOST" "ubus call network.wireless status" > "$RAW_WIRELESS" 2>/dev/null; then
-        SSH_ERROR="SSH connected but 'ubus call network.wireless status' failed"
-        : > "$RAW_WIRELESS"
-    fi
-    if ! ssh "${SSH_OPTS[@]}" root@"$TARGET_HOST" "uci get system.@system[0].hostname 2>/dev/null || cat /proc/sys/kernel/hostname" > "$RAW_HOSTNAME" 2>/dev/null; then
-        : > "$RAW_HOSTNAME"
-    fi
+  SSH_OK=true
+  if ! ssh "${SSH_OPTS[@]}" root@"$TARGET_HOST" "uci show network" >"$RAW_NETWORK" 2>/dev/null; then
+    SSH_ERROR="SSH connected but 'uci show network' failed"
+    : >"$RAW_NETWORK"
+  fi
+  if ! ssh "${SSH_OPTS[@]}" root@"$TARGET_HOST" "ubus call network.interface dump" >"$RAW_INTERFACES" 2>/dev/null; then
+    SSH_ERROR="SSH connected but 'ubus call network.interface dump' failed"
+    : >"$RAW_INTERFACES"
+  fi
+  if ! ssh "${SSH_OPTS[@]}" root@"$TARGET_HOST" "ubus call network.wireless status" >"$RAW_WIRELESS" 2>/dev/null; then
+    SSH_ERROR="SSH connected but 'ubus call network.wireless status' failed"
+    : >"$RAW_WIRELESS"
+  fi
+  if ! ssh "${SSH_OPTS[@]}" root@"$TARGET_HOST" "uci get system.@system[0].hostname 2>/dev/null || cat /proc/sys/kernel/hostname" >"$RAW_HOSTNAME" 2>/dev/null; then
+    : >"$RAW_HOSTNAME"
+  fi
 else
-    SSH_ERROR="SSH connection to root@${TARGET_HOST} failed (timeout=${SSH_TIMEOUT}s)"
-    : > "$RAW_NETWORK"
-    : > "$RAW_INTERFACES"
-    : > "$RAW_WIRELESS"
-    : > "$RAW_HOSTNAME"
+  SSH_ERROR="SSH connection to root@${TARGET_HOST} failed (timeout=${SSH_TIMEOUT}s)"
+  : >"$RAW_NETWORK"
+  : >"$RAW_INTERFACES"
+  : >"$RAW_WIRELESS"
+  : >"$RAW_HOSTNAME"
 fi
 
-python3 - "$STAMP" "$TARGET_HOST" "$HTTP_OK" "$SSH_OK" "$HTTP_ERROR" "$SSH_ERROR" "$RAW_HTTP" "$RAW_NETWORK" "$RAW_INTERFACES" "$RAW_WIRELESS" "$RAW_HOSTNAME" "$LATEST_SUMMARY" "$LATEST_CANDIDATE" "$LATEST_GATEWAY_CANDIDATE" <<'PYEOF' > "$TMP_JSON"
+python3 - "$STAMP" "$TARGET_HOST" "$HTTP_OK" "$SSH_OK" "$HTTP_ERROR" "$SSH_ERROR" "$RAW_HTTP" "$RAW_NETWORK" "$RAW_INTERFACES" "$RAW_WIRELESS" "$RAW_HOSTNAME" "$LATEST_SUMMARY" "$LATEST_CANDIDATE" "$LATEST_GATEWAY_CANDIDATE" <<'PYEOF' >"$TMP_JSON"
 import json
 import pathlib
 import sys

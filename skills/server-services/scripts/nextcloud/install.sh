@@ -13,13 +13,17 @@ set -euo pipefail
 # ---------------------------------------------------------------------------
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+# shellcheck disable=SC2034
 SERVICE_NAME="nextcloud"
 LOCAL_DOMAIN="nuvem.bairro.local"
 HEALTH_URL="http://localhost/status.php"
 HEALTH_TIMEOUT=60
 
-log()  { echo "[$(date '+%Y-%m-%d %H:%M:%S')] [nextcloud] $*"; }
-fail() { echo "[$(date '+%Y-%m-%d %H:%M:%S')] [nextcloud] ERROR: $*" >&2; exit 1; }
+log() { echo "[$(date '+%Y-%m-%d %H:%M:%S')] [nextcloud] $*"; }
+fail() {
+  echo "[$(date '+%Y-%m-%d %H:%M:%S')] [nextcloud] ERROR: $*" >&2
+  exit 1
+}
 
 # ---------------------------------------------------------------------------
 # Step 1 — Prerequisites check
@@ -66,7 +70,7 @@ log "Step 3: Validating required environment variables..."
 
 # Load .env (skip comments and blank lines)
 set -o allexport
-# shellcheck disable=SC1091
+# shellcheck source=/dev/null
 source <(grep -v '^\s*#' .env | grep -v '^\s*$')
 set +o allexport
 
@@ -82,7 +86,7 @@ REQUIRED_VARS=(
 
 MISSING=()
 for var in "${REQUIRED_VARS[@]}"; do
-  if [[ -z "${!var:-}" ]]; then
+  if [[ -z ${!var:-} ]]; then
     MISSING+=("$var")
   fi
 done
@@ -93,7 +97,7 @@ fi
 
 # Check for placeholder values that were never changed
 for var in NEXTCLOUD_ADMIN_PASSWORD MYSQL_ROOT_PASSWORD MYSQL_PASSWORD; do
-  if [[ "${!var}" == *"change-me"* ]]; then
+  if [[ ${!var} == *"change-me"* ]]; then
     fail "${var} still contains the placeholder value 'change-me'. Set a real password before installing."
   fi
 done
@@ -139,7 +143,7 @@ HEALTHY=false
 
 while [[ $ELAPSED -lt $HEALTH_TIMEOUT ]]; do
   HTTP_STATUS=$(docker exec nextcloud_app curl -s -o /dev/null -w "%{http_code}" "${HEALTH_URL}" 2>/dev/null || true)
-  if [[ "$HTTP_STATUS" == "200" ]]; then
+  if [[ $HTTP_STATUS == "200" ]]; then
     HEALTHY=true
     break
   fi
@@ -148,7 +152,7 @@ while [[ $ELAPSED -lt $HEALTH_TIMEOUT ]]; do
   ELAPSED=$((ELAPSED + INTERVAL))
 done
 
-if [[ "$HEALTHY" != "true" ]]; then
+if [[ $HEALTHY != "true" ]]; then
   fail "Nextcloud did not become healthy within ${HEALTH_TIMEOUT}s. Check logs: docker compose logs nextcloud_app"
 fi
 

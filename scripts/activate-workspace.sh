@@ -25,7 +25,7 @@ set -euo pipefail
 # ---------------------------------------------------------------------------
 # Resolve repo root
 # ---------------------------------------------------------------------------
-REPO_ROOT="$( cd "$(dirname "$0")/.." && pwd )"
+REPO_ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 SCRIPTS_DIR="$REPO_ROOT/scripts"
 
 # ---------------------------------------------------------------------------
@@ -39,15 +39,17 @@ BOLD='\033[1m'
 DIM='\033[2m'
 RESET='\033[0m'
 
-header() { echo -e "\n${BOLD}${CYAN}══════════════════════════════════════════════════${RESET}"; \
-           echo -e "${BOLD}${CYAN}  $*${RESET}"; \
-           echo -e "${BOLD}${CYAN}══════════════════════════════════════════════════${RESET}"; }
-section(){ echo -e "\n${BOLD}${CYAN}── $* ──${RESET}"; }
-pass()   { echo -e "  ${GREEN}[OK]${RESET} $*"; }
-warn()   { echo -e "  ${YELLOW}[WARN]${RESET} $*"; }
-fail()   { echo -e "  ${RED}[FAIL]${RESET} $*"; }
-info()   { echo -e "  ${CYAN}[INFO]${RESET} $*"; }
-created(){ echo -e "  ${GREEN}[CREATED]${RESET} $*"; }
+header() {
+  echo -e "\n${BOLD}${CYAN}══════════════════════════════════════════════════${RESET}"
+  echo -e "${BOLD}${CYAN}  $*${RESET}"
+  echo -e "${BOLD}${CYAN}══════════════════════════════════════════════════${RESET}"
+}
+section() { echo -e "\n${BOLD}${CYAN}── $* ──${RESET}"; }
+pass() { echo -e "  ${GREEN}[OK]${RESET} $*"; }
+warn() { echo -e "  ${YELLOW}[WARN]${RESET} $*"; }
+fail() { echo -e "  ${RED}[FAIL]${RESET} $*"; }
+info() { echo -e "  ${CYAN}[INFO]${RESET} $*"; }
+created() { echo -e "  ${GREEN}[CREATED]${RESET} $*"; }
 
 # ---------------------------------------------------------------------------
 # Step 1: Run doctor.sh first
@@ -58,7 +60,7 @@ section "Step 1: Pre-activation health check"
 
 DOCTOR="$SCRIPTS_DIR/doctor.sh"
 
-if [[ ! -f "$DOCTOR" ]]; then
+if [[ ! -f $DOCTOR ]]; then
   fail "scripts/doctor.sh not found at $DOCTOR"
   echo ""
   echo "  Cannot run the health check. Make sure all scripts are present."
@@ -73,7 +75,7 @@ echo ""
 doctor_exit=0
 bash "$DOCTOR" || doctor_exit=$?
 
-if [[ "$doctor_exit" -eq 1 ]]; then
+if [[ $doctor_exit -eq 1 ]]; then
   echo ""
   fail "doctor.sh reported critical failures."
   echo ""
@@ -81,7 +83,7 @@ if [[ "$doctor_exit" -eq 1 ]]; then
   echo "  Then run this script again."
   echo ""
   exit 1
-elif [[ "$doctor_exit" -eq 2 ]]; then
+elif [[ $doctor_exit -eq 2 ]]; then
   echo ""
   warn "doctor.sh completed with warnings. Activation will proceed, but"
   warn "review the warnings above and resolve them when possible."
@@ -101,16 +103,16 @@ if [[ -f "$REPO_ROOT/BOOTSTRAP.md" ]]; then
   purpose=""
   in_purpose=false
   while IFS= read -r line; do
-    if [[ "$line" =~ ^##[[:space:]]+Purpose ]]; then
+    if [[ $line =~ ^##[[:space:]]+Purpose ]]; then
       in_purpose=true
       continue
     fi
-    if $in_purpose && [[ -n "$line" ]]; then
+    if $in_purpose && [[ -n $line ]]; then
       purpose="$line"
       break
     fi
-  done < "$REPO_ROOT/BOOTSTRAP.md"
-  if [[ -n "$purpose" ]]; then
+  done <"$REPO_ROOT/BOOTSTRAP.md"
+  if [[ -n $purpose ]]; then
     echo -e "  ${BOLD}Purpose:${RESET}"
     echo -e "  ${DIM}$purpose${RESET}"
     echo ""
@@ -120,7 +122,7 @@ fi
 # Count files in key directories
 count_files() {
   local dir="$REPO_ROOT/$1"
-  if [[ -d "$dir" ]]; then
+  if [[ -d $dir ]]; then
     find "$dir" -type f 2>/dev/null | wc -l | tr -d ' '
   else
     echo "0"
@@ -149,7 +151,7 @@ RUNTIME_DIRS=(
 
 for rel_dir in "${RUNTIME_DIRS[@]}"; do
   full_dir="$REPO_ROOT/$rel_dir"
-  if [[ -d "$full_dir" ]]; then
+  if [[ -d $full_dir ]]; then
     pass "$rel_dir/ already exists"
   else
     mkdir -p "$full_dir"
@@ -189,29 +191,30 @@ echo ""
 # Print the activation prompt from BOOTSTRAP.md verbatim
 # It lives between the last ```text block and the closing ``` in the file.
 if [[ -f "$REPO_ROOT/BOOTSTRAP.md" ]]; then
+  # shellcheck disable=SC2034
   in_activation_block=false
   # Find the block that follows the "## Activation prompt" heading
   in_activation_section=false
   in_code_block=false
 
   while IFS= read -r line; do
-    if [[ "$line" =~ ^##[[:space:]]Activation[[:space:]]prompt ]]; then
+    if [[ $line =~ ^##[[:space:]]Activation[[:space:]]prompt ]]; then
       in_activation_section=true
       continue
     fi
     if $in_activation_section; then
-      if [[ "$line" == '```text' || "$line" == '```' ]] && ! $in_code_block; then
+      if [[ $line == '```text' || $line == '```' ]] && ! $in_code_block; then
         in_code_block=true
         continue
       fi
       if $in_code_block; then
-        if [[ "$line" == '```' ]]; then
+        if [[ $line == '```' ]]; then
           break
         fi
         echo "  $line"
       fi
     fi
-  done < "$REPO_ROOT/BOOTSTRAP.md"
+  done <"$REPO_ROOT/BOOTSTRAP.md"
 else
   # Fallback: print the prompt inline if BOOTSTRAP.md is missing
   echo "  Read BOOTSTRAP.md, AGENTS.md, SOUL.md, TOOLS.md, MEMORY.md, and WORKING.md"

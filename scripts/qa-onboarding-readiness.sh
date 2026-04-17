@@ -17,7 +17,7 @@ FAIL_COUNT=0
 WARN_COUNT=0
 
 usage() {
-    cat <<EOF
+  cat <<EOF
 Usage: $0 [--strict] [--agent-brief]
 
 Options:
@@ -25,81 +25,93 @@ Options:
   --agent-brief  Print a numbered execution brief after the checks
   -h, --help     Show this help
 EOF
-    exit 0
+  exit 0
 }
 
 for arg in "$@"; do
-    case "$arg" in
-        --strict)
-            STRICT=true
-            ;;
-        --agent-brief)
-            AGENT_BRIEF=true
-            ;;
-        -h|--help)
-            usage
-            ;;
-        *)
-            echo "Unknown option: $arg" >&2
-            exit 1
-            ;;
-    esac
+  case "$arg" in
+  --strict)
+    STRICT=true
+    ;;
+  --agent-brief)
+    AGENT_BRIEF=true
+    ;;
+  -h | --help)
+    usage
+    ;;
+  *)
+    echo "Unknown option: $arg" >&2
+    exit 1
+    ;;
+  esac
 done
 
 if [[ -t 1 ]]; then
-    RED='\033[0;31m'
-    YELLOW='\033[1;33m'
-    GREEN='\033[0;32m'
-    CYAN='\033[0;36m'
-    BOLD='\033[1m'
-    RESET='\033[0m'
+  RED='\033[0;31m'
+  YELLOW='\033[1;33m'
+  GREEN='\033[0;32m'
+  # shellcheck disable=SC2034
+  CYAN='\033[0;36m'
+  # shellcheck disable=SC2034
+  BOLD='\033[1m'
+  RESET='\033[0m'
 else
-    RED=''
-    YELLOW=''
-    GREEN=''
-    CYAN=''
-    BOLD=''
-    RESET=''
+  RED=''
+  YELLOW=''
+  GREEN=''
+  # shellcheck disable=SC2034
+  CYAN=''
+  BOLD=''
+  RESET=''
 fi
 
 header() { printf "\n%s%s%s\n" "$BOLD" "$1" "$RESET"; }
-pass() { printf "%sPASS%s  %s\n" "$GREEN" "$RESET" "$1"; PASS_COUNT=$((PASS_COUNT + 1)); }
-warn() { printf "%sWARN%s  %s\n" "$YELLOW" "$RESET" "$1"; WARN_COUNT=$((WARN_COUNT + 1)); }
-fail() { printf "%sFAIL%s  %s\n" "$RED" "$RESET" "$1"; FAIL_COUNT=$((FAIL_COUNT + 1)); }
+pass() {
+  printf "%sPASS%s  %s\n" "$GREEN" "$RESET" "$1"
+  PASS_COUNT=$((PASS_COUNT + 1))
+}
+warn() {
+  printf "%sWARN%s  %s\n" "$YELLOW" "$RESET" "$1"
+  WARN_COUNT=$((WARN_COUNT + 1))
+}
+fail() {
+  printf "%sFAIL%s  %s\n" "$RED" "$RESET" "$1"
+  FAIL_COUNT=$((FAIL_COUNT + 1))
+}
 
 check_file() {
-    local rel="$1"
-    if [[ -f "$REPO_ROOT/$rel" ]]; then
-        pass "file present: $rel"
-    else
-        fail "missing file: $rel"
-    fi
+  local rel="$1"
+  if [[ -f "$REPO_ROOT/$rel" ]]; then
+    pass "file present: $rel"
+  else
+    fail "missing file: $rel"
+  fi
 }
 
 check_exec() {
-    local rel="$1"
-    if [[ -x "$REPO_ROOT/$rel" ]]; then
-        pass "executable: $rel"
-    else
-        fail "missing executable bit or file: $rel"
-    fi
+  local rel="$1"
+  if [[ -x "$REPO_ROOT/$rel" ]]; then
+    pass "executable: $rel"
+  else
+    fail "missing executable bit or file: $rel"
+  fi
 }
 
 check_yaml_key() {
-    local rel="$1"
-    local pattern="$2"
-    local desc="$3"
-    if grep -Eq "^[[:space:]]*${pattern}:" "$REPO_ROOT/$rel"; then
-        pass "$desc"
-    else
-        warn "$desc"
-    fi
+  local rel="$1"
+  local pattern="$2"
+  local desc="$3"
+  if grep -Eq "^[[:space:]]*${pattern}:" "$REPO_ROOT/$rel"; then
+    pass "$desc"
+  else
+    warn "$desc"
+  fi
 }
 
 dotenv_has_value() {
-    local file="$1"
-    local key="$2"
-    awk -F= -v key="$key" '
+  local file="$1"
+  local key="$2"
+  awk -F= -v key="$key" '
         $1 == key {
             value = substr($0, index($0, "=") + 1)
             gsub(/^[[:space:]]+|[[:space:]]+$/, "", value)
@@ -135,77 +147,77 @@ check_yaml_key "inventories/sites.yaml" "name" "sites inventory contains at leas
 check_yaml_key "desired-state/server/hosts.yaml" "maintainers" "maintainer identity source is present in desired-state/server/hosts.yaml"
 
 if [[ -f "$REPO_ROOT/secrets/maintainers.yaml" ]]; then
-    pass "local-only maintainer identity file exists: secrets/maintainers.yaml"
+  pass "local-only maintainer identity file exists: secrets/maintainers.yaml"
 else
-    warn "local-only secrets/maintainers.yaml not found (okay if desired-state/server/hosts.yaml is authoritative)"
+  warn "local-only secrets/maintainers.yaml not found (okay if desired-state/server/hosts.yaml is authoritative)"
 fi
 
 header "Host secret indicators"
 if command -v ssh >/dev/null 2>&1; then
-    pass "ssh client available"
+  pass "ssh client available"
 else
-    fail "ssh client not available"
+  fail "ssh client not available"
 fi
 
 if command -v docker >/dev/null 2>&1; then
-    if docker compose version >/dev/null 2>&1; then
-        pass "docker compose plugin available"
-    else
-        warn "docker is installed but 'docker compose' is not available; isolated onboarding stack will not run"
-    fi
+  if docker compose version >/dev/null 2>&1; then
+    pass "docker compose plugin available"
+  else
+    warn "docker is installed but 'docker compose' is not available; isolated onboarding stack will not run"
+  fi
 else
-    warn "docker not available; isolated onboarding stack will not run"
+  warn "docker not available; isolated onboarding stack will not run"
 fi
 
-if [[ -n "${MESHA_ROUTER_SSH_KEY:-}" || -f "$HOME/.ssh/mesha-router-key" || -f "$HOME/.config/mesha/router-ssh-key" ]]; then
-    pass "router SSH credential indicator present"
+if [[ -n ${MESHA_ROUTER_SSH_KEY:-} || -f "$HOME/.ssh/mesha-router-key" || -f "$HOME/.config/mesha/router-ssh-key" ]]; then
+  pass "router SSH credential indicator present"
 else
-    warn "router SSH key path not detected via env or common local paths; live reads may still work via ssh-agent or ~/.ssh/config"
+  warn "router SSH key path not detected via env or common local paths; live reads may still work via ssh-agent or ~/.ssh/config"
 fi
 
-if [[ -n "${MESHA_SERVER_SSH_KEY:-}" || -f "$HOME/.ssh/mesha-server-key" || -f "$HOME/.config/mesha/server-ssh-key" ]]; then
-    pass "server SSH credential indicator present"
+if [[ -n ${MESHA_SERVER_SSH_KEY:-} || -f "$HOME/.ssh/mesha-server-key" || -f "$HOME/.config/mesha/server-ssh-key" ]]; then
+  pass "server SSH credential indicator present"
 else
-    warn "server SSH key path not detected via env or common local paths"
+  warn "server SSH key path not detected via env or common local paths"
 fi
 
 header "Telegram adapter readiness"
 TELEGRAM_ENV="$REPO_ROOT/adapters/channels/telegram/.env"
-if [[ -f "$TELEGRAM_ENV" ]]; then
-    pass "telegram local env file present"
-    for key in TELEGRAM_BOT_TOKEN TELEGRAM_MAINTAINER_IDS TELEGRAM_LEAD_MAINTAINER_IDS OPERATOR_ENDPOINT; do
-        if dotenv_has_value "$TELEGRAM_ENV" "$key"; then
-            pass "telegram env key populated: $key"
-        else
-            warn "telegram env key missing or empty: $key"
-        fi
-    done
+if [[ -f $TELEGRAM_ENV ]]; then
+  pass "telegram local env file present"
+  for key in TELEGRAM_BOT_TOKEN TELEGRAM_MAINTAINER_IDS TELEGRAM_LEAD_MAINTAINER_IDS OPERATOR_ENDPOINT; do
+    if dotenv_has_value "$TELEGRAM_ENV" "$key"; then
+      pass "telegram env key populated: $key"
+    else
+      warn "telegram env key missing or empty: $key"
+    fi
+  done
 else
-    warn "Telegram adapter .env not found (okay if Telegram is not part of this deployment)"
+  warn "Telegram adapter .env not found (okay if Telegram is not part of this deployment)"
 fi
 
 header "Dry-run onboarding path"
 if bash "$REPO_ROOT/scripts/discover-from-thisnode.sh" --plan >/dev/null; then
-    pass "discover-from-thisnode.sh --plan"
+  pass "discover-from-thisnode.sh --plan"
 else
-    fail "discover-from-thisnode.sh --plan"
+  fail "discover-from-thisnode.sh --plan"
 fi
 
 if bash "$REPO_ROOT/skills/mesh-readonly/scripts/run-mesh-readonly.sh" --plan >/dev/null; then
-    pass "run-mesh-readonly.sh --plan"
+  pass "run-mesh-readonly.sh --plan"
 else
-    fail "run-mesh-readonly.sh --plan"
+  fail "run-mesh-readonly.sh --plan"
 fi
 
 if bash "$REPO_ROOT/scripts/mesh-heartbeat.sh" --plan >/dev/null; then
-    pass "mesh-heartbeat.sh --plan"
+  pass "mesh-heartbeat.sh --plan"
 else
-    fail "mesh-heartbeat.sh --plan"
+  fail "mesh-heartbeat.sh --plan"
 fi
 
-if [[ "$AGENT_BRIEF" == true ]]; then
-    header "Agent brief"
-    cat <<EOF
+if [[ $AGENT_BRIEF == true ]]; then
+  header "Agent brief"
+  cat <<EOF
 1. Run \`bash scripts/doctor.sh\`.
 2. Run \`bash scripts/qa-onboarding-readiness.sh --agent-brief\` and record every WARN and FAIL.
 3. Read \`docs/configuration.md\` and confirm whether the deployment will use:
@@ -238,18 +250,18 @@ fi
 
 header "Summary"
 printf "PASS/WARN/FAIL counts: %s%d%s / %s%d%s / %s%d%s\n" \
-    "$GREEN" "$PASS_COUNT" "$RESET" "$YELLOW" "$WARN_COUNT" "$RESET" "$RED" "$FAIL_COUNT" "$RESET"
+  "$GREEN" "$PASS_COUNT" "$RESET" "$YELLOW" "$WARN_COUNT" "$RESET" "$RED" "$FAIL_COUNT" "$RESET"
 
 if [[ $FAIL_COUNT -gt 0 ]]; then
-    exit 1
+  exit 1
 fi
 
-if [[ "$STRICT" == true && $WARN_COUNT -gt 0 ]]; then
-    exit 1
+if [[ $STRICT == true && $WARN_COUNT -gt 0 ]]; then
+  exit 1
 fi
 
 if [[ $WARN_COUNT -gt 0 ]]; then
-    exit 2
+  exit 2
 fi
 
 exit 0

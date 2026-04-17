@@ -93,9 +93,9 @@ EOF
 # ---------------------------------------------------------------------------
 
 ensure_windows_file() {
-  if [[ ! -f "${WINDOWS_FILE}" ]]; then
+  if [[ ! -f ${WINDOWS_FILE} ]]; then
     mkdir -p "$(dirname "${WINDOWS_FILE}")"
-    cat > "${WINDOWS_FILE}" <<'YAML'
+    cat >"${WINDOWS_FILE}" <<'YAML'
 # desired-state/mesh/maintenance-windows.yaml
 # Managed by: skills/mesh-rollout/scripts/schedule-maintenance.sh
 # Do not edit manually while an add or cancel operation is in progress.
@@ -111,9 +111,9 @@ YAML
 
 parse_duration_minutes() {
   local dur="$1"
-  if [[ "${dur}" =~ ^([0-9]+)h$ ]]; then
-    echo $(( BASH_REMATCH[1] * 60 ))
-  elif [[ "${dur}" =~ ^([0-9]+)m$ ]]; then
+  if [[ ${dur} =~ ^([0-9]+)h$ ]]; then
+    echo $((BASH_REMATCH[1] * 60))
+  elif [[ ${dur} =~ ^([0-9]+)m$ ]]; then
     echo "${BASH_REMATCH[1]}"
   else
     die "Invalid duration format '${dur}'. Use Nh (hours) or Nm (minutes), e.g. 2h or 90m"
@@ -143,41 +143,41 @@ cmd_add() {
 
   while [[ $# -gt 0 ]]; do
     case "$1" in
-      --date)
-        [[ $# -lt 2 ]] && die "--date requires a value"
-        scheduled_date="$2"
-        shift 2
-        ;;
-      --duration)
-        [[ $# -lt 2 ]] && die "--duration requires a value"
-        duration_raw="$2"
-        shift 2
-        ;;
-      --scope)
-        [[ $# -lt 2 ]] && die "--scope requires a value"
-        scope="$2"
-        shift 2
-        ;;
-      --description)
-        [[ $# -lt 2 ]] && die "--description requires a value"
-        description="$2"
-        shift 2
-        ;;
-      --created-by)
-        [[ $# -lt 2 ]] && die "--created-by requires a value"
-        created_by="$2"
-        shift 2
-        ;;
-      *)
-        die "Unknown argument for add: $1"
-        ;;
+    --date)
+      [[ $# -lt 2 ]] && die "--date requires a value"
+      scheduled_date="$2"
+      shift 2
+      ;;
+    --duration)
+      [[ $# -lt 2 ]] && die "--duration requires a value"
+      duration_raw="$2"
+      shift 2
+      ;;
+    --scope)
+      [[ $# -lt 2 ]] && die "--scope requires a value"
+      scope="$2"
+      shift 2
+      ;;
+    --description)
+      [[ $# -lt 2 ]] && die "--description requires a value"
+      description="$2"
+      shift 2
+      ;;
+    --created-by)
+      [[ $# -lt 2 ]] && die "--created-by requires a value"
+      created_by="$2"
+      shift 2
+      ;;
+    *)
+      die "Unknown argument for add: $1"
+      ;;
     esac
   done
 
-  [[ -z "${scheduled_date}" ]]  && die "--date is required"
-  [[ -z "${duration_raw}" ]]    && die "--duration is required"
-  [[ -z "${scope}" ]]           && die "--scope is required"
-  [[ -z "${description}" ]]     && die "--description is required"
+  [[ -z ${scheduled_date} ]] && die "--date is required"
+  [[ -z ${duration_raw} ]] && die "--duration is required"
+  [[ -z ${scope} ]] && die "--scope is required"
+  [[ -z ${description} ]] && die "--description is required"
 
   # Validate date format
   if ! echo "${scheduled_date}" | grep -qE '^[0-9]{4}-[0-9]{2}-[0-9]{2} [0-9]{2}:[0-9]{2}$'; then
@@ -201,8 +201,8 @@ cmd_add() {
 
   # Append new window using Python to maintain clean YAML formatting
   python3 - "${WINDOWS_FILE}" "${WINDOW_ID}" "${scheduled_date}" \
-            "${DURATION_MINUTES}" "${scope}" "${description}" \
-            "${created_by}" <<'PYEOF'
+    "${DURATION_MINUTES}" "${scope}" "${description}" \
+    "${created_by}" <<'PYEOF'
 import sys, re
 from datetime import datetime
 
@@ -360,7 +360,8 @@ cmd_cancel() {
   ensure_windows_file
 
   # Check the window exists and is in a cancellable state
-  FOUND="$(python3 - "${WINDOWS_FILE}" "${window_id}" <<'PYEOF'
+  FOUND="$(
+    python3 - "${WINDOWS_FILE}" "${window_id}" <<'PYEOF'
 import sys, re
 
 path = sys.argv[1]
@@ -396,18 +397,18 @@ if found_status is None:
 else:
     print(found_status)
 PYEOF
-)"
+  )"
 
   case "${FOUND}" in
-    NOT_FOUND)
-      die "Window ID '${window_id}' not found in ${WINDOWS_FILE}"
-      ;;
-    cancelled)
-      die "Window '${window_id}' is already cancelled."
-      ;;
-    completed)
-      die "Window '${window_id}' has already completed and cannot be cancelled."
-      ;;
+  NOT_FOUND)
+    die "Window ID '${window_id}' not found in ${WINDOWS_FILE}"
+    ;;
+  cancelled)
+    die "Window '${window_id}' is already cancelled."
+    ;;
+  completed)
+    die "Window '${window_id}' has already completed and cannot be cancelled."
+    ;;
   esac
 
   # Update status to cancelled and add cancelled_at timestamp
@@ -454,12 +455,13 @@ cmd_check() {
   # Class A — read-only
   # Exit 0 if a window is currently active, 1 if not.
 
-  if [[ ! -f "${WINDOWS_FILE}" ]]; then
+  if [[ ! -f ${WINDOWS_FILE} ]]; then
     # No windows file = no active window
     exit 1
   fi
 
-  ACTIVE="$(python3 - "${WINDOWS_FILE}" <<'PYEOF'
+  ACTIVE="$(
+    python3 - "${WINDOWS_FILE}" <<'PYEOF'
 import sys, re
 from datetime import datetime, timedelta
 
@@ -520,9 +522,9 @@ if current and check_active(current):
 print("none")
 sys.exit(1)
 PYEOF
-)" || true
+  )" || true
 
-  if [[ "${ACTIVE}" != "none" ]] && [[ -n "${ACTIVE}" ]]; then
+  if [[ ${ACTIVE} != "none" ]] && [[ -n ${ACTIVE} ]]; then
     echo "Active maintenance window: ${ACTIVE}"
     exit 0
   else
@@ -541,22 +543,22 @@ SUBCOMMAND="$1"
 shift
 
 case "${SUBCOMMAND}" in
-  add)
-    cmd_add "$@"
-    ;;
-  list)
-    cmd_list "$@"
-    ;;
-  cancel)
-    cmd_cancel "$@"
-    ;;
-  check)
-    cmd_check "$@"
-    ;;
-  -h|--help)
-    usage
-    ;;
-  *)
-    die "Unknown subcommand '${SUBCOMMAND}'. Expected: add, list, cancel, check"
-    ;;
+add)
+  cmd_add "$@"
+  ;;
+list)
+  cmd_list "$@"
+  ;;
+cancel)
+  cmd_cancel "$@"
+  ;;
+check)
+  cmd_check "$@"
+  ;;
+-h | --help)
+  usage
+  ;;
+*)
+  die "Unknown subcommand '${SUBCOMMAND}'. Expected: add, list, cancel, check"
+  ;;
 esac

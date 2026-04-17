@@ -85,25 +85,25 @@ OUTPUT_FORMAT="text"
 
 while [[ $# -gt 0 ]]; do
   case "$1" in
-    --node)
-      [[ $# -lt 2 ]] && die "--node requires a value"
-      ONLY_NODE="$2"
-      shift 2
-      ;;
-    --output)
-      [[ $# -lt 2 ]] && die "--output requires a value"
-      case "$2" in
-        json|text) OUTPUT_FORMAT="$2" ;;
-        *) die "Invalid --output value '$2'. Expected: json or text" ;;
-      esac
-      shift 2
-      ;;
-    -h|--help)
-      usage
-      ;;
-    *)
-      die "Unknown argument: $1"
-      ;;
+  --node)
+    [[ $# -lt 2 ]] && die "--node requires a value"
+    ONLY_NODE="$2"
+    shift 2
+    ;;
+  --output)
+    [[ $# -lt 2 ]] && die "--output requires a value"
+    case "$2" in
+    json | text) OUTPUT_FORMAT="$2" ;;
+    *) die "Invalid --output value '$2'. Expected: json or text" ;;
+    esac
+    shift 2
+    ;;
+  -h | --help)
+    usage
+    ;;
+  *)
+    die "Unknown argument: $1"
+    ;;
   esac
 done
 
@@ -111,9 +111,9 @@ done
 # Prerequisite checks
 # ---------------------------------------------------------------------------
 
-[[ -f "${INVENTORY_FILE}" ]]   || die "Node inventory not found: ${INVENTORY_FILE}"
-[[ -f "${FIRMWARE_POLICY}" ]]  || die "Firmware policy not found: ${FIRMWARE_POLICY}"
-[[ -x "${VALIDATE_NODE}" ]]    || die "validate-node.sh not found or not executable: ${VALIDATE_NODE}"
+[[ -f ${INVENTORY_FILE} ]] || die "Node inventory not found: ${INVENTORY_FILE}"
+[[ -f ${FIRMWARE_POLICY} ]] || die "Firmware policy not found: ${FIRMWARE_POLICY}"
+[[ -x ${VALIDATE_NODE} ]] || die "validate-node.sh not found or not executable: ${VALIDATE_NODE}"
 command -v python3 &>/dev/null || die "python3 is required but not found in PATH"
 
 # ---------------------------------------------------------------------------
@@ -252,7 +252,7 @@ check_node_drift() {
   local live_fw="unknown"
   local fw_line
   fw_line="$(echo "${validate_output}" | grep -i "Firmware version" | head -1 || true)"
-  if [[ -n "${fw_line}" ]]; then
+  if [[ -n ${fw_line} ]]; then
     # Extract "Installed: <version>" if present (WARN case)
     if echo "${fw_line}" | grep -q "Installed:"; then
       live_fw="$(echo "${fw_line}" | sed 's/.*Installed:[[:space:]]*//' | sed 's/[[:space:]]*—.*//')"
@@ -260,10 +260,10 @@ check_node_drift() {
       # PASS case: extract version from "(<version> matches approved)"
       live_fw="$(echo "${fw_line}" | sed 's/.*(\([^)]*\) matches.*/\1/' | sed 's/[[:space:]]*(no policy.*//')"
       # If the sed didn't produce a clean version, use the approved as a fallback label
-      [[ "${live_fw}" == "${fw_line}" ]] && live_fw="unknown"
+      [[ ${live_fw} == "${fw_line}" ]] && live_fw="unknown"
     fi
   fi
-  live_fw="${live_fw%% }"   # trim trailing space
+  live_fw="${live_fw%% }" # trim trailing space
 
   # Parse lime-community presence from validate-node.sh output.
   # validate-node.sh prints lines like:
@@ -274,7 +274,7 @@ check_node_drift() {
   if echo "${validate_output}" | grep -qi "Community SSID.*PASS\|PASS.*Community SSID\|Found:"; then
     lime_status="present"
   elif echo "${validate_output}" | grep -qi "Community SSID.*WARN\|WARN.*Community SSID\|lime-community config exists"; then
-    lime_status="present"  # file exists, SSID unreadable — treat as present for drift purposes
+    lime_status="present" # file exists, SSID unreadable — treat as present for drift purposes
   fi
 
   # Determine drift
@@ -283,10 +283,12 @@ check_node_drift() {
 
   # Firmware drift: compare live version against approved.
   # We also honour the validate-node.sh FAIL/WARN verdict for firmware.
+  # shellcheck disable=SC2034
   local fw_fail=false
+  # shellcheck disable=SC2034
   echo "${validate_output}" | grep -i "Firmware version" | grep -qiE "^[[:space:]]*FAIL|WARN" && fw_fail=true || true
 
-  if [[ "${live_fw}" == "${approved_firmware}" ]] || echo "${validate_output}" | grep -i "Firmware version" | grep -qi "PASS"; then
+  if [[ ${live_fw} == "${approved_firmware}" ]] || echo "${validate_output}" | grep -i "Firmware version" | grep -qi "PASS"; then
     echo "firmware_match:yes"
   else
     echo "firmware_match:no"
@@ -298,7 +300,7 @@ check_node_drift() {
   echo "firmware_approved:${approved_firmware}"
 
   # lime-community drift
-  if [[ "${lime_status}" == "present" ]]; then
+  if [[ ${lime_status} == "present" ]]; then
     echo "lime_community:present"
   else
     echo "lime_community:missing"
@@ -307,16 +309,19 @@ check_node_drift() {
   fi
 
   # Any FAIL from validate-node.sh counts as drift even if not captured above
-  if [[ "${validate_exit}" -ne 0 ]] && echo "${validate_output}" | grep -q "^  FAIL"; then
+  if [[ ${validate_exit} -ne 0 ]] && echo "${validate_output}" | grep -q "^  FAIL"; then
     has_drift=true
     local extra_fails
     extra_fails="$(echo "${validate_output}" | grep "^  FAIL" | sed 's/^  FAIL[[:space:]]*//' | tr '\n' ';' | sed 's/;$//')"
     drift_reasons+=("validate-node FAIL: ${extra_fails}")
   fi
 
-  if [[ "${has_drift}" == true ]]; then
+  if [[ ${has_drift} == true ]]; then
     echo "result:DRIFT"
-    echo "drift_reasons:$(IFS=';'; echo "${drift_reasons[*]}")"
+    echo "drift_reasons:$(
+      IFS=';'
+      echo "${drift_reasons[*]}"
+    )"
   else
     echo "result:MATCH"
     echo "drift_reasons:"
@@ -329,8 +334,8 @@ check_node_drift() {
 
 NODE_LIST="$(get_node_list)"
 
-if [[ -z "${NODE_LIST}" ]]; then
-  if [[ -n "${ONLY_NODE}" ]]; then
+if [[ -z ${NODE_LIST} ]]; then
+  if [[ -n ${ONLY_NODE} ]]; then
     die "Node '${ONLY_NODE}' not found in inventory: ${INVENTORY_FILE}"
   else
     die "No nodes found in inventory: ${INVENTORY_FILE}"
@@ -351,7 +356,7 @@ DRIFT_COUNT=0
 UNREACHABLE_COUNT=0
 
 while IFS='|' read -r hostname display_name approved_firmware; do
-  [[ -z "${hostname}" ]] && continue
+  [[ -z ${hostname} ]] && continue
 
   # Run per-node check
   node_output="$(check_node_drift "${hostname}" "${approved_firmware}")"
@@ -364,13 +369,13 @@ while IFS='|' read -r hostname display_name approved_firmware; do
 
   while IFS=: read -r key val; do
     case "${key}" in
-      result)            result="${val}" ;;
-      firmware_live)     fw_live="${val}" ;;
-      firmware_approved) fw_approved="${val}" ;;
-      lime_community)    lime_status="${val}" ;;
-      drift_reasons)     reasons="${val}" ;;
+    result) result="${val}" ;;
+    firmware_live) fw_live="${val}" ;;
+    firmware_approved) fw_approved="${val}" ;;
+    lime_community) lime_status="${val}" ;;
+    drift_reasons) reasons="${val}" ;;
     esac
-  done <<< "${node_output}"
+  done <<<"${node_output}"
 
   RESULTS_HOSTNAME+=("${hostname}")
   RESULTS_DISPLAY+=("${display_name}")
@@ -381,12 +386,12 @@ while IFS='|' read -r hostname display_name approved_firmware; do
   RESULTS_REASONS+=("${reasons}")
 
   case "${result}" in
-    MATCH)       MATCH_COUNT=$((MATCH_COUNT + 1)) ;;
-    DRIFT)       DRIFT_COUNT=$((DRIFT_COUNT + 1)) ;;
-    UNREACHABLE) UNREACHABLE_COUNT=$((UNREACHABLE_COUNT + 1)) ;;
+  MATCH) MATCH_COUNT=$((MATCH_COUNT + 1)) ;;
+  DRIFT) DRIFT_COUNT=$((DRIFT_COUNT + 1)) ;;
+  UNREACHABLE) UNREACHABLE_COUNT=$((UNREACHABLE_COUNT + 1)) ;;
   esac
 
-done <<< "${NODE_LIST}"
+done <<<"${NODE_LIST}"
 
 TOTAL_COUNT=${#RESULTS_HOSTNAME[@]}
 
@@ -409,7 +414,7 @@ output_text() {
   printf "  %-30s  %-12s  %-35s  %-12s\n" "------------------------------" "------------" "-----------------------------------" "------------"
 
   local i
-  for (( i=0; i<TOTAL_COUNT; i++ )); do
+  for ((i = 0; i < TOTAL_COUNT; i++)); do
     printf "  %-30s  %-12s  %-35s  %-12s\n" \
       "${RESULTS_HOSTNAME[i]}" \
       "${RESULTS_STATUS[i]}" \
@@ -422,19 +427,19 @@ output_text() {
   echo ""
 
   # Print drift details
-  if [[ "${DRIFT_COUNT}" -gt 0 ]]; then
+  if [[ ${DRIFT_COUNT} -gt 0 ]]; then
     echo "  --- Drift details ---"
-    for (( i=0; i<TOTAL_COUNT; i++ )); do
-      if [[ "${RESULTS_STATUS[i]}" == "DRIFT" ]]; then
+    for ((i = 0; i < TOTAL_COUNT; i++)); do
+      if [[ ${RESULTS_STATUS[i]} == "DRIFT" ]]; then
         echo ""
         echo "  Node: ${RESULTS_HOSTNAME[i]} (${RESULTS_DISPLAY[i]})"
         echo "    Firmware live:     ${RESULTS_FIRMWARE_LIVE[i]}"
         echo "    Firmware approved: ${RESULTS_FIRMWARE_APPROVED[i]}"
         echo "    lime-community:    ${RESULTS_LIME[i]}"
-        if [[ -n "${RESULTS_REASONS[i]}" ]]; then
+        if [[ -n ${RESULTS_REASONS[i]} ]]; then
           echo "    Reasons:"
           # Split reasons by semicolon
-          IFS=';' read -ra reason_list <<< "${RESULTS_REASONS[i]}"
+          IFS=';' read -ra reason_list <<<"${RESULTS_REASONS[i]}"
           for r in "${reason_list[@]}"; do
             echo "      - ${r}"
           done
@@ -444,24 +449,24 @@ output_text() {
     echo ""
   fi
 
-  if [[ "${UNREACHABLE_COUNT}" -gt 0 ]]; then
+  if [[ ${UNREACHABLE_COUNT} -gt 0 ]]; then
     echo "  --- Unreachable nodes ---"
-    for (( i=0; i<TOTAL_COUNT; i++ )); do
-      if [[ "${RESULTS_STATUS[i]}" == "UNREACHABLE" ]]; then
+    for ((i = 0; i < TOTAL_COUNT; i++)); do
+      if [[ ${RESULTS_STATUS[i]} == "UNREACHABLE" ]]; then
         echo "  Node: ${RESULTS_HOSTNAME[i]} (${RESULTS_DISPLAY[i]}) — SSH unreachable"
       fi
     done
     echo ""
   fi
 
-  if [[ "${DRIFT_COUNT}" -gt 0 ]] || [[ "${UNREACHABLE_COUNT}" -gt 0 ]]; then
+  if [[ ${DRIFT_COUNT} -gt 0 ]] || [[ ${UNREACHABLE_COUNT} -gt 0 ]]; then
     echo "  Recommended actions:"
-    [[ "${DRIFT_COUNT}" -gt 0 ]] && \
-      echo "    - Review firmware drift: schedule an upgrade via run-rollout.sh"
-    [[ "${DRIFT_COUNT}" -gt 0 ]] && \
-      echo "    - Missing lime-community: re-apply community profile per mesh-rollout skill"
-    [[ "${UNREACHABLE_COUNT}" -gt 0 ]] && \
-      echo "    - Unreachable nodes: check power, SSH keys, and network connectivity"
+    [[ ${DRIFT_COUNT} -gt 0 ]] \
+      && echo "    - Review firmware drift: schedule an upgrade via run-rollout.sh"
+    [[ ${DRIFT_COUNT} -gt 0 ]] \
+      && echo "    - Missing lime-community: re-apply community profile per mesh-rollout skill"
+    [[ ${UNREACHABLE_COUNT} -gt 0 ]] \
+      && echo "    - Unreachable nodes: check power, SSH keys, and network connectivity"
     echo "    - See: docs/playbooks/firmware-rollout.md"
     echo ""
   fi
@@ -480,16 +485,16 @@ from datetime import datetime
 
 results = []
 $(
-  for (( i=0; i<TOTAL_COUNT; i++ )); do
-    echo "results.append({"
-    echo "  'hostname': '${RESULTS_HOSTNAME[i]}', 'display_name': '${RESULTS_DISPLAY[i]}',"
-    echo "  'status': '${RESULTS_STATUS[i]}', 'firmware_live': '${RESULTS_FIRMWARE_LIVE[i]}',"
-    echo "  'firmware_approved': '${RESULTS_FIRMWARE_APPROVED[i]}',"
-    echo "  'lime_community': '${RESULTS_LIME[i]}',"
-    echo "  'drift_reasons': [r for r in '${RESULTS_REASONS[i]}'.split(';') if r],"
-    echo "})"
-  done
-)
+    for ((i = 0; i < TOTAL_COUNT; i++)); do
+      echo "results.append({"
+      echo "  'hostname': '${RESULTS_HOSTNAME[i]}', 'display_name': '${RESULTS_DISPLAY[i]}',"
+      echo "  'status': '${RESULTS_STATUS[i]}', 'firmware_live': '${RESULTS_FIRMWARE_LIVE[i]}',"
+      echo "  'firmware_approved': '${RESULTS_FIRMWARE_APPROVED[i]}',"
+      echo "  'lime_community': '${RESULTS_LIME[i]}',"
+      echo "  'drift_reasons': [r for r in '${RESULTS_REASONS[i]}'.split(';') if r],"
+      echo "})"
+    done
+  )
 
 report = {
     "checked_at": datetime.now().strftime('%Y-%m-%dT%H:%M:%S'),
@@ -510,15 +515,15 @@ PYEOF
 # ---------------------------------------------------------------------------
 
 case "${OUTPUT_FORMAT}" in
-  text) output_text ;;
-  json) output_json ;;
+text) output_text ;;
+json) output_json ;;
 esac
 
 # ---------------------------------------------------------------------------
 # Exit code: 0 = no drift/unreachable, 1 = drift or unreachable detected
 # ---------------------------------------------------------------------------
 
-if [[ "${DRIFT_COUNT}" -gt 0 ]] || [[ "${UNREACHABLE_COUNT}" -gt 0 ]]; then
+if [[ ${DRIFT_COUNT} -gt 0 ]] || [[ ${UNREACHABLE_COUNT} -gt 0 ]]; then
   exit 1
 else
   exit 0

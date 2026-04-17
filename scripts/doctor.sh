@@ -32,32 +32,32 @@ set -euo pipefail
 # ---------------------------------------------------------------------------
 for arg in "$@"; do
   case "$arg" in
-    -h|--help)
-      echo "Usage: $0 [OPTIONS]"
-      echo ""
-      echo "Perform read-only health checks on the Mesha workspace."
-      echo ""
-      echo "Options:"
-      echo "  --help, -h    Show this help message and exit"
-      echo ""
-      echo "Exit codes:"
-      echo "  0 — all checks PASS"
-      echo "  1 — one or more checks FAIL (critical issues)"
-      echo "  2 — no FAILs, but one or more checks produced a WARNING"
-      exit 0
-      ;;
-    *)
-      echo "Unknown option: $arg" >&2
-      echo "Run $0 --help for usage information" >&2
-      exit 1
-      ;;
+  -h | --help)
+    echo "Usage: $0 [OPTIONS]"
+    echo ""
+    echo "Perform read-only health checks on the Mesha workspace."
+    echo ""
+    echo "Options:"
+    echo "  --help, -h    Show this help message and exit"
+    echo ""
+    echo "Exit codes:"
+    echo "  0 — all checks PASS"
+    echo "  1 — one or more checks FAIL (critical issues)"
+    echo "  2 — no FAILs, but one or more checks produced a WARNING"
+    exit 0
+    ;;
+  *)
+    echo "Unknown option: $arg" >&2
+    echo "Run $0 --help for usage information" >&2
+    exit 1
+    ;;
   esac
 done
 
 # ---------------------------------------------------------------------------
 # Resolve repo root
 # ---------------------------------------------------------------------------
-REPO_ROOT="$( cd "$(dirname "$0")/.." && pwd )"
+REPO_ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 
 # ---------------------------------------------------------------------------
 # Colour helpers
@@ -70,10 +70,10 @@ BOLD='\033[1m'
 RESET='\033[0m'
 
 header() { echo -e "\n${BOLD}${CYAN}── $* ──${RESET}"; }
-pass()   { echo -e "  ${GREEN}[PASS]${RESET} $*"; }
-warn()   { echo -e "  ${YELLOW}[WARN]${RESET} $*"; }
-fail()   { echo -e "  ${RED}[FAIL]${RESET} $*"; }
-info()   { echo -e "  ${CYAN}[INFO]${RESET} $*"; }
+pass() { echo -e "  ${GREEN}[PASS]${RESET} $*"; }
+warn() { echo -e "  ${YELLOW}[WARN]${RESET} $*"; }
+fail() { echo -e "  ${RED}[FAIL]${RESET} $*"; }
+info() { echo -e "  ${CYAN}[INFO]${RESET} $*"; }
 
 # ---------------------------------------------------------------------------
 # Counters
@@ -81,8 +81,8 @@ info()   { echo -e "  ${CYAN}[INFO]${RESET} $*"; }
 FAIL_COUNT=0
 WARN_COUNT=0
 
-record_fail() { FAIL_COUNT=$(( FAIL_COUNT + 1 )); }
-record_warn() { WARN_COUNT=$(( WARN_COUNT + 1 )); }
+record_fail() { FAIL_COUNT=$((FAIL_COUNT + 1)); }
+record_warn() { WARN_COUNT=$((WARN_COUNT + 1)); }
 
 # ---------------------------------------------------------------------------
 # Tool checks (read-only — just test existence and version)
@@ -130,7 +130,7 @@ check_tool_required "git" "git" "--version"
 if command -v node &>/dev/null; then
   raw_ver="$(node --version 2>&1)"
   major="$(echo "$raw_ver" | sed 's/v//' | cut -d. -f1)"
-  if [[ "$major" -ge 22 ]]; then
+  if [[ $major -ge 22 ]]; then
     pass "node: $raw_ver (v22+ required — OK)"
   else
     fail "node: $raw_ver — v22 or newer is required"
@@ -158,7 +158,7 @@ check_tool_required "curl" "curl" "--version"
 # ---------------------------------------------------------------------------
 header "Recommended Tools"
 
-check_tool_optional "jq"      "jq"      "--version"
+check_tool_optional "jq" "jq" "--version"
 check_tool_optional "python3" "python3" "--version"
 
 # docker — also check daemon
@@ -166,7 +166,7 @@ if command -v docker &>/dev/null; then
   docker_ver="$(docker --version 2>&1 | head -1 || true)"
   pass "docker: $docker_ver"
   if ! docker info &>/dev/null; then
-    warn "docker daemon not reachable (is Docker running? is \$USER in docker group?)"
+    warn 'docker daemon not reachable (is Docker running? is $USER in docker group?)'
     record_warn
   fi
 else
@@ -219,7 +219,7 @@ REQUIRED_FILES=(
 
 for rel_path in "${REQUIRED_FILES[@]}"; do
   full_path="$REPO_ROOT/$rel_path"
-  if [[ -f "$full_path" ]]; then
+  if [[ -f $full_path ]]; then
     pass "$rel_path"
   else
     warn "Missing: $rel_path"
@@ -235,9 +235,9 @@ header "Inventory & Desired-State Population"
 INV_DIR="$REPO_ROOT/inventories"
 DS_DIR="$REPO_ROOT/desired-state"
 
-if [[ -d "$INV_DIR" ]]; then
+if [[ -d $INV_DIR ]]; then
   inv_count="$(find "$INV_DIR" -maxdepth 2 \( -name "*.yaml" -o -name "*.yml" \) 2>/dev/null | wc -l | tr -d ' ')"
-  if [[ "$inv_count" -gt 0 ]]; then
+  if [[ $inv_count -gt 0 ]]; then
     pass "inventories/ present with $inv_count YAML file(s)"
   else
     warn "inventories/ exists but contains no YAML files — fill in mesh-nodes.yaml, sites.yaml, etc."
@@ -248,9 +248,9 @@ else
   record_fail
 fi
 
-if [[ -d "$DS_DIR" ]]; then
+if [[ -d $DS_DIR ]]; then
   ds_count="$(find "$DS_DIR" -maxdepth 4 -type f 2>/dev/null | wc -l | tr -d ' ')"
-  if [[ "$ds_count" -gt 0 ]]; then
+  if [[ $ds_count -gt 0 ]]; then
     pass "desired-state/ present with $ds_count file(s)"
   else
     warn "desired-state/ exists but is empty — populate mesh and server desired-state files"
@@ -287,7 +287,7 @@ fi
 header "Logs Directory"
 
 LOGS_DIR="$REPO_ROOT/logs"
-if [[ -d "$LOGS_DIR" ]]; then
+if [[ -d $LOGS_DIR ]]; then
   pass "logs/ directory present"
   # Check sub-directories
   for subdir in incidents maintenance decisions; do
@@ -309,7 +309,7 @@ fi
 header "Exports Directory"
 
 EXPORTS_DIR="$REPO_ROOT/exports"
-if [[ -d "$EXPORTS_DIR" ]]; then
+if [[ -d $EXPORTS_DIR ]]; then
   pass "exports/ directory present"
 else
   warn "exports/ directory not found — run activate-workspace.sh to create it"
@@ -322,7 +322,7 @@ fi
 header "Secrets Directory"
 
 SECRETS_DIR="$REPO_ROOT/secrets"
-if [[ -d "$SECRETS_DIR" ]]; then
+if [[ -d $SECRETS_DIR ]]; then
   if [[ -f "$SECRETS_DIR/README.md" ]]; then
     pass "secrets/README.md present"
   else
@@ -331,7 +331,7 @@ if [[ -d "$SECRETS_DIR" ]]; then
   fi
   # Warn if anything other than README.md is present (crude secret detection)
   secret_files="$(find "$SECRETS_DIR" -maxdepth 1 -type f ! -name "README.md" 2>/dev/null | wc -l | tr -d ' ')"
-  if [[ "$secret_files" -gt 0 ]]; then
+  if [[ $secret_files -gt 0 ]]; then
     warn "secrets/ contains $secret_files file(s) other than README.md — make sure no real secrets are committed"
     record_warn
   fi
@@ -346,9 +346,9 @@ fi
 header "Health Report"
 
 echo ""
-if [[ "$FAIL_COUNT" -eq 0 && "$WARN_COUNT" -eq 0 ]]; then
+if [[ $FAIL_COUNT -eq 0 && $WARN_COUNT -eq 0 ]]; then
   echo -e "  ${GREEN}${BOLD}All checks passed. Workspace looks healthy.${RESET}"
-elif [[ "$FAIL_COUNT" -eq 0 ]]; then
+elif [[ $FAIL_COUNT -eq 0 ]]; then
   echo -e "  ${YELLOW}${BOLD}No failures, but $WARN_COUNT warning(s) detected.${RESET}"
   echo -e "  ${YELLOW}Review the warnings above before proceeding.${RESET}"
 else
@@ -360,9 +360,9 @@ echo ""
 # ---------------------------------------------------------------------------
 # Exit code logic
 # ---------------------------------------------------------------------------
-if [[ "$FAIL_COUNT" -gt 0 ]]; then
+if [[ $FAIL_COUNT -gt 0 ]]; then
   exit 1
-elif [[ "$WARN_COUNT" -gt 0 ]]; then
+elif [[ $WARN_COUNT -gt 0 ]]; then
   exit 2
 fi
 exit 0
