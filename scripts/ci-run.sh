@@ -72,9 +72,20 @@ printf "${BOLD}═════════════════════�
 step_header "Secret scan (betterleaks)"
 
 if command -v betterleaks &>/dev/null; then
-  if betterleaks dir .; then
+  # Scan only git-tracked files to avoid false positives from
+  # secrets/ and .env files that exist locally but are gitignored.
+  bl_rc=0
+  if git rev-parse --is-inside-work-tree &>/dev/null; then
+    bl_out="$(git ls-files -z 2>/dev/null | xargs -0 -r betterleaks dir 2>&1)" && bl_rc=$? || bl_rc=$?
+  else
+    # Fallback: not in a git repo, scan everything
+    warn "Not in a git repo — scanning all files (may include secrets/)"
+    bl_out="$(betterleaks dir . 2>&1)" && bl_rc=$? || bl_rc=$?
+  fi
+  if [[ $bl_rc -eq 0 ]]; then
     ok "No secrets detected"
   else
+    printf "%s\n" "$bl_out" >&2
     fail "betterleaks found potential secrets — review and remove before merging"
   fi
 else

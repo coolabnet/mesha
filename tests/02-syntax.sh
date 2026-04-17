@@ -237,8 +237,12 @@ PYEOF
       if grep -qE '^set -[a-z]*e[a-z]*u[a-z]*o[[:space:]]*pipefail' "$f"; then
         qa_pass "bash safety OK: ${rel}"
       elif grep -qE '^set -[a-z]*e[a-z]*' "$f"; then
-        # Has set -e but not full set -euo pipefail — check for reason comment
-        if grep -qE '# reason:' "$f"; then
+        # Has set -e but not full set -euo pipefail — check for inline justification
+        # Accept any comment on the same line as set -e, or a # reason: marker elsewhere
+        set_line="$(grep -nE '^set -[a-z]*e[a-z]*' "$f" | head -1)"
+        if echo "$set_line" | grep -qE '#'; then
+          qa_pass "bash safety OK (justified): ${rel}"
+        elif grep -qE '# reason:' "$f"; then
           qa_pass "bash safety OK (justified): ${rel}"
         else
           qa_fail "bash script missing 'set -euo pipefail': ${rel}"

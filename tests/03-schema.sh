@@ -649,7 +649,8 @@ for d in compose_dirs:
         content = fh.read()
 
     # Skip if no env references at all (like homer)
-    if 'env_file' not in content and 'environment' not in content and '${' not in content:
+    dollar_brace = chr(36) + '{'
+    if 'env_file' not in content and 'environment' not in content and dollar_brace not in content:
         continue
 
     # Extract ${VAR} and ${VAR:-default} patterns from compose
@@ -702,11 +703,11 @@ if errors:
   # Check for unpinned Docker image tags (:latest)
   local unpinned
   unpinned=$(grep -rn 'image:.*:latest' --include='*.yaml' --include='*.yml' . \
-            2>/dev/null | grep -v '.git/' || true)
+    2>/dev/null | grep -v '.git/' || true)
   # Also catch images with no tag at all (image: foo/bar without :tag)
   local untagged
   untagged=$(grep -rn 'image:' --include='*.yaml' --include='*.yml' . \
-            2>/dev/null | grep -v '.git/' | grep -vE 'image:.*:v?[0-9]' | grep -vE 'image:.*:latest' || true)
+    2>/dev/null | grep -v '.git/' | grep -vE 'image:.*:v?[0-9]' | grep -vE 'image:.*:latest' || true)
 
   if [[ -z "$unpinned" && -z "$untagged" ]]; then
     qa_pass "all Docker images use pinned tags"
@@ -714,12 +715,12 @@ if errors:
     if [[ -n "$unpinned" ]]; then
       while IFS= read -r line; do
         qa_fail "unpinned image (uses :latest): ${line}"
-      done <<< "$unpinned"
+      done <<<"$unpinned"
     fi
     if [[ -n "$untagged" ]]; then
       while IFS= read -r line; do
         qa_fail "unpinned image (no version tag): ${line}"
-      done <<< "$untagged"
+      done <<<"$untagged"
     fi
   fi
 

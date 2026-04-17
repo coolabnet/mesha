@@ -21,13 +21,11 @@ repos:
       - id: shellcheck
         args: ["--severity=warning"]
         types: [sh]
-        exclude: ^tests/03-schema\.sh$
   - repo: https://github.com/scop/pre-commit-shfmt
     rev: v3.11.0-1
     hooks:
       - id: shfmt
         args: ["-i", "2", "-s", "-bn"]
-        exclude: ^tests/03-schema\.sh$
   - repo: https://github.com/astral-sh/ruff-pre-commit
     rev: v0.11.2
     hooks:

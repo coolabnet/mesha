@@ -12,7 +12,7 @@ Usage:
 
 import re
 import sys
-from datetime import UTC, datetime
+from datetime import datetime, timezone
 
 try:
     import zoneinfo
@@ -22,7 +22,7 @@ try:
 except ImportError:
     # Python < 3.9 fallback -- use UTC as approximation
     def get_tz(name):
-        return UTC
+        return timezone.utc
 
 
 def main():
@@ -75,7 +75,7 @@ def main():
         try:
             tz = get_tz(tz_name)
         except Exception:
-            tz = UTC
+            tz = timezone.utc
         now = datetime.now(tz)
         today = day_names[now.weekday()]
         if today not in w.get("days", []):

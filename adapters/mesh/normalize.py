@@ -55,7 +55,7 @@ import argparse
 import json
 import re
 import sys
-from datetime import UTC, datetime
+from datetime import datetime, timezone
 from pathlib import Path
 
 try:
@@ -266,7 +266,7 @@ def compute_drift(live: dict, inventory_node: dict) -> list:
 
 
 def utcnow() -> str:
-    return datetime.now(UTC).strftime("%Y-%m-%dT%H:%M:%SZ")
+    return datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
 
 
 def main():
