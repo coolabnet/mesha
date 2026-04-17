@@ -8,8 +8,8 @@ Usage:
     update_node_state.py <state_file> <hostname> <new_status> <ts_field> <now>
 """
 
-import sys
 import re
+import sys
 
 
 def main():
@@ -39,19 +39,23 @@ def main():
         if hm and hm.group(1).strip().strip('"') == hostname:
             in_node = True
         if in_node:
-            sm = re.match(r'(\s+)status:\s*\S+', line)
+            sm = re.match(r"(\s+)status:\s*\S+", line)
             if sm:
                 line = f"{sm.group(1)}status: {new_status}\n"
-            tf_m = re.match(r'(\s+)' + re.escape(ts_field) + r':\s*\S+', line)
+            tf_m = re.match(r"(\s+)" + re.escape(ts_field) + r":\s*\S+", line)
             if tf_m:
-                line = f"{tf_m.group(1)}{ts_field}: \"{now}\"\n"
+                line = f'{tf_m.group(1)}{ts_field}: "{now}"\n'
             # Next node block ends this one
-            if i > 0 and re.match(r'\s+-\s+hostname:', line) and not (hm and hm.group(1).strip().strip('"') == hostname):
+            if (
+                i > 0
+                and re.match(r"\s+-\s+hostname:", line)
+                and not (hm and hm.group(1).strip().strip('"') == hostname)
+            ):
                 in_node = False
         out.append(line)
         i += 1
 
-    with open(state_path, 'w') as f:
+    with open(state_path, "w") as f:
         f.writelines(out)
 
 

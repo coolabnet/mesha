@@ -11,8 +11,8 @@ Usage:
     parse_ring_nodes.py <policy_file> <inventory_file> <ring_name>
 """
 
-import sys
 import re
+import sys
 
 
 def main():
@@ -40,21 +40,26 @@ def main():
             continue
         if in_rings:
             # End of upgrade_rings block
-            if stripped and not stripped.startswith("-") and not stripped.startswith("#") \
-               and not line.startswith(" ") and not line.startswith("\t"):
+            if (
+                stripped
+                and not stripped.startswith("-")
+                and not stripped.startswith("#")
+                and not line.startswith(" ")
+                and not line.startswith("\t")
+            ):
                 in_rings = False
                 continue
             ring_match = re.match(r'\s*-\s*ring:\s*["\']?(\w+)["\']?', line)
             if ring_match:
-                in_target_ring = (ring_match.group(1) == target_ring)
+                in_target_ring = ring_match.group(1) == target_ring
                 in_nodes = False
                 continue
             if in_target_ring:
-                if re.match(r'\s+nodes:', line):
+                if re.match(r"\s+nodes:", line):
                     in_nodes = True
                     continue
                 # Another ring key ends the nodes block
-                if in_nodes and re.match(r'\s+\w+:', line) and not re.match(r'\s+-', line):
+                if in_nodes and re.match(r"\s+\w+:", line) and not re.match(r"\s+-", line):
                     in_nodes = False
                     continue
                 if in_nodes:
@@ -62,7 +67,7 @@ def main():
                     if not node_match:
                         node_match = re.match(r"\s+-\s+'([^']+)'", line)
                     if not node_match:
-                        node_match = re.match(r'\s+-\s+(.+)', line)
+                        node_match = re.match(r"\s+-\s+(.+)", line)
                     if node_match:
                         ring_node_names.append(node_match.group(1).strip().strip("\"'"))
 
@@ -80,7 +85,7 @@ def main():
             in_nodes_block = True
             continue
         if in_nodes_block:
-            if re.match(r'\s*-\s+name:', line):
+            if re.match(r"\s*-\s+name:", line):
                 # Flush previous node
                 if current_name and current_hostname and current_name in ring_node_names:
                     print(current_hostname)
@@ -88,7 +93,7 @@ def main():
                 if not name_match:
                     name_match = re.match(r"\s*-\s+name:\s*'([^']+)'", line)
                 if not name_match:
-                    name_match = re.match(r'\s*-\s+name:\s+(.+)', line)
+                    name_match = re.match(r"\s*-\s+name:\s+(.+)", line)
                 current_name = name_match.group(1).strip().strip("\"'") if name_match else None
                 current_hostname = None
                 continue

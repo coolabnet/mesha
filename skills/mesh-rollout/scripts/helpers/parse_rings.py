@@ -11,8 +11,8 @@ Usage:
     parse_rings.py <policy_file>
 """
 
-import sys
 import re
+import sys
 
 
 def main():
@@ -35,8 +35,13 @@ def main():
             continue
         if in_rings:
             # Top-level key after upgrade_rings ends the block
-            if stripped and not stripped.startswith("-") and not stripped.startswith("#") \
-               and not line.startswith(" ") and not line.startswith("\t"):
+            if (
+                stripped
+                and not stripped.startswith("-")
+                and not stripped.startswith("#")
+                and not line.startswith(" ")
+                and not line.startswith("\t")
+            ):
                 in_rings = False
                 continue
             ring_match = re.match(r'\s*-\s*ring:\s*["\']?(\w+)["\']?', line)
@@ -46,7 +51,7 @@ def main():
                 current_ring = ring_match.group(1)
                 current_stab = "0"
                 continue
-            stab_match = re.match(r'\s+stabilization_period_hours:\s*(\d+)', line)
+            stab_match = re.match(r"\s+stabilization_period_hours:\s*(\d+)", line)
             if stab_match and current_ring:
                 current_stab = stab_match.group(1)
 
