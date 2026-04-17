@@ -53,7 +53,9 @@ groups:
           severity: critical
           team: maintainer
         annotations:
-          summary: "CRÍTICO: Disco quase esgotado em {{ $labels.mountpoint }} / CRITICAL: Disk nearly full on {{ $labels.mountpoint }}"
+          summary: >
+            CRÍTICO: Disco quase esgotado em {{ $labels.mountpoint }}
+            / CRITICAL: Disk nearly full on {{ $labels.mountpoint }}
           description: >
             PT: URGENTE — O disco em {{ $labels.mountpoint }} no servidor {{ $labels.instance }}
             está com {{ $value | printf "%.1f" }}% de uso. Acima de 95%.

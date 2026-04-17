@@ -58,7 +58,7 @@ services:
   # Scraped by Prometheus at servidor.bairro.local:9100
   # ---------------------------------------------------------------------------
   node-exporter:
-    image: prom/node-exporter:latest
+    image: prom/node-exporter:v1.11.1
     container_name: node-exporter
     restart: unless-stopped
     command:
@@ -77,7 +77,7 @@ services:
   # Used by the community-services scrape job in prometheus.yml
   # ---------------------------------------------------------------------------
   blackbox-exporter:
-    image: prom/blackbox-exporter:latest
+    image: prom/blackbox-exporter:v0.28.0
     container_name: blackbox-exporter
     restart: unless-stopped
     command:
