@@ -21,7 +21,6 @@ sites:
       - "Yuri - NanoStation AC"
       - "Marie - TL-WDR3500"
       - "Carlinhos - CPE210"
-      - "Escola Municipal - Telhado"
     contact:
       name: "Presidente Marcos"
       phone: "+55 61 99800-0003"
@@ -30,3 +29,18 @@ sites:
       Community hub with active mesh network. Used mainly for weekly meetings (Thursdays 19h).
       UPS provides about 30 min backup. Key held by Marcos and one deputy. Dense mesh topology
       with 22+ originators and multiple relay paths. Basement node provides full-building coverage.
+
+  - name: "Escola Municipal"
+    location: "Escola Municipal — Telhado (rooftop)"
+    coordinates:
+      lat: 0.0
+      lon: 0.0
+    nodes:
+      - "Escola Municipal - Telhado"
+    contact:
+      name: "Unknown"
+      phone: ""
+    power: "unknown"
+    notes: >
+      School rooftop gateway site. Location and contact details need on-site verification.
+      Gateway node (CPE510 v3) provides fiber uplink for the mesh network.

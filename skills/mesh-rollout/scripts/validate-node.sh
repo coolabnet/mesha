@@ -107,8 +107,8 @@ ACTUAL_VERSION="$(ssh -o ConnectTimeout="${SSH_TIMEOUT}" -o BatchMode=yes \
 if [[ ${ACTUAL_VERSION} == "unknown" ]]; then
   record "WARN" "Firmware version" "Could not read /etc/openwrt_release"
 elif [[ -f ${POLICY_FILE} ]]; then
-  APPROVED_VERSION="$(grep -A1 "^  approved_version:" "${POLICY_FILE}" | head -1 \
-    | awk '{print $2}' | tr -d '"' 2>/dev/null || echo "")"
+  APPROVED_VERSION="$(grep -A1 "^  approved_version:" "${POLICY_FILE}" | head -1 |
+    awk '{print $2}' | tr -d '"' 2>/dev/null || echo "")"
   if [[ -n ${APPROVED_VERSION} ]] && [[ ${ACTUAL_VERSION} == *"${APPROVED_VERSION}"* ]]; then
     record "PASS" "Firmware version" "${ACTUAL_VERSION} matches approved"
   elif [[ -n ${APPROVED_VERSION} ]]; then

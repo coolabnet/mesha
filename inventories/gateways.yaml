@@ -16,17 +16,15 @@
 #   status        — online | offline | degraded
 #   notes
 
-# NOTE: lm-escola-telhado is a gateway node (per UCI override), but has not
-# been confirmed on-site yet. MAC and firmware are placeholders.
-# All other discovered nodes (porao, yuri, marie, carlinhos) are leaf nodes.
-
-gateways:
-  - node: "Escola Municipal - Telhado"
-    hostname: "lm-escola-telhado"
-    uplink_type: fiber
-    uplink_isp: "Prefeitura Municipal"
-    uplink_speed: "100/50"
-    uplink_ip: dhcp
-    priority: 1
-    status: unknown
-    notes: "CPE510 v3 on school rooftop. Not yet confirmed on-site. MAC/firmware are placeholders."
+gateways: []
+# NOTE: lm-escola-telhado is a gateway node per UCI override but not yet confirmed on-site.
+# Uncomment the entry below once the node is confirmed reachable:
+# - node: "Escola Municipal - Telhado"
+#   hostname: "lm-escola-telhado"
+#   uplink_type: fiber
+#   uplink_isp: "Prefeitura Municipal"
+#   uplink_speed: "100/50"
+#   uplink_ip: dhcp
+#   priority: 1
+#   status: unknown
+#   notes: "CPE510 v3 on school rooftop. Not yet confirmed on-site. MAC/firmware are placeholders."

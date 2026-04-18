@@ -30,7 +30,7 @@ Effort key: S = under 1 hour, M = 1–4 hours, L = 4+ hours.
 
 - **Betterleaks is already installed and configured.** Commit `91cdc39` added `.pre-commit-config.yaml` with betterleaks v1.1.2. The `pre-commit` framework (v4.5.1) and `betterleaks` binary are installed. The git hook is active at `.git/hooks/pre-commit`.
 - **No `.betterleaks.toml` config or `.betterleaksignore` baseline exists yet.** The tool runs with default rules only.
-- **Baseline scan result:** `betterleaks dir .` found 1 finding — a Telegram bot token in `adapters/channels/telegram/.env:9` (local only, not committed, not in git history). Git history scan (`betterleaks git .`) is clean — no leaks in 24 commits.
+- **Baseline scan result:** `betterleaks dir .` found 1 finding — a local-only credential in a gitignored file (not committed, not in git history). Git history scan (`betterleaks git .`) is clean — no leaks in 24 commits.
 - **No CI platform is chosen yet.** The plan provides a CI-agnostic runner script.
 - **No `package.json`.** The project intentionally avoids npm dependencies.
 - **Must work offline.** Guardrails must not require internet access during execution.
@@ -47,7 +47,7 @@ Effort key: S = under 1 hour, M = 1–4 hours, L = 4+ hours.
 
 **Already completed:**
 
-- [x] Betterleaks installed (`/home/linuxbrew/.linuxbrew/bin/betterleaks`, v1.1.2)
+- [x] Betterleaks installed and available in PATH (v1.1.2)
 - [x] `.pre-commit-config.yaml` created with betterleaks hook (commit `91cdc39`)
 - [x] `pre-commit` framework installed (v4.5.1)
 - [x] Git pre-commit hook active (`.git/hooks/pre-commit`)
@@ -68,7 +68,7 @@ Effort key: S = under 1 hour, M = 1–4 hours, L = 4+ hours.
   - Added global allowlist for test fixture files in `docker/`
 - [x] Create `.betterleaksignore` baseline file (empty — git history is clean)
 - [x] Verified the local `.env` file with the Telegram token is NOT staged — confirmed local-only
-- [x] Added CI job: `betterleaks git -v --baseline-path .betterleaksignore` in `scripts/ci-run.sh`
+- [x] Added CI job: `git ls-files -z | xargs -0 -r betterleaks dir` in `scripts/ci-run.sh` (scans tracked files only, avoiding gitignored local secrets)
 
 **Verification:**
 
@@ -458,7 +458,7 @@ Effort key: S = under 1 hour, M = 1–4 hours, L = 4+ hours.
 
 | Check | What it validates | Blocking? |
 |--------|-------------------|-----------|
-| Betterleaks | Full repo history scan | Yes |
+| Betterleaks | Tracked-file secret scan | Yes |
 | Shellcheck | All `.sh` files | Yes |
 | shfmt | Shell formatting | Yes |
 | Yamllint | All YAML files | Yes |

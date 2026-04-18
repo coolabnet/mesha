@@ -92,13 +92,13 @@ MEM_CACHED="$(awk '/^Cached:/{print $2}' /proc/meminfo 2>/dev/null || echo 0)"
 # `df -Pk` outputs POSIX format in kilobytes. We skip tmpfs, devtmpfs,
 # squashfs, and overlayfs since we only care about persistent storage mounts.
 # ---------------------------------------------------------------------------
-DISK_JSON="$(df -Pk 2>/dev/null \
-  | awk 'NR>1 && $1 !~ /^(tmpfs|devtmpfs|squashfs|overlay|udev|none|cgroup)/ {
+DISK_JSON="$(df -Pk 2>/dev/null |
+  awk 'NR>1 && $1 !~ /^(tmpfs|devtmpfs|squashfs|overlay|udev|none|cgroup)/ {
         gsub(/%/,"",$5);
         printf "{\"device\":\"%s\",\"total_kb\":%s,\"used_kb\":%s,\"free_kb\":%s,\"use_pct\":%s,\"mount\":\"%s\"}\n",
                $1, $2, $3, $4, $5, $6
-    }' \
-  | python3 -c "
+    }' |
+  python3 -c "
 import sys, json
 rows = []
 for line in sys.stdin:
@@ -122,8 +122,8 @@ DOCKER_JSON="[]"
 if command -v docker >/dev/null 2>&1; then
   if docker info >/dev/null 2>&1; then
     DOCKER_AVAILABLE="true"
-    DOCKER_JSON="$(docker ps -a --format '{{json .}}' 2>/dev/null \
-      | python3 -c "
+    DOCKER_JSON="$(docker ps -a --format '{{json .}}' 2>/dev/null |
+      python3 -c "
 import sys, json
 containers = []
 for line in sys.stdin:

@@ -4,7 +4,7 @@ set -uo pipefail
 source "$(dirname "${BASH_SOURCE[0]}")/lib.sh"
 
 run_uci_checks() {
-  cd "$WORKSPACE_ROOT"
+  cd "$WORKSPACE_ROOT" || exit 1
 
   # -----------------------------------------------------------------------
   qa_section "UCI syntax validation"
@@ -17,8 +17,8 @@ run_uci_checks() {
     # UCI lines: config <type> '<name>', option <key> '<value>', list <key> '<value>'
     # These may be indented with tabs/spaces; comments may also be indented
     local invalid
-    invalid=$(grep -nE '^[[:space:]]*[^#[:space:]]' "$lime_community" \
-      | grep -vE '^[0-9]+:[[:space:]]*(config|option|list)[[:space:]]')
+    invalid=$(grep -nE '^[[:space:]]*[^#[:space:]]' "$lime_community" |
+      grep -vE '^[0-9]+:[[:space:]]*(config|option|list)[[:space:]]')
     if [[ -z $invalid ]]; then
       qa_pass "UCI syntax OK: ${lime_community}"
     else
@@ -37,8 +37,8 @@ run_uci_checks() {
 
   for f in "${uci_files[@]}"; do
     local invalid
-    invalid=$(grep -nE '^[[:space:]]*[^#[:space:]]' "$f" \
-      | grep -vE '^[0-9]+:[[:space:]]*(config|option|list)[[:space:]]')
+    invalid=$(grep -nE '^[[:space:]]*[^#[:space:]]' "$f" |
+      grep -vE '^[0-9]+:[[:space:]]*(config|option|list)[[:space:]]')
     if [[ -z $invalid ]]; then
       qa_pass "UCI syntax OK: ${f}"
     else
@@ -56,8 +56,8 @@ run_uci_checks() {
 
   for f in "${uci_files[@]}"; do
     local hostname
-    hostname=$(grep -E "^[[:space:]]*option[[:space:]]+hostname" "$f" \
-      | sed -E "s/.*hostname[[:space:]]+'([^']+)'.*/\1/" | head -1)
+    hostname=$(grep -E "^[[:space:]]*option[[:space:]]+hostname" "$f" |
+      sed -E "s/.*hostname[[:space:]]+'([^']+)'.*/\1/" | head -1)
     if [[ -z $hostname ]]; then
       qa_skip "${f}" "no hostname option found"
       continue
@@ -90,8 +90,8 @@ if sys.argv[1] not in names:
   for f in "${uci_all[@]}"; do
     [[ -f $f ]] || continue
     local secrets_found
-    secrets_found=$(grep -inE "option[[:space:]]+.*(password|secret|key)[[:space:]]+'[^']+'" "$f" \
-      | grep -viE '(mesh_bssid|anygw_mac|mesh_key)')
+    secrets_found=$(grep -inE "option[[:space:]]+.*(password|secret|key)[[:space:]]+'[^']+'" "$f" |
+      grep -viE '(mesh_bssid|anygw_mac|mesh_key)')
     if [[ -z $secrets_found ]]; then
       qa_pass "no secrets in: ${f}"
     else

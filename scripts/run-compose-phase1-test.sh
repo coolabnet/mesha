@@ -85,8 +85,8 @@ git -C "$REPO_ROOT" ls-files -z \
   ':!:IDENTITY.md' \
   ':!:USER.md' >"$WORK_DIR/workspace-files.zlist"
 
-(cd "$REPO_ROOT" && tar --null -T "$WORK_DIR/workspace-files.zlist" -cf -) \
-  | (cd "$WORK_DIR/workspace" && tar -xf -)
+(cd "$REPO_ROOT" && tar --null -T "$WORK_DIR/workspace-files.zlist" -cf -) |
+  (cd "$WORK_DIR/workspace" && tar -xf -)
 
 git -C "$WORK_DIR/workspace" init -q
 

@@ -98,8 +98,15 @@ fi
 step_header "Shell lint (shellcheck)"
 
 if command -v shellcheck &>/dev/null; then
-  shellcheck_targets="$(find . -name '*.sh' -not -path './.git/*' -print0 2>/dev/null \
-    | xargs -0 shellcheck --severity=warning 2>&1)" && sc_rc=$? || sc_rc=$?
+  shellcheck_targets="$({
+    find . -name '*.sh' -not -path './.git/*' -print0 2>/dev/null
+    find . -not -name '*.sh' -not -path './.git/*' -type f -print0 2>/dev/null |
+      while IFS= read -r -d '' f; do
+        head -c 2 "$f" 2>/dev/null | grep -q '^#!' || continue
+        head -1 "$f" | grep -qiE '\b(ba)?sh\b' || continue
+        printf '%s\0' "$f"
+      done
+  } | xargs -0 shellcheck --severity=warning 2>&1)" && sc_rc=$? || sc_rc=$?
   if [[ $sc_rc -eq 0 ]]; then
     ok "All shell scripts pass shellcheck"
   else
@@ -225,6 +232,12 @@ else
 fi
 
 if [[ $docker_available -eq 1 ]]; then
+  # Provide placeholder values for ${VAR:?...} guards in compose files so
+  # that `docker compose config` can validate without real fixtures on disk.
+  # These are only used for static validation — real runs must set them.
+  export MESHA_TEST_WORKSPACE_DIR="${MESHA_TEST_WORKSPACE_DIR:-/tmp/mesha-ci-placeholder-workspace}"
+  export MESHA_TEST_KEYS_DIR="${MESHA_TEST_KEYS_DIR:-/tmp/mesha-ci-placeholder-keys}"
+
   # Find all docker-compose files
   compose_files_found=0
   compose_failed=0
@@ -248,8 +261,8 @@ fi
 
 # Image pinning check (does not require Docker daemon, only grep)
 pinning_out="$(grep -rn 'image:.*:latest\|image:[^:]*$' \
-  --include='*.yaml' --include='*.yml' . 2>/dev/null \
-  | grep -v '.git/' || true)"
+  --include='*.yaml' --include='*.yml' . 2>/dev/null |
+  grep -v '.git/' || true)"
 if [[ -n $pinning_out ]]; then
   printf "  ${YELLOW}WARNING${RESET} — Unpinned Docker image tags found:\n"
   printf "%s\n" "$pinning_out" | sed 's/^/    /'

@@ -217,7 +217,7 @@ if [[ -f "$REPO_ROOT/BOOTSTRAP.md" ]]; then
   done <"$REPO_ROOT/BOOTSTRAP.md"
 else
   # Fallback: print the prompt inline if BOOTSTRAP.md is missing
-  echo "  Read BOOTSTRAP.md, AGENTS.md, SOUL.md, TOOLS.md, MEMORY.md, and WORKING.md"
+  echo "  Read BOOTSTRAP.md, AGENTS.md, SOUL.md, TOOLS.md, and MEMORY.md"
   echo "  from the workspace root and activate this project as a Community Infrastructure"
   echo "  Operator for LibreMesh/OpenWrt networks and local offline-first servers."
   echo ""

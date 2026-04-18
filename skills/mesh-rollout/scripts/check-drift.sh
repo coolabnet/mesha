@@ -461,12 +461,12 @@ output_text() {
 
   if [[ ${DRIFT_COUNT} -gt 0 ]] || [[ ${UNREACHABLE_COUNT} -gt 0 ]]; then
     echo "  Recommended actions:"
-    [[ ${DRIFT_COUNT} -gt 0 ]] \
-      && echo "    - Review firmware drift: schedule an upgrade via run-rollout.sh"
-    [[ ${DRIFT_COUNT} -gt 0 ]] \
-      && echo "    - Missing lime-community: re-apply community profile per mesh-rollout skill"
-    [[ ${UNREACHABLE_COUNT} -gt 0 ]] \
-      && echo "    - Unreachable nodes: check power, SSH keys, and network connectivity"
+    [[ ${DRIFT_COUNT} -gt 0 ]] &&
+      echo "    - Review firmware drift: schedule an upgrade via run-rollout.sh"
+    [[ ${DRIFT_COUNT} -gt 0 ]] &&
+      echo "    - Missing lime-community: re-apply community profile per mesh-rollout skill"
+    [[ ${UNREACHABLE_COUNT} -gt 0 ]] &&
+      echo "    - Unreachable nodes: check power, SSH keys, and network connectivity"
     echo "    - See: docs/playbooks/firmware-rollout.md"
     echo ""
   fi

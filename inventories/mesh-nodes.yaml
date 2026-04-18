@@ -63,7 +63,7 @@ nodes:
   - name: "Escola Municipal - Telhado"
     hostname: "lm-escola-telhado"
     mac: "00:00:00:00:00:00"  # TODO: populate with real MAC from node
-    site: "Associação Portal Sem Porteiras"
+    site: "Escola Municipal"
     model: "TP-Link CPE510 v3"
     firmware_version: "unknown"  # TODO: populate with real firmware version
     role: gateway

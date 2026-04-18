@@ -197,7 +197,6 @@ REQUIRED_FILES=(
   "SOUL.md"
   "TOOLS.md"
   "MEMORY.md"
-  "WORKING.md"
   "inventories/mesh-nodes.yaml"
   "inventories/sites.yaml"
   "inventories/local-services.yaml"

@@ -47,10 +47,7 @@ run_file_inventory() {
     AGENTS.md \
     SOUL.md \
     TOOLS.md \
-    MEMORY.md \
-    WORKING.md \
-    TASKS.md \
-    PROGRESS.md; do
+    MEMORY.md; do
     check_file "$doc"
   done
 
@@ -190,9 +187,6 @@ run_file_inventory() {
     "$WORKSPACE_ROOT/SOUL.md"
     "$WORKSPACE_ROOT/TOOLS.md"
     "$WORKSPACE_ROOT/MEMORY.md"
-    "$WORKSPACE_ROOT/WORKING.md"
-    "$WORKSPACE_ROOT/TASKS.md"
-    "$WORKSPACE_ROOT/PROGRESS.md"
     "$WORKSPACE_ROOT/docs"
     "$WORKSPACE_ROOT/scripts"
     "$WORKSPACE_ROOT/tests"

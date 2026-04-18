@@ -12,6 +12,10 @@ run_inline_python_checks() {
   # Files known to contain inline Python via heredoc
   local -a FILES_WITH_HEREDOC_PY=(
     adapters/mesh/collect-nodes.sh
+    adapters/mesh/collect-topology.sh
+    scripts/mesh-heartbeat.sh
+    scripts/discover-from-thisnode.sh
+    skills/mesh-readonly/scripts/run-mesh-readonly.sh
     skills/mesh-rollout/scripts/run-rollout.sh
   )
 
@@ -24,7 +28,8 @@ run_inline_python_checks() {
 
     # Extract Python code from heredocs using Python itself
     local extracted
-    extracted=$(python3 - "${abs}" <<'PYEOF'
+    extracted=$(
+      python3 - "${abs}" <<'PYEOF'
 import re, sys
 
 with open(sys.argv[1]) as fh:
@@ -32,7 +37,7 @@ with open(sys.argv[1]) as fh:
 
 # Find heredoc blocks that feed into python
 # Pattern: python3 ... <<'MARKER' or <<MARKER ... MARKER
-pattern = r"python3?[^<]*<<-?\s*['\"]?(\w+)['\"]?\n(.*?)\n\s*\1"
+pattern = r"python3?[^<\n]*<<-?\s*['\"]?(\w+)['\"]?[^\n]*\n(.*?)\n\s*\1"
 matches = re.findall(pattern, content, re.DOTALL)
 if matches:
     for marker, body in matches:

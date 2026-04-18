@@ -25,9 +25,19 @@ run_syntax_checks() {
   # -----------------------------------------------------------------------
 
   local -a SH_FILES=()
+  # Collect *.sh files
   while IFS= read -r -d '' f; do
     SH_FILES+=("$f")
   done < <(find "$WORKSPACE_ROOT" -name '*.sh' -not -path '*/.git/*' -print0 | sort -z)
+  # Also collect shell scripts without .sh suffix (by shebang)
+  while IFS= read -r -d '' f; do
+    SH_FILES+=("$f")
+  done < <(find "$WORKSPACE_ROOT" -not -name '*.sh' -not -path '*/.git/*' -type f -print0 2>/dev/null |
+    while IFS= read -r -d '' f; do
+      head -c 2 "$f" 2>/dev/null | grep -q '^#!' || continue
+      head -1 "$f" | grep -qiE '\b(ba)?sh\b' || continue
+      printf '%s\0' "$f"
+    done | sort -z)
 
   local f
   for f in "${SH_FILES[@]}"; do
@@ -209,7 +219,17 @@ PYEOF
     else
       qa_pass "shebang+executable OK: ${rel}"
     fi
-  done < <(find "$WORKSPACE_ROOT" -name '*.sh' -not -path '*/.git/*' -print0 | sort -z)
+  done < <(
+    (
+      find "$WORKSPACE_ROOT" -name '*.sh' -not -path '*/.git/*' -print0
+      find "$WORKSPACE_ROOT" -not -name '*.sh' -not -path '*/.git/*' -type f -print0 2>/dev/null |
+        while IFS= read -r -d '' f; do
+          head -c 2 "$f" 2>/dev/null | grep -q '^#!' || continue
+          head -1 "$f" | grep -qiE '\b(ba)?sh\b' || continue
+          printf '%s\0' "$f"
+        done
+    ) | sort -z
+  )
 
   # -----------------------------------------------------------------------
   qa_section "Shell safety (set -e)"
@@ -258,7 +278,17 @@ PYEOF
         qa_fail "POSIX sh script missing 'set -e': ${rel}"
       fi
     fi
-  done < <(find "$WORKSPACE_ROOT" -name '*.sh' -not -path '*/.git/*' -print0 | sort -z)
+  done < <(
+    (
+      find "$WORKSPACE_ROOT" -name '*.sh' -not -path '*/.git/*' -print0
+      find "$WORKSPACE_ROOT" -not -name '*.sh' -not -path '*/.git/*' -type f -print0 2>/dev/null |
+        while IFS= read -r -d '' f; do
+          head -c 2 "$f" 2>/dev/null | grep -q '^#!' || continue
+          head -1 "$f" | grep -qiE '\b(ba)?sh\b' || continue
+          printf '%s\0' "$f"
+        done
+    ) | sort -z
+  )
 
   # -----------------------------------------------------------------------
   qa_section "PowerShell syntax"

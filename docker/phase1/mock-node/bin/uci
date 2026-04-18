@@ -2,34 +2,34 @@
 set -euo pipefail
 
 fixture() {
-    cat "/mock-current/$1"
+  cat "/mock-current/$1"
 }
 
 case "${1:-}" in
-    get)
-        case "${2:-}" in
-            system.@system[0].hostname)
-                fixture hostname.txt
-                ;;
-            *)
-                exit 1
-                ;;
-        esac
-        ;;
-    show)
-        case "${2:-}" in
-            network)
-                fixture uci-network.txt
-                ;;
-            wireless)
-                fixture uci-wireless.txt
-                ;;
-            *)
-                exit 1
-                ;;
-        esac
-        ;;
-    *)
-        exit 1
-        ;;
+get)
+  case "${2:-}" in
+  system.@system[0].hostname)
+    fixture hostname.txt
+    ;;
+  *)
+    exit 1
+    ;;
+  esac
+  ;;
+show)
+  case "${2:-}" in
+  network)
+    fixture uci-network.txt
+    ;;
+  wireless)
+    fixture uci-wireless.txt
+    ;;
+  *)
+    exit 1
+    ;;
+  esac
+  ;;
+*)
+  exit 1
+  ;;
 esac

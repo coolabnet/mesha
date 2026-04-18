@@ -123,28 +123,70 @@ class TestFindInventoryNode(unittest.TestCase):
 
 class TestComputeDrift(unittest.TestCase):
     def test_no_drift(self):
-        live = {"hostname": "porao", "mac": "d8:b3:70:c0:7c:92", "role": "leaf", "status": "online",
-                "site": "Site A", "model": "Model X", "firmware_version": "1.0"}
-        inv = {"hostname": "porao", "mac": "d8:b3:70:c0:7c:92", "role": "leaf", "status": "online",
-                "site": "Site A", "model": "Model X", "firmware_version": "1.0"}
+        live = {
+            "hostname": "porao",
+            "mac": "d8:b3:70:c0:7c:92",
+            "role": "leaf",
+            "status": "online",
+            "site": "Site A",
+            "model": "Model X",
+            "firmware_version": "1.0",
+        }
+        inv = {
+            "hostname": "porao",
+            "mac": "d8:b3:70:c0:7c:92",
+            "role": "leaf",
+            "status": "online",
+            "site": "Site A",
+            "model": "Model X",
+            "firmware_version": "1.0",
+        }
         drift = compute_drift(live, inv)
         self.assertEqual(drift, [])
 
     def test_drift_detected(self):
-        live = {"hostname": "porao", "mac": "d8:b3:70:c0:7c:92", "role": "leaf", "status": "offline",
-                "site": "Site A", "model": "Model X", "firmware_version": "1.0"}
-        inv = {"hostname": "porao", "mac": "d8:b3:70:c0:7c:92", "role": "leaf", "status": "online",
-                "site": "Site A", "model": "Model X", "firmware_version": "1.0"}
+        live = {
+            "hostname": "porao",
+            "mac": "d8:b3:70:c0:7c:92",
+            "role": "leaf",
+            "status": "offline",
+            "site": "Site A",
+            "model": "Model X",
+            "firmware_version": "1.0",
+        }
+        inv = {
+            "hostname": "porao",
+            "mac": "d8:b3:70:c0:7c:92",
+            "role": "leaf",
+            "status": "online",
+            "site": "Site A",
+            "model": "Model X",
+            "firmware_version": "1.0",
+        }
         drift = compute_drift(live, inv)
         self.assertTrue(len(drift) > 0)
         fields = [d["field"] for d in drift]
         self.assertIn("status", fields)
 
     def test_drift_severity(self):
-        live = {"hostname": "porao", "mac": "aa:bb:cc:dd:ee:ff", "role": "leaf", "status": "online",
-                "site": "Site A", "model": "Model X", "firmware_version": "1.0"}
-        inv = {"hostname": "porao", "mac": "d8:b3:70:c0:7c:92", "role": "leaf", "status": "online",
-                "site": "Site A", "model": "Model X", "firmware_version": "1.0"}
+        live = {
+            "hostname": "porao",
+            "mac": "aa:bb:cc:dd:ee:ff",
+            "role": "leaf",
+            "status": "online",
+            "site": "Site A",
+            "model": "Model X",
+            "firmware_version": "1.0",
+        }
+        inv = {
+            "hostname": "porao",
+            "mac": "d8:b3:70:c0:7c:92",
+            "role": "leaf",
+            "status": "online",
+            "site": "Site A",
+            "model": "Model X",
+            "firmware_version": "1.0",
+        }
         drift = compute_drift(live, inv)
         mac_drift = [d for d in drift if d["field"] == "mac"]
         self.assertTrue(len(mac_drift) > 0)
