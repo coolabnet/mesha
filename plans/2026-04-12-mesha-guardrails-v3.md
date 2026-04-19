@@ -28,7 +28,7 @@ Implement automated quality and safety guardrails for the Mesha project covering
 
 - **Betterleaks is already installed and configured.** Commit `91cdc39` added `.pre-commit-config.yaml` with betterleaks v1.1.2. The `pre-commit` framework (v4.5.1) and `betterleaks` binary are installed. The git hook is active at `.git/hooks/pre-commit`.
 - **No `.betterleaks.toml` config or `.betterleaksignore` baseline exists yet.** The tool runs with default rules only.
-- **Baseline scan result:** `betterleaks dir .` found 1 finding — a Telegram bot token in `adapters/channels/telegram/.env:9` (local only, not committed, not in git history). Git history scan (`betterleaks git .`) is clean — no leaks in 24 commits.
+- **Baseline scan result:** `betterleaks dir .` found 1 finding — a credential in a local-only `.env` file (not committed, not in git history). Git history scan (`betterleaks git .`) is clean — no leaks in 24 commits.
 - **No CI platform is chosen yet.** The plan provides a CI-agnostic runner script.
 - **No `package.json`.** The project intentionally avoids npm dependencies.
 - **Must work offline.** Guardrails must not require internet access during execution.
@@ -43,7 +43,7 @@ Implement automated quality and safety guardrails for the Mesha project covering
 
 **Already completed:**
 
-- [x] Betterleaks installed (`/home/linuxbrew/.linuxbrew/bin/betterleaks`, v1.1.2)
+- [x] Betterleaks installed (via Homebrew, v1.1.2)
 - [x] `.pre-commit-config.yaml` created with betterleaks hook (commit `91cdc39`)
 - [x] `pre-commit` framework installed (v4.5.1)
 - [x] Git pre-commit hook active (`.git/hooks/pre-commit`)
@@ -62,10 +62,10 @@ Implement automated quality and safety guardrails for the Mesha project covering
   - Add global allowlist for `secrets/README.md` (contains example patterns)
   - Add global allowlist for `.betterleaks.toml` itself
   - Add global allowlist for test fixture files in `docker/` (thisnode HTTP responses)
-- [ ] Create `.betterleaksignore` baseline file — the 1 local finding (`.env` with Telegram token) is not in git so it won't appear in `betterleaks git` output, but a baseline should be established for CI:
+- [ ] Create `.betterleaksignore` baseline file — the 1 local finding (`.env` with a credential) is not in git so it won't appear in `betterleaks git` output, but a baseline should be established for CI:
   - Run: `betterleaks git --report-path .betterleaks-baseline.json`
   - Create empty `.betterleaksignore` (git history is clean, no ignores needed)
-- [ ] Verify the local `.env` file with the Telegram token is NOT staged — confirm it stays local-only
+- [ ] Verify the local `.env` file with the credential is NOT staged — confirm it stays local-only
 - [ ] Add CI job: `betterleaks git -v --baseline-path .betterleaksignore` on every PR (requires full git history)
 
 **Verification:**
