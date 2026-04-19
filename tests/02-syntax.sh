@@ -254,10 +254,17 @@ PYEOF
 
     # Check for appropriate set options
     if $is_bash; then
-      if grep -qE '^set -[a-z]*e[a-z]*u[a-z]*o[[:space:]]*pipefail' "$f"; then
-        qa_pass "bash safety OK: ${rel}"
+      # Extract the set line and check for e, u, o flags + pipefail in any order
+      set_full_line="$(grep -E '^set -.+[[:space:]]*pipefail' "$f" | head -1 || true)"
+      if [[ -n $set_full_line ]]; then
+        # Extract the flag portion (chars between '-' and space/pipefail)
+        flags="$(echo "$set_full_line" | sed -E 's/^set -([a-z]+).*/\1/')"
+        if echo "$flags" | grep -q 'e' && echo "$flags" | grep -q 'u' && echo "$flags" | grep -q 'o'; then
+          qa_pass "bash safety OK: ${rel}"
+        else
+          qa_fail "bash script missing 'set -euo pipefail': ${rel}"
+        fi
       elif grep -qE '^set -[a-z]*e[a-z]*' "$f"; then
-        # Has set -e but not full set -euo pipefail — check for inline justification
         # Accept any comment on the same line as set -e, or a # reason: marker elsewhere
         set_line="$(grep -nE '^set -[a-z]*e[a-z]*' "$f" | head -1)"
         if echo "$set_line" | grep -qE '#'; then

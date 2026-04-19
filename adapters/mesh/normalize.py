@@ -55,7 +55,7 @@ import argparse
 import json
 import re
 import sys
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
 
 try:
@@ -266,7 +266,7 @@ def compute_drift(live: dict, inventory_node: dict) -> list:
 
 
 def utcnow() -> str:
-    return datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
+    return datetime.now(UTC).strftime("%Y-%m-%dT%H:%M:%SZ")
 
 
 def main():
@@ -279,9 +279,9 @@ def main():
     )
     parser.add_argument(
         "--pretty",
-        action="store_true",
+        action=argparse.BooleanOptionalAction,
         default=True,
-        help="Pretty-print JSON output (default: true)",
+        help="Pretty-print JSON output (default: true; use --no-pretty to disable)",
     )
     args = parser.parse_args()
 
