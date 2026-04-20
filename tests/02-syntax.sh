@@ -265,11 +265,10 @@ PYEOF
           qa_fail "bash script missing 'set -euo pipefail': ${rel}"
         fi
       elif grep -qE '^set -[a-z]*e[a-z]*' "$f"; then
-        # Accept any comment on the same line as set -e, or a # reason: marker elsewhere
-        set_line="$(grep -nE '^set -[a-z]*e[a-z]*' "$f" | head -1)"
-        if echo "$set_line" | grep -qE '#'; then
-          qa_pass "bash safety OK (justified): ${rel}"
-        elif grep -qE '# reason:' "$f"; then
+        # Accept only an explicit "# reason:" justification marker, not any
+        # random comment.  CONTRIBUTING.md requires `set -euo pipefail` for
+        # bash scripts; a bare `set -e` must have a documented reason.
+        if grep -qE '# reason:' "$f"; then
           qa_pass "bash safety OK (justified): ${rel}"
         else
           qa_fail "bash script missing 'set -euo pipefail': ${rel}"

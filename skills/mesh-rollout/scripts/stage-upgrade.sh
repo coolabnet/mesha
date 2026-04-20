@@ -21,7 +21,7 @@
 # See: docs/playbooks/firmware-rollout.md
 #      desired-state/mesh/firmware-policy.yaml
 
-set -e # originally POSIX sh; now bash, kept for error-on-fail behavior
+set -e # reason: originally POSIX sh; now bash, kept for error-on-fail behavior
 
 # ---------------------------------------------------------------------------
 # Helpers

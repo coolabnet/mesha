@@ -45,7 +45,7 @@
 #
 # Dependencies: ssh, python3 (stdlib only, for JSON construction)
 
-set -e # originally POSIX sh; now bash, kept for error-on-fail behavior
+set -e # reason: originally POSIX sh; now bash, kept for error-on-fail behavior
 
 # ---------------------------------------------------------------------------
 # Argument validation
