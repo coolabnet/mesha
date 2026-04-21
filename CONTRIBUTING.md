@@ -15,7 +15,7 @@ The following tools are needed for local development. All of them work offline o
 | **Git** | Version control | System package manager |
 | **Bash 4+** | Script runtime | System default on Linux/macOS; use WSL2 on Windows |
 | **Python 3** | YAML validation, adapter scripts | `sudo apt install python3` / `brew install python3` |
-| **Node.js 22+** | ESM adapter scripts | `sudo apt install nodejs` / `brew install node` |
+| **Node.js 22+** | ESM adapter scripts | Use NodeSource or `nvm install 22` on Linux; `brew install node@22` on macOS |
 | **pre-commit** | Git hook framework | `pip install pre-commit` or `brew install pre-commit` |
 
 ### Linting and Formatting (required)

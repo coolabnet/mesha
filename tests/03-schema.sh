@@ -23,6 +23,12 @@ source "$(dirname "$0")/lib.sh"
 run_schema_checks() {
   require_command python3 "python3 required for schema checks" || return 0
 
+  # PyYAML is required by every check in this file; skip gracefully if absent.
+  if ! python3 -c "import yaml" 2>/dev/null; then
+    qa_skip "schema checks" "PyYAML not installed (install python3-yaml or pip install pyyaml)"
+    return 0
+  fi
+
   cd "$WORKSPACE_ROOT" || exit 1
 
   # -----------------------------------------------------------------------
