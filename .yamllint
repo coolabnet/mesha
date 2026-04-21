@@ -7,3 +7,5 @@ rules:
 ignore: |
   .git/
   node_modules/
+  logs/
+  exports/

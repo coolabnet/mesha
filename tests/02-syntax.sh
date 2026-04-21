@@ -313,12 +313,14 @@ PYEOF
     else
       for f in "${PS_FILES[@]}"; do
         rel="${f#"$WORKSPACE_ROOT/"}"
-        local err
+        local parse_errors
         # Pass file path via env var to avoid injection through string interpolation
-        err=$(PWSH_PATH="$f" pwsh -Command '[System.Management.Automation.Language.Parser]::ParseFile($env:PWSH_PATH, [ref]$null, [ref]$null)' 2>&1) || true
-        if echo "$err" | grep -qiE 'error|exception'; then
+        # Capture actual parse errors array instead of discarding it — the old code
+        # passed [ref]$null for the errors param, so malformed files could pass silently.
+        parse_errors=$(PWSH_PATH="$f" pwsh -Command '$errors = $null; $tokens = $null; [System.Management.Automation.Language.Parser]::ParseFile($env:PWSH_PATH, [ref]$tokens, [ref]$errors); if ($errors) { $errors.Count } else { 0 }' 2>&1) || true
+        if [[ "$parse_errors" != "0" && -n "$parse_errors" ]]; then
           qa_fail "PowerShell syntax error: ${rel}"
-          printf "       %s\n" "$err"
+          printf "       %s\n" "$parse_errors"
         else
           qa_pass "PowerShell syntax OK: ${rel}"
         fi

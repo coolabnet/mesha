@@ -278,15 +278,15 @@ pre-commit run --all-files
 Edit `scripts/ci-run.sh` and add a new step in the appropriate position. Follow the existing pattern:
 
 ```bash
-step "Name of the check"
-if check_command tool_name; then
-    tool_name --some-flag . || die "Name of the check failed"
+step_header "Name of the check"
+if command -v tool_name &>/dev/null; then
+    tool_name --some-flag . || fail "Name of the check failed"
 else
     warn "tool_name not installed — skipping"
 fi
 ```
 
-The `check_command` helper gracefully skips the step if the tool is not available. The `die` helper exits with a clear error message.
+Use `command -v` to gracefully skip the step if the tool is not available. The `fail` helper exits with a clear error message.
 
 ### Add a QA test category
 

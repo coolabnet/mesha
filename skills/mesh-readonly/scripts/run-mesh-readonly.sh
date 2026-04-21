@@ -177,6 +177,28 @@ if [[ $SKIP_TOPOLOGY == false ]]; then
   if [[ -z $TOPOLOGY_TARGET && ${#TARGET_HOSTS[@]} -gt 0 ]]; then
     TOPOLOGY_TARGET="${TARGET_HOSTS[0]}"
   fi
+
+  # Warn if the selected gateway has unverified status
+  if [[ -n $TOPOLOGY_TARGET ]]; then
+    gateway_status=$(python3 - "$GATEWAYS_FILE" "$TOPOLOGY_TARGET" <<'PYEOF'
+import sys, yaml
+try:
+    with open(sys.argv[1]) as f:
+        data = yaml.safe_load(f)
+    for gw in (data.get("gateways") or []):
+        if gw.get("hostname") == sys.argv[2]:
+            print(gw.get("status", "unknown"))
+            break
+    else:
+        print("unknown")
+except Exception:
+    print("unknown")
+PYEOF
+    )
+    if [[ "$gateway_status" == "unknown" ]]; then
+      printf "  ⚠ WARNING: Topology target '%s' has unverified status — inventory data may be placeholder\n" "$TOPOLOGY_TARGET" >&2
+    fi
+  fi
 fi
 
 if [[ $PLAN_ONLY == true ]]; then
