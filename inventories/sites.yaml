@@ -1,6 +1,5 @@
 # inventories/sites.yaml
 # Physical sites in the community where mesh nodes are installed.
-#
 # Fields:
 #   name        — matches the site field in mesh-nodes.yaml
 #   location    — human-readable street or neighborhood description
@@ -32,9 +31,7 @@ sites:
 
   - name: "Escola Municipal"
     location: "Escola Municipal — Telhado (rooftop)"
-    coordinates:
-      lat: 0.0
-      lon: 0.0
+    coordinates: null  # TODO: on-site verification needed
     nodes:
       - "Escola Municipal - Telhado"
     contact:
