@@ -43,3 +43,17 @@ repos:
       - id: yamllint
         args: ["-c", ".yamllint"]
         types: [yaml]
+  - repo: local
+    hooks:
+      - id: deno-fmt
+        name: deno fmt
+        entry: deno fmt --check
+        language: system
+        types_or: [javascript]
+        files: '\.mjs$'
+      - id: deno-lint
+        name: deno lint
+        entry: deno lint
+        language: system
+        types_or: [javascript]
+        files: '\.mjs$'

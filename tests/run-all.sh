@@ -39,6 +39,7 @@ declare -A CATEGORY_NAME=(
   [05]="Service Healthchecks"
   [06]="UCI Validation"
   [07]="Inline Python"
+  [08]="Python Unit Tests"
 )
 
 declare -A CATEGORY_FILE=(
@@ -49,6 +50,7 @@ declare -A CATEGORY_FILE=(
   [05]="${TESTS_DIR}/05-healthchecks.sh"
   [06]="${TESTS_DIR}/06-uci-validate.sh"
   [07]="${TESTS_DIR}/07-inline-python.sh"
+  [08]="${TESTS_DIR}/08-unit-tests.sh"
 )
 
 declare -A CATEGORY_FN=(
@@ -59,9 +61,10 @@ declare -A CATEGORY_FN=(
   [05]="run_healthchecks"
   [06]="run_uci_checks"
   [07]="run_inline_python_checks"
+  [08]="run_unit_tests"
 )
 
-ALL_CATEGORIES=(01 02 03 04 05 06 07)
+ALL_CATEGORIES=(01 02 03 04 05 06 07 08)
 
 # ---------------------------------------------------------------------------
 # Argument parsing
@@ -108,6 +111,7 @@ Categories:
   05   Service Healthchecks     — HTTP health probes (skipped if services not running)
   06   UCI Validation            — UCI syntax, hostname cross-refs, secret detection
   07   Inline Python             — Python embedded in shell heredocs
+  08   Python Unit Tests       — unittest discover tests/unit/
 
 Examples:
   ./tests/run-all.sh                   # run everything

@@ -54,18 +54,26 @@ run_uci_checks() {
   # For each .uci file, extract hostname and verify it matches a node in mesh-nodes.yaml
   require_command python3 "python3 required for UCI cross-reference" || return 0
 
-  for f in "${uci_files[@]}"; do
-    local hostname
-    hostname=$(grep -E "^[[:space:]]*option[[:space:]]+hostname" "$f" |
-      sed -E "s/.*hostname[[:space:]]+'([^']+)'.*/\1/" | head -1)
-    if [[ -z $hostname ]]; then
-      qa_skip "${f}" "no hostname option found"
-      continue
-    fi
+  local have_pyyaml=0
+  if python3 -c "import yaml" 2>/dev/null; then
+    have_pyyaml=1
+  else
+    qa_skip "UCI hostname cross-reference" "PyYAML not installed (install python3-yaml or pip install pyyaml)"
+  fi
 
-    # Cross-reference with mesh-nodes.yaml (pass hostname via argv to avoid quoting issues)
-    local node_hostname="$hostname"
-    if python3 -c '
+  if [[ $have_pyyaml -eq 1 ]]; then
+    for f in "${uci_files[@]}"; do
+      local hostname
+      hostname=$(grep -E "^[[:space:]]*option[[:space:]]+hostname" "$f" |
+        sed -E "s/.*hostname[[:space:]]+'([^']+)'.*/\1/" | head -1)
+      if [[ -z $hostname ]]; then
+        qa_skip "${f}" "no hostname option found"
+        continue
+      fi
+
+      # Cross-reference with mesh-nodes.yaml (pass hostname via argv to avoid quoting issues)
+      local node_hostname="$hostname"
+      if python3 -c '
 import yaml, sys
 with open("inventories/mesh-nodes.yaml") as fh:
     data = yaml.safe_load(fh)
@@ -74,11 +82,12 @@ if sys.argv[1] not in names:
     print(f"hostname {sys.argv[1]!r} not found in mesh-nodes.yaml")
     sys.exit(1)
 ' "$node_hostname" 2>/dev/null; then
-      qa_pass "UCI hostname cross-ref OK: ${hostname} in ${f}"
-    else
-      qa_fail "UCI hostname cross-ref FAIL: ${hostname} in ${f} not in mesh-nodes.yaml"
-    fi
-  done
+        qa_pass "UCI hostname cross-ref OK: ${hostname} in ${f}"
+      else
+        qa_fail "UCI hostname cross-ref FAIL: ${hostname} in ${f} not in mesh-nodes.yaml"
+      fi
+    done
+  fi
 
   # -----------------------------------------------------------------------
   qa_section "UCI secret check"
