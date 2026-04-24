@@ -52,10 +52,10 @@ run_uci_checks() {
   # -----------------------------------------------------------------------
 
   # For each .uci file, extract hostname and verify it matches a node in mesh-nodes.yaml
-  require_command python3 "python3 required for UCI cross-reference" || return 0
-
   local have_pyyaml=0
-  if python3 -c "import yaml" 2>/dev/null; then
+  if ! check_command python3; then
+    qa_skip "UCI hostname cross-reference" "python3 required for UCI cross-reference"
+  elif python3 -c "import yaml" 2>/dev/null; then
     have_pyyaml=1
   else
     qa_skip "UCI hostname cross-reference" "PyYAML not installed (install python3-yaml or pip install pyyaml)"

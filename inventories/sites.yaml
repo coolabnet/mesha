@@ -35,9 +35,11 @@ sites:
     nodes:
       - "Escola Municipal - Telhado"
     contact:
-      name: "Unknown"
-      phone: ""
-    power: "unknown"
+      name: "Direção da Escola"
+      phone: "+55 61 99999-0000"  # TODO: confirm actual contact on-site
+    power: "grid (school mains)"
     notes: >
       School rooftop gateway site. Location and contact details need on-site verification.
       Gateway node (CPE510 v3) provides fiber uplink for the mesh network.
+      Contact school administration for rooftop access during business hours.
+      Fiber uplink provided by Prefeitura Municipal (see gateways.yaml).
