@@ -213,8 +213,9 @@ fi
 # Warn if the selected gateway has unverified status (only in live mode)
 if [[ $SKIP_TOPOLOGY == false && -n $TOPOLOGY_TARGET ]]; then
     gateway_status=$(python3 - "$GATEWAYS_FILE" "$TOPOLOGY_TARGET" <<'PYEOF'
-import sys, yaml
+import sys
 try:
+    import yaml
     with open(sys.argv[1]) as f:
         data = yaml.safe_load(f)
     for gw in (data.get("gateways") or []):
