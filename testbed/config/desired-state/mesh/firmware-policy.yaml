@@ -1,0 +1,7 @@
+# Firmware policy for test bed nodes
+# DISTRIB_RELEASE must match what configure-vms.sh writes to /etc/openwrt_release
+approved_version: "testbed-1.0"
+allowed_versions:
+  - "testbed-1.0"
+channel: "stable"
+auto_upgrade: false

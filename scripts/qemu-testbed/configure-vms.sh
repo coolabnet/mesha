@@ -172,6 +172,18 @@ configure_vm() {
     ssh_vm "$ip" "cat >> /etc/hosts << 'HOSTSEOF'
 ${hosts_entries}HOSTSEOF" || true
 
+    # Configure thisnode.info on host (for discover-from-thisnode.sh)
+    echo "Configuring thisnode.info resolution on host..."
+    if [ -w /etc/hosts ]; then
+        grep -q 'thisnode.info' /etc/hosts 2>/dev/null || \
+            echo "10.99.0.11  thisnode.info" >> /etc/hosts
+    else
+        # Alternative: create HOSTALIASES file
+        mkdir -p "${REPO_ROOT}/testbed/run"
+        echo "thisnode.info 10.99.0.11" > "${REPO_ROOT}/testbed/run/host-aliases"
+        echo "  Note: set HOSTALIASES=${REPO_ROOT}/testbed/run/host-aliases for thisnode.info resolution"
+    fi
+
     # Set /etc/openwrt_release with test firmware version
     ssh_vm "$ip" "sed -i 's/OPENWRT_RELEASE=.*/OPENWRT_RELEASE=\"Mesha Testbed v0.1.0 (LibreMesh)\"/' /etc/openwrt_release 2>/dev/null || true" || true
 
@@ -281,6 +293,11 @@ main() {
 
     # Verification
     verify_key_access
+
+    # Generate SSH config with absolute paths
+    sed "s|__REPO_ROOT__|${REPO_ROOT}|g" \
+        "${REPO_ROOT}/testbed/config/ssh-config" \
+        > "${REPO_ROOT}/testbed/config/ssh-config.resolved"
 
     echo ""
     echo "=========================================="
