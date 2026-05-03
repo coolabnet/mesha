@@ -12,6 +12,8 @@ completed_date: ""              # ISO date: YYYY-MM-DD
 reviewed_by: ""                 # Maintainer who reviewed this form before onboarding
 ---
 
+<!-- markdownlint-disable MD035 MD049 MD050 -->
+
 # Site Metadata Form
 
 **Instructions:** Fill in every field. Use `___` if a field is not yet known at the time of filling. Bring this form to the site visit. Update it during or immediately after the visit. Return the completed form to the community maintainer.
@@ -25,7 +27,8 @@ reviewed_by: ""                 # Maintainer who reviewed this form before onboa
 **Site full name (human-readable):** ___________________________
 
 **Physical address:**
-```
+
+```text
 Street / road name and number: ___________________________
 Neighbourhood / district:      ___________________________
 City:                          ___________________________
@@ -194,7 +197,7 @@ ___________________________
 - [ ] Fixed wireless
 - [ ] Other: ___________________________
 
-**Connection speed (if known):** Download: ___ Mbps  Upload: ___ Mbps
+**Connection speed (if known):** Download: \_\_\_ Mbps  Upload: \_\_\_ Mbps
 
 **Who provides the uplink?** (ISP name or description): ___________________________
 

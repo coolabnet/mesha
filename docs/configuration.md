@@ -99,12 +99,14 @@ maintainers:
 ## Remaining Reality Check
 
 What is now well documented:
+
 - the inventory files you must seed
 - the Telegram env surface
 - the approval identity source
 - the difference between curated inventory and machine-generated snapshots
 
 What is still operator-host dependent:
+
 - your actual SSH agent, SSH config, and private key material
 - whether `thisnode.info` resolves from the current network
 - whether `ssh root@<inventory-target>` works from your laptop or ops host

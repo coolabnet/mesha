@@ -1,6 +1,6 @@
 services:
   kolibri:
-    image: learningequality/kolibri:latest
+    image: learningequality/kolibri:0.19.3
     container_name: kolibri
     restart: unless-stopped
     healthcheck:

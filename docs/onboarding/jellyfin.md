@@ -12,7 +12,7 @@ Jellyfin works in a browser or through an app. You do not need internet — it r
 
 **Address:** Open a browser and go to:
 
-```
+```text
 http://midia.bairro.local
 ```
 

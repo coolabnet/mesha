@@ -37,22 +37,26 @@ The building serves as the weekly meeting location (Thursdays 19h) and has UPS b
 ### Node locations
 
 **Porão da PSP (Basement):**
+
 - UniFi-AC-MESH dual-band access point
 - Provides full-building coverage
 - Default gateway via 10.208.39.98
 - 22+ mesh originators reachable
 
 **Yuri - NanoStation AC:**
+
 - Wall-mounted indoor unit
 - Single ethernet interface (eth0)
 - Dual-band AC wave2
 
 **Marie - TL-WDR3500:**
+
 - Indoor router with WiFi
 - Dual ethernet ports (eth0/eth1)
 - Standard indoor placement
 
 **Carlinhos - CPE210:**
+
 - 5GHz CPE unit
 - Dedicated mesh backhaul link
 - Outdoor-rated hardware used indoors

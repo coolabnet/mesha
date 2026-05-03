@@ -45,7 +45,9 @@ maintenance_windows:
     created_by: "maintainer"
     created_at: "2026-03-01T18:00:00"
     status: completed
-    notes: "Completed successfully at 06:47. All nodes validated. No issues reported. See rollout-state.yaml for full details."
+    notes: >
+      Completed successfully at 06:47. All nodes validated.
+      No issues reported. See rollout-state.yaml for full details.
   - id: "maint-20260406T2200"
     scheduled_at: "2026-04-06 22:00"
     duration_minutes: 90
@@ -56,4 +58,3 @@ maintenance_windows:
     status: cancelled
     cancelled_at: "2026-03-17T08:25:28"
     notes: null
-

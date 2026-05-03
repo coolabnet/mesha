@@ -8,60 +8,60 @@ set -euo pipefail
 cd /workspace
 
 log() {
-    printf '[phase1-test] %s\n' "$1"
+  printf '[phase1-test] %s\n' "$1"
 }
 
 wait_for_http() {
-    local url="$1"
-    local attempts="${2:-30}"
-    local delay="${3:-1}"
-    local i
-    for ((i=1; i<=attempts; i++)); do
-        if curl -fsS "$url" >/dev/null 2>&1; then
-            return 0
-        fi
-        sleep "$delay"
-    done
-    return 1
+  local url="$1"
+  local attempts="${2:-30}"
+  local delay="${3:-1}"
+  local i
+  for ((i = 1; i <= attempts; i++)); do
+    if curl -fsS "$url" >/dev/null 2>&1; then
+      return 0
+    fi
+    sleep "$delay"
+  done
+  return 1
 }
 
 wait_for_ssh() {
-    local host="$1"
-    local attempts="${2:-30}"
-    local delay="${3:-1}"
-    local i
-    for ((i=1; i<=attempts; i++)); do
-        if ssh -o ConnectTimeout=3 -o BatchMode=yes root@"$host" "true" >/dev/null 2>&1; then
-            return 0
-        fi
-        sleep "$delay"
-    done
-    return 1
+  local host="$1"
+  local attempts="${2:-30}"
+  local delay="${3:-1}"
+  local i
+  for ((i = 1; i <= attempts; i++)); do
+    if ssh -o ConnectTimeout=3 -o BatchMode=yes root@"$host" "true" >/dev/null 2>&1; then
+      return 0
+    fi
+    sleep "$delay"
+  done
+  return 1
 }
 
 log "Waiting for thisnode.info HTTP"
 wait_for_http "http://thisnode.info/" 30 1 || {
-    echo "[phase1-test] http://thisnode.info/ did not become reachable" >&2
-    exit 1
+  echo "[phase1-test] http://thisnode.info/ did not become reachable" >&2
+  exit 1
 }
 log "Waiting for thisnode.info SSH"
 wait_for_ssh "thisnode.info" 30 1 || {
-    echo "[phase1-test] SSH to thisnode.info did not become reachable" >&2
-    exit 1
+  echo "[phase1-test] SSH to thisnode.info did not become reachable" >&2
+  exit 1
 }
 log "Waiting for fake-gateway SSH"
 wait_for_ssh "fake-gateway" 30 1 || {
-    echo "[phase1-test] SSH to fake-gateway did not become reachable" >&2
-    exit 1
+  echo "[phase1-test] SSH to fake-gateway did not become reachable" >&2
+  exit 1
 }
 
 doctor_rc=0
 log "Running doctor"
 bash scripts/doctor.sh >/tmp/doctor.out 2>&1 || doctor_rc=$?
-if [[ "$doctor_rc" -ne 0 && "$doctor_rc" -ne 2 ]]; then
-    cat /tmp/doctor.out
-    echo "doctor.sh failed unexpectedly with rc=$doctor_rc" >&2
-    exit 1
+if [[ $doctor_rc -ne 0 && $doctor_rc -ne 2 ]]; then
+  cat /tmp/doctor.out
+  echo "doctor.sh failed unexpectedly with rc=$doctor_rc" >&2
+  exit 1
 fi
 
 log "Activating workspace"

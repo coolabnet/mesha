@@ -26,7 +26,9 @@ nodes:
     firmware_version: "LibreRouterOs 1.5-SNAPSHOT"
     role: leaf
     status: online
-    notes: "Basement dual-band mesh node (2.4GHz/5GHz). Default gateway via 10.208.39.98. 22+ mesh originators reachable."
+    notes: >
+      Basement dual-band mesh node (2.4GHz/5GHz).
+      Default gateway via 10.208.39.98. 22+ mesh originators reachable.
 
   - name: "Yuri - NanoStation AC"
     hostname: "yuri"
@@ -57,3 +59,16 @@ nodes:
     role: leaf
     status: online
     notes: "Confirmed reachable via SSH. 5GHz CPE. Dedicated mesh backhaul link."
+
+  - name: "Escola Municipal - Telhado"
+    hostname: "lm-escola-telhado"
+    mac: "00:00:00:00:00:00"  # TODO: populate with real MAC from node
+    site: "Escola Municipal"
+    model: "TP-Link CPE510 v3"
+    firmware_version: "unknown"  # TODO: populate with real firmware version
+    role: gateway
+    status: unknown
+    notes: >
+      Directional CPE510 gateway on school rooftop.
+      Per-node overrides in desired-state/mesh/node-overrides/lm-escola-telhado.uci.
+      MAC and firmware need on-site verification.

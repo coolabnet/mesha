@@ -16,13 +16,17 @@ set -euo pipefail
 # ---------------------------------------------------------------------------
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+# shellcheck disable=SC2034
 SERVICE_NAME="kolibri"
 LOCAL_DOMAIN="aprendizado.bairro.local"
-HEALTH_URL="http://localhost:8080/api/public/v1/info/"  # polled via docker exec inside the container
+HEALTH_URL="http://localhost:8080/api/public/v1/info/" # polled via docker exec inside the container
 HEALTH_TIMEOUT=120
 
-log()  { echo "[$(date '+%Y-%m-%d %H:%M:%S')] [kolibri] $*"; }
-fail() { echo "[$(date '+%Y-%m-%d %H:%M:%S')] [kolibri] ERROR: $*" >&2; exit 1; }
+log() { echo "[$(date '+%Y-%m-%d %H:%M:%S')] [kolibri] $*"; }
+fail() {
+  echo "[$(date '+%Y-%m-%d %H:%M:%S')] [kolibri] ERROR: $*" >&2
+  exit 1
+}
 
 # ---------------------------------------------------------------------------
 # Step 1 — Prerequisites check
@@ -64,7 +68,7 @@ log ".env file found."
 
 # Load .env
 set -o allexport
-# shellcheck disable=SC1091
+# shellcheck source=/dev/null
 source <(grep -v '^\s*#' .env | grep -v '^\s*$')
 set +o allexport
 
@@ -103,7 +107,7 @@ HEALTHY=false
 
 while [[ $ELAPSED -lt $HEALTH_TIMEOUT ]]; do
   HTTP_STATUS=$(docker exec kolibri curl -s -o /dev/null -w "%{http_code}" "${HEALTH_URL}" 2>/dev/null || true)
-  if [[ "$HTTP_STATUS" == "200" ]]; then
+  if [[ $HTTP_STATUS == "200" ]]; then
     HEALTHY=true
     break
   fi
@@ -112,7 +116,7 @@ while [[ $ELAPSED -lt $HEALTH_TIMEOUT ]]; do
   ELAPSED=$((ELAPSED + INTERVAL))
 done
 
-if [[ "$HEALTHY" != "true" ]]; then
+if [[ $HEALTHY != "true" ]]; then
   fail "Kolibri did not respond at ${HEALTH_URL} within ${HEALTH_TIMEOUT}s. Check logs: docker compose logs kolibri"
 fi
 

@@ -62,6 +62,7 @@ Always run with `--dry-run` before executing live. The dry run shows you exactly
 ```
 
 Review the output carefully:
+
 - Which nodes will be affected
 - In what order
 - What commands would be sent to each node
@@ -70,6 +71,7 @@ Review the output carefully:
 If the dry run output does not match your expectations, stop. Do not proceed until you understand why.
 
 Repeat the dry run for each ring:
+
 ```bash
 ./skills/mesh-rollout/scripts/run-rollout.sh --ring stable --dry-run
 ./skills/mesh-rollout/scripts/run-rollout.sh --ring trailing --dry-run
@@ -86,6 +88,7 @@ After confirming the dry run looks correct, start with the canary ring only:
 ```
 
 The script will:
+
 1. Back up the canary node's UCI config
 2. Transfer the firmware image to the node
 3. Run `sysupgrade`
@@ -183,6 +186,7 @@ If you want to check a node independently of the script:
 ```
 
 This runs the same health checks the rollout script uses:
+
 - Node reachable via SSH
 - Correct firmware version installed
 - Mesh interface up
@@ -196,11 +200,13 @@ This runs the same health checks the rollout script uses:
 ### When the script halts automatically
 
 The script halts when:
+
 - A node fails post-upgrade validation
 - A node does not come back up within the timeout (default: 30 minutes)
 - The rollback firmware cannot be transferred or applied
 
 When the script halts, it:
+
 1. Stops upgrading any additional nodes in the current ring
 2. Writes a failure entry to `rollout-state.yaml`
 3. Writes a detailed stage report to `logs/maintenance/`
@@ -209,16 +215,19 @@ When the script halts, it:
 ### Investigation steps
 
 1. Read the stage report for the failed node:
+
    ```bash
    cat logs/maintenance/<latest-failure-report>.md
    ```
 
 2. Check what state the node is in:
+
    ```bash
    ./skills/mesh-rollout/scripts/validate-node.sh --node <failed-node-hostname>
    ```
 
 3. Check if the node is reachable at all:
+
    ```bash
    ssh root@<node-ip> "cat /etc/openwrt_release; uptime; logread | tail -20"
    ```
@@ -256,6 +265,7 @@ To formally record the halt and prevent accidental resumption:
 This updates `rollout-state.yaml` with `status: halted` and sends an alert.
 
 After halting:
+
 1. Roll back all nodes that were upgraded in the failed ring (in reverse order).
 2. Validate each rolled-back node (`validate-node.sh`).
 3. Write an incident log entry.
@@ -274,6 +284,7 @@ After all rings complete successfully:
 ```
 
 Compare the output to the pre-rollout baseline you saved. Confirm:
+
 - [ ] All nodes are on the target firmware version
 - [ ] All nodes are reachable
 - [ ] Mesh topology is intact
@@ -284,6 +295,7 @@ Compare the output to the pre-rollout baseline you saved. Confirm:
 ### Step 2 — Update the firmware policy
 
 Edit `desired-state/mesh/firmware-policy.yaml`:
+
 - Set `current_version` to the newly deployed version
 - Set `rollback_version` to the previous version
 - Record the rollout date in `last_rollout`
@@ -324,6 +336,7 @@ All scripts are in `skills/mesh-rollout/scripts/`. Run them from the workspace r
 | `./skills/mesh-rollout/scripts/rollback-node.sh --node <hostname> --rollback-firmware <image>` | Roll back a single node to the previous firmware. Use when validation fails. |
 
 **Policy files:**
+
 - `desired-state/mesh/community-profile/rollout-policy.yaml` — ring definitions, approval requirements, change windows
 - `desired-state/mesh/firmware-policy.yaml` — target firmware version, hardware model support, rollback version
 - `desired-state/mesh/rollout-state.yaml` — live rollout status (created by the script at rollout start)

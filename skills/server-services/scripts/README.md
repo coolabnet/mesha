@@ -12,7 +12,7 @@ See `skills/server-services/SKILL.md` for the full operating model.
 
 ## Directory structure
 
-```
+```text
 scripts/
   create-network.sh          # Run once before any service install
   README.md                  # This file
@@ -54,11 +54,13 @@ This script is idempotent — running it again when the network already exists d
 ## Order of operations for a new service install
 
 1. **Create the shared network** (once per server, not per service):
+
    ```bash
    bash skills/server-services/scripts/create-network.sh
    ```
 
 2. **Copy and fill in the `.env` file** for the service:
+
    ```bash
    cd skills/server-services/scripts/<service-name>/
    cp .env.example .env
@@ -66,6 +68,7 @@ This script is idempotent — running it again when the network already exists d
    ```
 
 3. **Run the install script**:
+
    ```bash
    bash skills/server-services/scripts/<service-name>/install.sh
    ```
@@ -104,6 +107,7 @@ Every recipe that stores persistent user data **must** have a corresponding back
 `desired-state/server/backup-policy.yaml` before the install is considered complete.
 
 Current backup jobs:
+
 - `nextcloud-data` — daily rsync of Nextcloud user files
 - `nextcloud-db` — daily MariaDB dump (encrypted)
 - `kolibri-data` — weekly tar of student progress data
@@ -123,7 +127,8 @@ To add a recipe for a new service:
    community approval.
 
 2. Create a new directory under `scripts/`:
-   ```
+
+   ```text
    scripts/<service-name>/
      docker-compose.yaml
      install.sh

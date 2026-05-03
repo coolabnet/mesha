@@ -24,8 +24,11 @@ GRAFANA_HEALTH_URL="http://localhost:3000/api/health"
 GRAFANA_TIMEOUT=120
 GRAFANA_INTERVAL=5
 
-log()  { echo "[$(date '+%Y-%m-%d %H:%M:%S')] [monitoring] $*"; }
-fail() { echo "[$(date '+%Y-%m-%d %H:%M:%S')] [monitoring] ERROR: $*" >&2; exit 1; }
+log() { echo "[$(date '+%Y-%m-%d %H:%M:%S')] [monitoring] $*"; }
+fail() {
+  echo "[$(date '+%Y-%m-%d %H:%M:%S')] [monitoring] ERROR: $*" >&2
+  exit 1
+}
 
 # ---------------------------------------------------------------------------
 # Step 1 — Prerequisites check
@@ -89,7 +92,7 @@ log ".env validated."
 
 # Load environment
 set -o allexport
-# shellcheck disable=SC1091
+# shellcheck source=/dev/null
 source <(grep -v '^\s*#' .env | grep -v '^\s*$')
 set +o allexport
 
@@ -104,7 +107,7 @@ mkdir -p "${SCRIPT_DIR}/data/prometheus"
 mkdir -p "${SCRIPT_DIR}/data/grafana"
 
 # Write Grafana datasource provisioning
-cat > "${SCRIPT_DIR}/provisioning/datasources/prometheus.yaml" <<'DATASOURCE'
+cat >"${SCRIPT_DIR}/provisioning/datasources/prometheus.yaml" <<'DATASOURCE'
 apiVersion: 1
 
 datasources:
@@ -123,7 +126,7 @@ DATASOURCE
 log "Grafana datasource provisioning file written."
 
 # Write Grafana dashboard provisioning
-cat > "${SCRIPT_DIR}/provisioning/dashboards/community.yaml" <<'DASHPROV'
+cat >"${SCRIPT_DIR}/provisioning/dashboards/community.yaml" <<'DASHPROV'
 apiVersion: 1
 
 providers:
@@ -141,7 +144,7 @@ DASHPROV
 log "Grafana dashboard provisioning file written."
 
 # Write Blackbox Exporter config
-cat > "${SCRIPT_DIR}/blackbox.yml" <<'BLACKBOX'
+cat >"${SCRIPT_DIR}/blackbox.yml" <<'BLACKBOX'
 modules:
   http_2xx:
     prober: http
@@ -205,7 +208,7 @@ GRAFANA_READY=false
 
 while [[ $ELAPSED -lt $GRAFANA_TIMEOUT ]]; do
   HTTP_STATUS=$(curl -s -o /dev/null -w "%{http_code}" "${GRAFANA_HEALTH_URL}" 2>/dev/null || true)
-  if [[ "$HTTP_STATUS" == "200" ]]; then
+  if [[ $HTTP_STATUS == "200" ]]; then
     GRAFANA_READY=true
     break
   fi
@@ -214,7 +217,7 @@ while [[ $ELAPSED -lt $GRAFANA_TIMEOUT ]]; do
   ELAPSED=$((ELAPSED + GRAFANA_INTERVAL))
 done
 
-if [[ "$GRAFANA_READY" != "true" ]]; then
+if [[ $GRAFANA_READY != "true" ]]; then
   fail "Grafana did not respond at ${GRAFANA_HEALTH_URL} within ${GRAFANA_TIMEOUT}s. Check: docker compose logs grafana"
 fi
 

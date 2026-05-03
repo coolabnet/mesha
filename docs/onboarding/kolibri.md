@@ -10,7 +10,7 @@ Kolibri is a free learning platform that brings educational content to your phon
 
 Open a browser on your phone, tablet, or computer and go to:
 
-```
+```text
 http://aprendizado.bairro.local
 ```
 

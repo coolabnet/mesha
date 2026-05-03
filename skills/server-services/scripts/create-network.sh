@@ -18,8 +18,11 @@ set -euo pipefail
 
 NETWORK_NAME="community-net"
 
-log()  { echo "[$(date '+%Y-%m-%d %H:%M:%S')] [network] $*"; }
-fail() { echo "[$(date '+%Y-%m-%d %H:%M:%S')] [network] ERROR: $*" >&2; exit 1; }
+log() { echo "[$(date '+%Y-%m-%d %H:%M:%S')] [network] $*"; }
+fail() {
+  echo "[$(date '+%Y-%m-%d %H:%M:%S')] [network] ERROR: $*" >&2
+  exit 1
+}
 
 if ! command -v docker &>/dev/null; then
   fail "docker is not installed or not in PATH."

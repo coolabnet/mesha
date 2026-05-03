@@ -58,6 +58,7 @@ uptime
 ```
 
 **Stop if:**
+
 - Disk usage is above 80%
 - There are failed services
 - CPU load is unusually high
@@ -70,6 +71,7 @@ grep -A 20 "<service-name>" desired-state/server/service-catalog.yaml
 ```
 
 Confirm the entry includes:
+
 - [ ] Service name and description
 - [ ] Status is `approved`
 - [ ] Port number(s) the service uses
@@ -114,11 +116,13 @@ ls skills/server-services/scripts/
 ```
 
 If a recipe exists for this service, review it:
+
 ```bash
 ls skills/server-services/scripts/<service-name>/
 ```
 
 If no recipe exists, write one. The recipe must:
+
 - Use the official upstream Docker image or a community-vetted image
 - Not require internet after first setup (offline-first)
 - Include environment variable configuration (no hardcoded passwords)
@@ -131,14 +135,17 @@ If no recipe exists, write one. The recipe must:
 Create or review the service's configuration:
 
 1. Copy the environment template (if your recipe includes one):
+
    ```bash
    cp skills/server-services/scripts/<service-name>/env.example .env.<service-name>
    ```
 
 2. Edit the `.env` file with the correct values:
+
    ```bash
    nano .env.<service-name>
    ```
+
    Common values to set:
    - Admin username and password (use a strong password)
    - Port number (should match the catalog entry)
@@ -151,7 +158,7 @@ Create or review the service's configuration:
 
 Prepare a summary of what you are about to install:
 
-```
+```text
 Service: [name]
 Description: [what it does]
 Port: [port number]
@@ -193,11 +200,13 @@ docker logs <service-name> --tail 20
 ```
 
 If the service fails to start, check the logs:
+
 ```bash
 docker logs <service-name> 2>&1 | tail -50
 ```
 
 Common problems:
+
 - Port already in use → check Step 3
 - Permission denied on volume directory → `mkdir -p /opt/data/<service-name> && chown 1000:1000 /opt/data/<service-name>`
 - Wrong environment variable → check your `.env` file
@@ -211,6 +220,7 @@ Common problems:
 The reverse proxy routes requests from the local domain name to the service's port.
 
 Review the reverse proxy config:
+
 ```bash
 cat desired-state/server/reverse-proxy.yaml
 ```
@@ -220,6 +230,7 @@ Add an entry for the new service, or ask the operator to generate one:
 > "Add a reverse proxy entry for [service-name] on port [port] with local domain [domain]."
 
 A typical Nginx config block looks like:
+
 ```nginx
 server {
     listen 80;
@@ -234,6 +245,7 @@ server {
 ```
 
 Apply the new config:
+
 ```bash
 ssh <user>@<server-ip>
 # Place the config in the correct location for your proxy
@@ -256,6 +268,7 @@ echo "<server-lan-ip> biblioteca.local" >> /etc/hosts
 If you have a local DNS server (like Pi-hole, dnsmasq, or Bind), add the record there instead so all network clients can resolve it automatically.
 
 Update `desired-state/server/domains.yaml` with the new entry:
+
 ```yaml
 - domain: biblioteca.local
   service: biblioteca
@@ -298,6 +311,7 @@ sudo ip route add default via <gateway-ip>
 Or simply test from a device that has no internet access.
 
 **Offline checklist:**
+
 - [ ] The service is reachable on the local domain without internet
 - [ ] The service's core functionality works without internet
 - [ ] No errors appear in logs when internet is unavailable
@@ -309,6 +323,7 @@ Ask the operator:
 > "Run a server health check and confirm [service-name] is running correctly."
 
 The operator's `server-readonly` skill will check:
+
 - Service container is running
 - Port is listening
 - Local domain resolves
@@ -324,11 +339,13 @@ The operator's `server-readonly` skill will check:
 Every service that stores persistent data must have a backup hook.
 
 Check if the service recipe includes a backup script:
+
 ```bash
 ls skills/server-services/scripts/<service-name>/backup.sh 2>/dev/null || echo "No backup script yet — write one below"
 ```
 
 If not, write one. At minimum, the backup should:
+
 1. Stop or pause the service (if safe to do so)
 2. Copy the data volume to the backup location
 3. Restart the service
@@ -354,12 +371,14 @@ Schedule it using cron or systemd timer, following the schedule in `desired-stat
 ### Step 16 — Test the backup and restore
 
 Run the backup once manually (from your local workspace on the ops host, or directly on the server if you copied the script there):
+
 ```bash
 bash skills/server-services/scripts/<service-name>/backup.sh
 ls /opt/backups/<service-name>/
 ```
 
 Test that the restore works:
+
 ```bash
 # Stop the service
 docker stop <service-name>
@@ -381,6 +400,7 @@ curl http://localhost:<port>/
 ### Step 17 — Update the service catalog
 
 Update `desired-state/server/service-catalog.yaml` to reflect the installed state:
+
 ```yaml
   status: installed
   installed_date: <today's date>
@@ -407,6 +427,7 @@ Store this in `docs/onboarding/<service-name>.md`.
 ### Step 19 — Write a maintenance log entry
 
 Log:
+
 - Service installed: name, version, date
 - Who approved and who installed
 - Port and local domain

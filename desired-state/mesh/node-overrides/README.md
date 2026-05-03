@@ -29,11 +29,12 @@ Change **`lime-community`** when:
 
 Override files are named after the node's hostname:
 
-```
+```text
 <hostname>.uci
 ```
 
 Examples:
+
 - `lm-escola-telhado.uci` — override for the rooftop gateway at the school
 - `lm-clinica-antena.uci` — override for the clinic's outdoor antenna node
 - `lm-ponto-morro.uci` — override for the hilltop relay node

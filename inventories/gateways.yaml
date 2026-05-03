@@ -16,8 +16,15 @@
 #   status        — online | offline | degraded
 #   notes
 
-# NOTE: No gateways confirmed yet in the live mesh.
-# All discovered nodes (porao, yuri, marie, carlinhos) are leaf nodes.
-# If you discover a gateway node, add it here with its uplink details.
-
-gateways: []
+gateways:
+  - node: "Escola Municipal - Telhado"
+    hostname: "lm-escola-telhado"
+    uplink_type: fiber
+    uplink_isp: "Prefeitura Municipal"
+    uplink_speed: "100/50"
+    uplink_ip: dhcp
+    priority: 1
+    status: unknown
+    notes: >
+      CPE510 v3 on school rooftop. Not yet confirmed on-site.
+      MAC/firmware are placeholders. Update after on-site verification.

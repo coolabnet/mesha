@@ -31,6 +31,7 @@ They are seeded manually once, then supplemented by machine-generated observatio
 | `inventories/hardware-models.yaml` | Known hardware models: manufacturer, model, notes, known issues, flash size, supported firmware |
 
 **Update rules:**
+
 - Inventories are updated by `knowledge-curator` after any approved change
 - Inventories hold durable context that cannot be discovered safely from telemetry alone: site names, local contacts, physical notes, ownership, and intended node roles
 - `mesh-collector` may refresh observation fields such as last-seen timestamps after reads, but should not invent site metadata or governance context
@@ -38,11 +39,13 @@ They are seeded manually once, then supplemented by machine-generated observatio
 - When a node is decommissioned, it is marked inactive, not deleted
 
 **Seed vs. refresh:**
+
 - Seed manually once: node names, SSH targets, site mapping, hardware model, gateway identity, uplink notes, local contacts
 - Refresh automatically: reachability, collected-at timestamp, cached snapshot, firmware version observed from the node
 - If a field comes from live reads and may change often, prefer storing it in `exports/` snapshots and syncing it back into inventory only when that improves long-term clarity
 
 **Freshness:**
+
 - Node status fields may be stale.
 - If an inventory entry includes cached observed fields, it should also include a `last_updated` timestamp.
 - Agents must check freshness before relying on inventory data for planning.
@@ -62,11 +65,13 @@ They are the preferred cached source for recent status when live reads are unava
 | `exports/mesh/snapshots/*.json` | Timestamped historical mesh snapshots for comparison and audit |
 
 **Update rules:**
+
 - Snapshots are written automatically by read-only collectors and heartbeat jobs
 - Snapshots may be overwritten or rotated; they are runtime artifacts, not curated knowledge
 - Agents should prefer a fresh live read first, then a recent snapshot, and only then fall back to inventory status fields
 
 **Freshness:**
+
 - A snapshot is cached operational state, not a source of truth for site identity
 - If `exports/mesh/latest.json` is older than the local heartbeat interval, agents should say it is stale before relying on it
 
@@ -78,7 +83,7 @@ Desired state files define what the infrastructure should look like according to
 
 **Location:** `desired-state/`
 
-```
+```text
 desired-state/
   mesh/
     community-profile/
@@ -96,6 +101,7 @@ desired-state/
 ```
 
 **Update rules:**
+
 - Desired state is changed only by deliberate community or maintainer decision
 - `knowledge-curator` updates these files after a community decision is documented
 - Every change to desired-state should include a note on why it changed
@@ -116,6 +122,7 @@ Incidents record service disruptions, unexpected failures, and any event that re
 Example filename: `logs/incidents/2026-03-15-escuela-offline.md`
 
 **Minimum incident record:**
+
 ```markdown
 # Incident: [site/node] — [brief description]
 Date: YYYY-MM-DD
@@ -156,6 +163,7 @@ Maintenance records document planned and approved changes: firmware updates, ser
 Example filename: `logs/maintenance/2026-03-16-firmware-ring1.md`
 
 **Minimum maintenance record:**
+
 ```markdown
 # Maintenance: [description]
 Date: YYYY-MM-DD
@@ -192,6 +200,7 @@ Playbooks are human-readable, step-by-step guides for operations that happen rep
 **Location:** `docs/playbooks/`
 
 **Current playbooks:**
+
 | File | Purpose |
 |------|---------|
 | `docs/playbooks/node-onboarding.md` | How to add a new router node to the mesh |
@@ -199,6 +208,7 @@ Playbooks are human-readable, step-by-step guides for operations that happen rep
 | `docs/playbooks/local-service-install.md` | How to install a new service on the local server |
 
 **Guidelines for playbooks:**
+
 - Written for a maintainer with basic technical knowledge, not an expert
 - Use numbered steps
 - Include "what success looks like" after each step
@@ -219,6 +229,7 @@ Site notes capture context that does not fit in a structured inventory field: ph
 Example: `docs/sites/escuela.md`
 
 **Typical contents:**
+
 ```markdown
 # Site: Escuela Central
 Node(s): node-escuela
@@ -253,6 +264,7 @@ Known issues capture patterns that have appeared multiple times, especially by h
 **Example filename:** `docs/known-issues/tplink-wr841n-power-loss.md`
 
 **Minimum record template:**
+
 ```markdown
 hardware-model-or-pattern: [e.g., TP-Link WR841N]
 symptoms: [what the maintainer observes]
@@ -272,10 +284,12 @@ Known issues apply to a class of hardware or configuration, not a single inciden
 **Written by:** knowledge-curator, authorized maintainers
 **Updated:** when a community governance decision is made, a plan is rejected or deferred, or a policy changes
 
-#### Purpose
+#### Purpose (Decisions Log)
+
 Covers decisions that did not result in an immediate infrastructure change: rejected upgrade plans, deferred service installs, community standard updates, and approved policy changes. Complements the maintenance log, which covers executed changes.
 
 #### Minimum record format
+
 - **date:** YYYY-MM-DD
 - **type:** decision | rejection | deferral | policy-change
 - **summary:** one-sentence description
@@ -284,6 +298,7 @@ Covers decisions that did not result in an immediate infrastructure change: reje
 - **decided-by:** who authorized or approved
 
 #### Example filename
+
 `logs/decisions/2026-03-16-defer-peertube-install.md`
 
 ---

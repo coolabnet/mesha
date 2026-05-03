@@ -37,6 +37,7 @@ cat desired-state/mesh/firmware-policy.yaml
 ```
 
 Confirm:
+
 - [ ] Target firmware version is specified
 - [ ] Approved hardware models are listed
 - [ ] Upgrade rings are defined (canary, ring-1, ring-2, etc.)
@@ -81,9 +82,11 @@ If rings are not defined in the policy, define them now. Gateways and backbone n
 
 1. Download the correct firmware image for each hardware model involved.
 2. Verify the checksum:
+
    ```bash
    sha256sum <firmware-image-file>
    ```
+
    Compare against the official checksum published by the firmware project.
 3. Store the verified image in a location accessible during the rollout.
 4. Also have the current (rollback) firmware image available.
@@ -91,6 +94,7 @@ If rings are not defined in the policy, define them now. Gateways and backbone n
 ### Step 5 — Prepare the rollback firmware
 
 For each hardware model, confirm you have the previous firmware image ready:
+
 - It should be the version listed as `rollback_version` in `desired-state/mesh/firmware-policy.yaml`
 - Verify its checksum
 - Confirm it can be flashed back if needed
@@ -100,6 +104,7 @@ For each hardware model, confirm you have the previous firmware image ready:
 Send a rollout plan to all maintainers with approval rights:
 
 > "Firmware rollout plan:
+>
 > - Target version: [version]
 > - Hardware models: [list]
 > - Nodes to upgrade: [count]
@@ -119,12 +124,14 @@ The canary is a single non-critical node upgraded first. If anything goes wrong,
 ### Step 7 — Choose the canary node
 
 The canary node should be:
+
 - A non-critical node (not a gateway or backbone)
 - A site where loss of service during the test is acceptable
 - Ideally a site where someone is physically present or nearby
 
 Record the canary hostname:
-```
+
+```text
 Canary node: ____________________
 ```
 
@@ -137,6 +144,7 @@ uci export | gzip > /tmp/config-backup-$(hostname)-$(date +%Y%m%d).uci.gz
 ```
 
 Copy the backup to a safe location outside the node:
+
 ```bash
 scp root@<canary-node-ip>:/tmp/config-backup-*.uci.gz ./backups/
 ```
@@ -187,6 +195,7 @@ Also ask the operator:
 > "Check the health of [canary-hostname] and confirm it upgraded correctly."
 
 **Validation checklist:**
+
 - [ ] Firmware version matches target
 - [ ] Node is reachable via SSH
 - [ ] Mesh interface is up
@@ -208,6 +217,7 @@ Repeat the following steps for each ring, in order. Complete and validate each r
 ### Step 11 — Upgrade the ring
 
 For each node in the ring, repeat Steps 8–10:
+
 1. Back up the node config
 2. Transfer the firmware image
 3. Run `sysupgrade`
@@ -215,6 +225,7 @@ For each node in the ring, repeat Steps 8–10:
 5. Validate the node
 
 You can upgrade multiple nodes in the same ring in parallel, but only if:
+
 - They are on different sites (not dependent on each other for connectivity)
 - You have enough maintainers to monitor each one
 - Your rollback capability covers all of them simultaneously
@@ -228,6 +239,7 @@ After all nodes in a ring are upgraded, run a full mesh health check:
 > Ask the operator: "Run a mesh health check and show me any issues."
 
 **Ring validation checklist:**
+
 - [ ] All upgraded nodes are reachable
 - [ ] All upgraded nodes show the correct firmware version
 - [ ] Mesh topology is intact (no unexpected gaps)
@@ -238,7 +250,7 @@ After all nodes in a ring are upgraded, run a full mesh health check:
 
 ### Step 13 — Proceed through rings in order
 
-```
+```text
 Canary ✓ → Ring 1 ✓ → Ring 2 ✓ → Ring 3 (gateways last) ✓
 ```
 
@@ -255,6 +267,7 @@ After all rings are complete:
 > Ask the operator: "Run a full mesh health check. List all nodes, their firmware versions, and any issues."
 
 **Final checklist:**
+
 - [ ] All nodes are on the target firmware version
 - [ ] All nodes are reachable
 - [ ] Mesh topology matches the expected topology in inventory
@@ -265,6 +278,7 @@ After all rings are complete:
 ### Step 15 — Update the firmware policy
 
 Update `desired-state/mesh/firmware-policy.yaml`:
+
 - Set `current_version` to the new firmware version
 - Set `rollback_version` to the previous version (in case you need it later)
 - Record the rollout date
@@ -272,6 +286,7 @@ Update `desired-state/mesh/firmware-policy.yaml`:
 ### Step 16 — Write a maintenance log entry
 
 Ask the `knowledge-curator` skill to log:
+
 - Date and time of rollout
 - Firmware version upgraded from and to
 - Hardware models upgraded
@@ -302,6 +317,7 @@ sysupgrade -n /tmp/<rollback-firmware>
 Wait for the node to come back up, then validate it (Step 10).
 
 If the node is completely unresponsive after a failed upgrade:
+
 - Physical access is required
 - Connect a serial cable to the router's UART pins (check the hardware model notes for pinout)
 - Use TFTP recovery or the router's failsafe mode

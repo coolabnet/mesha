@@ -51,16 +51,16 @@ Exit codes:
     1 — usage or parse error
 """
 
-import sys
+import argparse
 import json
 import re
-import argparse
-from datetime import datetime, timezone
+import sys
+from datetime import UTC, datetime
 from pathlib import Path
-from typing import Optional
 
 try:
     import yaml
+
     YAML_AVAILABLE = True
 except ImportError:
     YAML_AVAILABLE = False
@@ -103,7 +103,7 @@ def _load_config():
     """
     config_path = Path(__file__).resolve().parent / "field_map.json"
     try:
-        with open(config_path, "r", encoding="utf-8") as fh:
+        with open(config_path, encoding="utf-8") as fh:
             cfg = json.load(fh)
         field_map = cfg.get("field_map", {})
         severity_map = cfg.get("severity_map", {})
@@ -112,8 +112,7 @@ def _load_config():
         return field_map, severity_map
     except (FileNotFoundError, json.JSONDecodeError, ValueError) as exc:
         print(
-            f"WARNING: Could not load {config_path} ({exc}); "
-            "using minimal built-in field map.",
+            f"WARNING: Could not load {config_path} ({exc}); using minimal built-in field map.",
             file=sys.stderr,
         )
         return dict(_FALLBACK_FIELD_MAP), dict(_FALLBACK_SEVERITY_MAP)
@@ -124,8 +123,15 @@ FIELD_MAP, SEVERITY_MAP = _load_config()
 
 # Fields that are expected in a fully normalized inventory record
 INVENTORY_FIELDS = {
-    "name", "hostname", "mac", "site", "model",
-    "firmware_version", "role", "status", "notes",
+    "name",
+    "hostname",
+    "mac",
+    "site",
+    "model",
+    "firmware_version",
+    "role",
+    "status",
+    "notes",
 }
 
 
@@ -154,8 +160,15 @@ def normalize_node(raw: dict) -> dict:
         # else: leave other values (e.g. "degraded", "unknown") as-is
 
     # Strip the 'error' and internal adapter fields from normalized output
-    for internal_field in ("error", "collected_at", "node_ip", "interfaces",
-                            "radios", "mesh_neighbors", "uptime_human"):
+    for internal_field in (
+        "error",
+        "collected_at",
+        "node_ip",
+        "interfaces",
+        "radios",
+        "mesh_neighbors",
+        "uptime_human",
+    ):
         normalized.pop(internal_field, None)
 
     return normalized
@@ -168,28 +181,24 @@ def load_inventory(path: str) -> list:
     """
     if not YAML_AVAILABLE:
         print(
-            json.dumps({
-                "error": "PyYAML not available. Install with: pip install pyyaml or apt install python3-yaml",
-                "compared_at": utcnow(),
-            }),
-            file=sys.stdout
+            json.dumps(
+                {
+                    "error": "PyYAML not available. Install with: pip install pyyaml or apt install python3-yaml",
+                    "compared_at": utcnow(),
+                }
+            ),
+            file=sys.stdout,
         )
         sys.exit(1)
 
     try:
-        with open(path, "r", encoding="utf-8") as fh:
+        with open(path, encoding="utf-8") as fh:
             data = yaml.safe_load(fh)
     except FileNotFoundError:
-        print(
-            json.dumps({"error": f"Inventory file not found: {path}", "compared_at": utcnow()}),
-            file=sys.stdout
-        )
+        print(json.dumps({"error": f"Inventory file not found: {path}", "compared_at": utcnow()}), file=sys.stdout)
         sys.exit(1)
     except yaml.YAMLError as exc:
-        print(
-            json.dumps({"error": f"YAML parse error in {path}: {exc}", "compared_at": utcnow()}),
-            file=sys.stdout
-        )
+        print(json.dumps({"error": f"YAML parse error in {path}: {exc}", "compared_at": utcnow()}), file=sys.stdout)
         sys.exit(1)
 
     return data.get("nodes", [])
@@ -202,10 +211,10 @@ def _clean_mac(mac) -> str:
     compared correctly.
     Examples:  "AA:BB:CC:DD:EE:FF" == "aa-bb-cc-dd-ee-ff" == "aabb.ccdd.eeff"
     """
-    return re.sub(r'[^a-fA-F0-9]', '', str(mac)).lower()
+    return re.sub(r"[^a-fA-F0-9]", "", str(mac)).lower()
 
 
-def find_inventory_node(normalized_live: dict, inventory: list) -> Optional[dict]:
+def find_inventory_node(normalized_live: dict, inventory: list) -> dict | None:
     """
     Find the inventory record that matches the live node.
     Tries matching by hostname first, then by MAC address.
@@ -243,25 +252,25 @@ def compute_drift(live: dict, inventory_node: dict) -> list:
         inv_str = str(inv_val).strip() if inv_val is not None else None
 
         if live_str != inv_str:
-            drift.append({
-                "hostname": inventory_node.get("hostname") or live.get("hostname", "unknown"),
-                "field": field,
-                "inventory_value": inv_val,
-                "live_value": live_val,
-                "severity": SEVERITY_MAP.get(field, "info"),
-            })
+            drift.append(
+                {
+                    "hostname": inventory_node.get("hostname") or live.get("hostname", "unknown"),
+                    "field": field,
+                    "inventory_value": inv_val,
+                    "live_value": live_val,
+                    "severity": SEVERITY_MAP.get(field, "info"),
+                }
+            )
 
     return drift
 
 
 def utcnow() -> str:
-    return datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
+    return datetime.now(UTC).strftime("%Y-%m-%dT%H:%M:%SZ")
 
 
 def main():
-    parser = argparse.ArgumentParser(
-        description="Normalize mesh node JSON and optionally compare against inventory."
-    )
+    parser = argparse.ArgumentParser(description="Normalize mesh node JSON and optionally compare against inventory.")
     parser.add_argument(
         "--compare",
         metavar="INVENTORY_YAML",
@@ -270,9 +279,9 @@ def main():
     )
     parser.add_argument(
         "--pretty",
-        action="store_true",
+        action=argparse.BooleanOptionalAction,
         default=True,
-        help="Pretty-print JSON output (default: true)",
+        help="Pretty-print JSON output (default: true; use --no-pretty to disable)",
     )
     args = parser.parse_args()
 
@@ -294,11 +303,7 @@ def main():
         raw_nodes = raw_data
     elif isinstance(raw_data, dict):
         # collect-topology.sh returns an object with a 'nodes' array
-        if "nodes" in raw_data:
-            raw_nodes = raw_data["nodes"]
-        else:
-            # Single node object from collect-nodes.sh
-            raw_nodes = [raw_data]
+        raw_nodes = raw_data.get("nodes", [raw_data])
     else:
         print(json.dumps({"error": "Unexpected input format — expected JSON object or array"}))
         sys.exit(1)
@@ -331,10 +336,7 @@ def main():
 
     # Nodes in inventory but not seen in live data
     live_hostnames = {n.get("hostname") for n in normalized_nodes}
-    missing_from_live = [
-        inv.get("hostname") for inv in inventory
-        if inv.get("hostname") not in live_hostnames
-    ]
+    missing_from_live = [inv.get("hostname") for inv in inventory if inv.get("hostname") not in live_hostnames]
 
     report = {
         "compared_at": utcnow(),

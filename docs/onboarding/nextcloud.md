@@ -12,14 +12,14 @@ Nextcloud works on your phone, tablet, or computer. You do not need an internet 
 
 **Address:** Open a browser and go to:
 
-```
+```text
 https://nuvem.bairro.local
 ```
 
 You must be connected to the **community WiFi network** for this to work. It will not open if you are using mobile data or a different WiFi network.
 
 > **Tip:** The first time you visit, your browser may show a security warning about the certificate. This is normal for local community servers — click **"Advanced"** and then **"Accept"** (or **"Proceed"**) to continue. You will only see this once.
-
+>
 > **If the page does not open:** make sure you are connected to the community WiFi. If it still does not open, contact the community maintainer.
 
 ---
@@ -39,7 +39,7 @@ If there is no registration link, ask the community maintainer to create an acco
 
 ## Uploading and Sharing Files
 
-### To upload a file from your computer or phone:
+### To upload a file from your computer or phone
 
 1. Log in to Nextcloud
 2. Click the **"+"** button (top of the page or near the file list)
@@ -47,14 +47,14 @@ If there is no registration link, ask the community maintainer to create an acco
 4. Choose the file from your device
 5. Wait for the upload to finish — a progress bar will show the status
 
-### To share a file with someone:
+### To share a file with someone
 
 1. Find the file you want to share in your file list
 2. Click the **share icon** (a dot with lines, or a person icon) next to the file name
 3. Type the username of the person you want to share with, then press Enter
 4. You can also create a **share link** to send via WhatsApp or Telegram — click "Share link" and copy the address
 
-### To create a folder:
+### To create a folder
 
 1. Click the **"+"** button
 2. Select **"New folder"**

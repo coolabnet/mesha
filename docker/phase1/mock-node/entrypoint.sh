@@ -7,9 +7,9 @@ set -euo pipefail
 PROFILE="${MOCK_PROFILE:-thisnode}"
 PROFILE_DIR="/fixtures/${PROFILE}"
 
-if [[ ! -d "$PROFILE_DIR" ]]; then
-    echo "Missing fixture profile: $PROFILE_DIR" >&2
-    exit 1
+if [[ ! -d $PROFILE_DIR ]]; then
+  echo "Missing fixture profile: $PROFILE_DIR" >&2
+  exit 1
 fi
 
 ln -sfn "$PROFILE_DIR" /mock-current
@@ -22,14 +22,14 @@ chmod 600 /root/.ssh/authorized_keys
 mkdir -p /run/sshd /var/www/mock
 
 if [[ -f "$PROFILE_DIR/openwrt_release" ]]; then
-    cp "$PROFILE_DIR/openwrt_release" /etc/openwrt_release
+  cp "$PROFILE_DIR/openwrt_release" /etc/openwrt_release
 fi
 
 if [[ -f "$PROFILE_DIR/http/index.html" ]]; then
-    cp "$PROFILE_DIR/http/index.html" /var/www/mock/index.html
+  cp "$PROFILE_DIR/http/index.html" /var/www/mock/index.html
 fi
 
-cat > /etc/ssh/sshd_config <<'EOF'
+cat >/etc/ssh/sshd_config <<'EOF'
 Port 22
 Protocol 2
 PermitRootLogin yes

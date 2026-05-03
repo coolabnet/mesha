@@ -1,0 +1,13 @@
+useDefault = true
+
+[global]
+allowlist = [
+  ".env.example",
+  "secrets/README.md",
+  ".betterleaks.toml",
+  # Docker test fixtures — scope to specific known-safe files only.
+  # Do NOT use broad docker/* glob; it silences real credential leaks
+  # in compose files or helper scripts.
+  "docker/onboarding-test/fixtures/**",
+  "docker/phase1/fixtures/**",
+]

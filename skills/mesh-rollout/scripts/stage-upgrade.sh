@@ -1,4 +1,4 @@
-#!/usr/bin/env sh
+#!/usr/bin/env bash
 # SPDX-License-Identifier: MIT
 # Copyright (c) 2026 Mesha Community Infrastructure Project
 # Licensed under the MIT License; see LICENSE file for details.
@@ -21,7 +21,7 @@
 # See: docs/playbooks/firmware-rollout.md
 #      desired-state/mesh/firmware-policy.yaml
 
-set -e
+set -e # reason: originally POSIX sh; now bash, kept for error-on-fail behavior
 
 # ---------------------------------------------------------------------------
 # Helpers
@@ -88,16 +88,22 @@ AUTO_MODE=false
 shift 2
 while [ $# -gt 0 ]; do
   case "$1" in
-    --dry-run) DRY_RUN=true  ; shift ;;
-    --auto)    AUTO_MODE=true ; shift ;;
-    *) die "Unknown argument: $1" ;;
+  --dry-run)
+    DRY_RUN=true
+    shift
+    ;;
+  --auto)
+    AUTO_MODE=true
+    shift
+    ;;
+  *) die "Unknown argument: $1" ;;
   esac
 done
 
 FIRMWARE_FILENAME="${FIRMWARE_URL##*/}"
 SSH_TIMEOUT=10
-OFFLINE_WAIT_SECONDS=180   # 3 minutes: max wait for node to go offline
-ONLINE_WAIT_SECONDS=300    # 5 minutes: max wait for node to come back
+OFFLINE_WAIT_SECONDS=180 # 3 minutes: max wait for node to go offline
+ONLINE_WAIT_SECONDS=300  # 5 minutes: max wait for node to come back
 
 OLD_VERSION=""
 NEW_VERSION=""
@@ -133,7 +139,7 @@ fi
 log "Step 1: Verifying node '${NODE}' is reachable via SSH..."
 
 if ! ssh -o ConnectTimeout="${SSH_TIMEOUT}" -o BatchMode=yes -o StrictHostKeyChecking=yes \
-     "root@${NODE}" "echo ok" >/dev/null 2>&1; then
+  "root@${NODE}" "echo ok" >/dev/null 2>&1; then
   die "Cannot reach node '${NODE}' via SSH. Check connectivity and SSH key access. If the node is new and not yet in known_hosts, run: ssh-keyscan -H ${NODE} >> ~/.ssh/known_hosts"
 fi
 
@@ -150,17 +156,22 @@ trap 'rm -rf "${WORK_DIR}"' EXIT
 
 LOCAL_FIRMWARE="${WORK_DIR}/${FIRMWARE_FILENAME}"
 
-if [ "${FIRMWARE_URL}" = http://* ] || [ "${FIRMWARE_URL}" = https://* ]; then
+case "${FIRMWARE_URL}" in
+http://* | https://*)
   log "  Downloading firmware from ${FIRMWARE_URL}..."
   if ! curl -fsSL --output "${LOCAL_FIRMWARE}" "${FIRMWARE_URL}"; then
     die "Failed to download firmware from ${FIRMWARE_URL}"
   fi
-elif [ -f "${FIRMWARE_URL}" ]; then
-  log "  Copying local firmware file ${FIRMWARE_URL}..."
-  cp "${FIRMWARE_URL}" "${LOCAL_FIRMWARE}"
-else
-  die "Firmware source '${FIRMWARE_URL}' is not a valid URL or local file path."
-fi
+  ;;
+*)
+  if [ -f "${FIRMWARE_URL}" ]; then
+    log "  Copying local firmware file ${FIRMWARE_URL}..."
+    cp "${FIRMWARE_URL}" "${LOCAL_FIRMWARE}"
+  else
+    die "Firmware source '${FIRMWARE_URL}' is not a valid URL or local file path."
+  fi
+  ;;
+esac
 
 log "  Firmware image ready: ${LOCAL_FIRMWARE}"
 
@@ -232,7 +243,7 @@ fi
 log "Step 6: Uploading firmware to node /tmp/..."
 
 if ! scp -o ConnectTimeout="${SSH_TIMEOUT}" -o BatchMode=yes -o StrictHostKeyChecking=yes \
-     "${LOCAL_FIRMWARE}" "root@${NODE}:/tmp/${FIRMWARE_FILENAME}"; then
+  "${LOCAL_FIRMWARE}" "root@${NODE}:/tmp/${FIRMWARE_FILENAME}"; then
   die "Failed to upload firmware to node '${NODE}'."
 fi
 
@@ -297,7 +308,7 @@ while [ ${ELAPSED} -lt ${ONLINE_WAIT_SECONDS} ]; do
   # after reboot. accept-new adds the new key without prompting. It does NOT
   # accept a changed key for a host that is already in known_hosts.
   if ssh -o ConnectTimeout=5 -o BatchMode=yes -o StrictHostKeyChecking=accept-new \
-       "root@${NODE}" "echo ok" >/dev/null 2>&1; then
+    "root@${NODE}" "echo ok" >/dev/null 2>&1; then
     log "  Node is back online after ${ELAPSED}s."
     CAME_BACK=true
     break

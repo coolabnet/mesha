@@ -2,13 +2,13 @@
 set -eu
 
 case "$*" in
-  "call network.interface dump")
-    cat /fixtures/network.interface.dump.json
-    ;;
-  "call network.wireless status")
-    cat /fixtures/network.wireless.status.json
-    ;;
-  *)
-    exit 1
-    ;;
+"call network.interface dump")
+  cat /fixtures/network.interface.dump.json
+  ;;
+"call network.wireless status")
+  cat /fixtures/network.wireless.status.json
+  ;;
+*)
+  exit 1
+  ;;
 esac

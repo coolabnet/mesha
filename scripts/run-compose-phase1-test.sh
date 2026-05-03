@@ -16,36 +16,36 @@ WORK_DIR=""
 PROJECT_NAME="mesha-phase1-${RANDOM}"
 
 usage() {
-    cat <<EOF
+  cat <<EOF
 Usage: $0 [--keep-workspace]
 
 Options:
   --keep-workspace  Preserve the temporary workspace copy after the test
   -h, --help        Show this help
 EOF
-    exit 0
+  exit 0
 }
 
 for arg in "$@"; do
-    case "$arg" in
-        --keep-workspace)
-            KEEP_WORKSPACE=true
-            ;;
-        -h|--help)
-            usage
-            ;;
-        *)
-            echo "Unknown option: $arg" >&2
-            exit 1
-            ;;
-    esac
+  case "$arg" in
+  --keep-workspace)
+    KEEP_WORKSPACE=true
+    ;;
+  -h | --help)
+    usage
+    ;;
+  *)
+    echo "Unknown option: $arg" >&2
+    exit 1
+    ;;
+  esac
 done
 
 require_cmd() {
-    if ! command -v "$1" >/dev/null 2>&1; then
-        echo "Missing required command: $1" >&2
-        exit 1
-    fi
+  if ! command -v "$1" >/dev/null 2>&1; then
+    echo "Missing required command: $1" >&2
+    exit 1
+  fi
 }
 
 require_cmd docker
@@ -55,19 +55,19 @@ require_cmd python3
 require_cmd tar
 
 if ! docker compose version >/dev/null 2>&1; then
-    echo "Missing required Docker Compose plugin: 'docker compose'" >&2
-    exit 1
+  echo "Missing required Docker Compose plugin: 'docker compose'" >&2
+  exit 1
 fi
 
 cleanup() {
-    if [[ -n "${WORK_DIR:-}" ]]; then
-        MESHA_TEST_WORKSPACE_DIR="$WORK_DIR/workspace" \
-        MESHA_TEST_KEYS_DIR="$WORK_DIR/keys" \
-        docker compose -f "$COMPOSE_FILE" -p "$PROJECT_NAME" down -v --remove-orphans >/dev/null 2>&1 || true
-        if [[ "$KEEP_WORKSPACE" == false ]]; then
-            rm -rf "$WORK_DIR"
-        fi
+  if [[ -n ${WORK_DIR:-} ]]; then
+    MESHA_TEST_WORKSPACE_DIR="$WORK_DIR/workspace" \
+      MESHA_TEST_KEYS_DIR="$WORK_DIR/keys" \
+      docker compose -f "$COMPOSE_FILE" -p "$PROJECT_NAME" down -v --remove-orphans >/dev/null 2>&1 || true
+    if [[ $KEEP_WORKSPACE == false ]]; then
+      rm -rf "$WORK_DIR"
     fi
+  fi
 }
 trap cleanup EXIT
 
@@ -76,17 +76,17 @@ mkdir -p "$WORK_DIR/workspace" "$WORK_DIR/keys"
 echo "Phase 1 test workspace: $WORK_DIR/workspace"
 
 git -C "$REPO_ROOT" ls-files -z \
-    --cached \
-    --modified \
-    -- ':!:.openclaw/**' \
-       ':!:exports/**' \
-       ':!:logs/**' \
-       ':!:secrets/**' \
-       ':!:IDENTITY.md' \
-       ':!:USER.md' > "$WORK_DIR/workspace-files.zlist"
+  --cached \
+  --modified \
+  -- ':!:.openclaw/**' \
+  ':!:exports/**' \
+  ':!:logs/**' \
+  ':!:secrets/**' \
+  ':!:IDENTITY.md' \
+  ':!:USER.md' >"$WORK_DIR/workspace-files.zlist"
 
-(cd "$REPO_ROOT" && tar --null -T "$WORK_DIR/workspace-files.zlist" -cf -) | \
-    (cd "$WORK_DIR/workspace" && tar -xf -)
+(cd "$REPO_ROOT" && tar --null -T "$WORK_DIR/workspace-files.zlist" -cf -) |
+  (cd "$WORK_DIR/workspace" && tar -xf -)
 
 git -C "$WORK_DIR/workspace" init -q
 
@@ -102,9 +102,9 @@ export MESHA_TEST_KEYS_DIR="$WORK_DIR/keys"
 docker compose -f "$COMPOSE_FILE" -p "$PROJECT_NAME" down -v --remove-orphans >/dev/null 2>&1 || true
 compose_rc=0
 if ! docker compose -f "$COMPOSE_FILE" -p "$PROJECT_NAME" up --build --abort-on-container-exit --exit-code-from phase1-test phase1-test; then
-    compose_rc=$?
-    docker compose -f "$COMPOSE_FILE" -p "$PROJECT_NAME" logs --no-color phase1-test fake-thisnode fake-gateway >&2 || true
-    exit "$compose_rc"
+  compose_rc=$?
+  docker compose -f "$COMPOSE_FILE" -p "$PROJECT_NAME" logs --no-color phase1-test fake-thisnode fake-gateway >&2 || true
+  exit "$compose_rc"
 fi
 
 python3 - "$WORK_DIR/workspace" <<'PYEOF'

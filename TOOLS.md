@@ -30,6 +30,7 @@ All operations in this workspace are assigned to one of four risk classes. Risk 
 **Log required:** Optional. Snapshots may be written for audit purposes but are not required.
 
 **Examples:**
+
 - Read node inventory from `inventories/mesh-nodes.yaml`
 - Collect mesh topology and routing state (read-only SSH: `ubus call`, `uci show`, `ip route`, `iwinfo`)
 - Read router logs (`logread`)
@@ -60,6 +61,7 @@ All operations in this workspace are assigned to one of four risk classes. Risk 
 **Examples:**
 
 Infrastructure (approval needed):
+
 - Restart a single local service (`systemctl restart`, `docker restart`)
 - Restart a non-gateway router node when it is not the only path for critical sites
 - Clear a stuck process on a server
@@ -67,6 +69,7 @@ Infrastructure (approval needed):
 - Schedule a maintenance window (no execution, just scheduling)
 
 Documentation (no approval needed):
+
 - Update `inventories/` after an already-completed change
 - Update playbooks
 - Add a site note
@@ -76,6 +79,7 @@ Documentation (no approval needed):
 - Write an incident report
 
 **Agents authorized:**
+
 - Infrastructure Class B: `mesh-executor`, `server-executor` (with approval signal)
 - Documentation Class B: `knowledge-curator` (no approval required)
 
@@ -96,6 +100,7 @@ Documentation (no approval needed):
 **Examples:**
 
 Mesh network:
+
 - Apply a configuration change to an individual router node
 - Apply a node-level override to community settings
 - Change gateway selection for a site
@@ -103,6 +108,7 @@ Mesh network:
 - Apply a new community-profile setting to a subset of nodes (≤5 nodes)
 
 Local server:
+
 - Install a new approved service
 - Update an existing installed service
 - Change reverse proxy or local DNS configuration
@@ -132,6 +138,7 @@ Both require a prior approved plan from the corresponding planner agent.
 **Examples:**
 
 Mesh network:
+
 - Firmware rollout across multiple nodes
 - Community-wide LibreMesh profile change (`lime-community` update)
 - Change to gateway or backhaul configuration
@@ -140,6 +147,7 @@ Mesh network:
 - Removing a node from the mesh permanently
 
 Local server:
+
 - Restore from backup over live data
 - Migrating a service to a new host
 - Operating system or kernel update on a production server
@@ -279,12 +287,14 @@ When a maintainer approves a Class C or D action, the approval must:
 4. Be logged as part of the operation record
 
 Example (Class C approval):
-```
+
+```text
 Approve: install Nextcloud on server-ops per plan 2026-03-16-nextcloud-install
 ```
 
 Example (Class D approval):
-```
+
+```text
 Approve firmware rollout to ring-stable per plan 2026-03-16-firmware-d1. Change window: Sunday 22:00–23:00.
 ```
 

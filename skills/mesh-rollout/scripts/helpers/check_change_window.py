@@ -10,8 +10,8 @@ Usage:
     check_change_window.py <policy_file>
 """
 
-import sys
 import re
+import sys
 from datetime import datetime, timezone
 
 try:
@@ -40,49 +40,48 @@ def main():
     in_preferred = False
 
     for line in content.splitlines():
-        stripped = line.strip()
-        if re.match(r'\s+preferred:', line):
+        if re.match(r"\s+preferred:", line):
             in_preferred = True
             continue
         if in_preferred:
-            if re.match(r'\s+blackout_periods:', line):
+            if re.match(r"\s+blackout_periods:", line):
                 in_preferred = False
                 continue
-            if re.match(r'\s+-\s+description:', line):
+            if re.match(r"\s+-\s+description:", line):
                 if current:
                     windows.append(current)
                 current = {}
                 continue
-            days_match = re.match(r'\s+days:\s*\[([^\]]+)\]', line)
+            days_match = re.match(r"\s+days:\s*\[([^\]]+)\]", line)
             if days_match:
-                current['days'] = [d.strip().strip('"') for d in days_match.group(1).split(',')]
+                current["days"] = [d.strip().strip('"') for d in days_match.group(1).split(",")]
             start_match = re.match(r'\s+start_time:\s*"?(\d+:\d+)"?', line)
             if start_match:
-                current['start'] = start_match.group(1)
+                current["start"] = start_match.group(1)
             end_match = re.match(r'\s+end_time:\s*"?(\d+:\d+)"?', line)
             if end_match:
-                current['end'] = end_match.group(1)
+                current["end"] = end_match.group(1)
             tz_match = re.match(r'\s+timezone:\s*"?([^\s"]+)"?', line)
             if tz_match:
-                current['tz'] = tz_match.group(1)
+                current["tz"] = tz_match.group(1)
 
     if current:
         windows.append(current)
 
-    day_names = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday']
+    day_names = ["monday", "tuesday", "wednesday", "thursday", "friday", "saturday", "sunday"]
 
     for w in windows:
-        tz_name = w.get('tz', 'UTC')
+        tz_name = w.get("tz", "UTC")
         try:
             tz = get_tz(tz_name)
         except Exception:
             tz = timezone.utc
         now = datetime.now(tz)
         today = day_names[now.weekday()]
-        if today not in w.get('days', []):
+        if today not in w.get("days", []):
             continue
-        start_h, start_m = map(int, w.get('start', '00:00').split(':'))
-        end_h, end_m = map(int, w.get('end', '23:59').split(':'))
+        start_h, start_m = map(int, w.get("start", "00:00").split(":"))
+        end_h, end_m = map(int, w.get("end", "23:59").split(":"))
         now_minutes = now.hour * 60 + now.minute
         start_minutes = start_h * 60 + start_m
         end_minutes = end_h * 60 + end_m

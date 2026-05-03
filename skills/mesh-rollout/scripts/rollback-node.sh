@@ -64,7 +64,7 @@ usage() {
   echo "  backup-file.uci.gz    Path to the gzipped UCI config backup file"
   echo ""
   echo "The backup file should be a gzipped UCI export, created on the node with:"
-  echo "  ssh root@<node> \"uci export | gzip\" > config-backup-<node>-<date>.uci.gz"
+  echo '  ssh root@<node> "uci export | gzip" > config-backup-<node>-<date>.uci.gz'
   echo ""
   echo "Example:"
   echo "  $0 lm-associacao-salao backups/config-backup-lm-associacao-salao-20260316.uci.gz"
@@ -88,8 +88,8 @@ SSH_TIMEOUT=10
 log "Step 1: Verifying node '${NODE}' is reachable via SSH..."
 
 if ! ssh -o ConnectTimeout="${SSH_TIMEOUT}" -o BatchMode=yes \
-     -o StrictHostKeyChecking=yes \
-     "root@${NODE}" "echo ok" >/dev/null 2>&1; then
+  -o StrictHostKeyChecking=yes \
+  "root@${NODE}" "echo ok" >/dev/null 2>&1; then
   die "Cannot reach node '${NODE}' via SSH. Check connectivity and SSH key access."
 fi
 
@@ -174,7 +174,7 @@ confirm "Type YES to proceed with config rollback on ${NODE}:"
 log "Step 5: Uploading backup file to /tmp/ on node..."
 
 if ! scp -o ConnectTimeout="${SSH_TIMEOUT}" -o BatchMode=yes -o StrictHostKeyChecking=yes \
-     "${BACKUP_FILE}" "root@${NODE}:/tmp/${BACKUP_FILENAME}"; then
+  "${BACKUP_FILE}" "root@${NODE}:/tmp/${BACKUP_FILENAME}"; then
   die "Failed to upload backup file to node '${NODE}'."
 fi
 
@@ -240,8 +240,8 @@ sleep 5
 # Try to re-connect to the node. This is a config rollback (not firmware),
 # so the SSH host key does not change — use StrictHostKeyChecking=yes.
 if ssh -o ConnectTimeout=15 -o BatchMode=yes \
-     -o StrictHostKeyChecking=yes \
-     "root@${NODE}" "echo ok" >/dev/null 2>&1; then
+  -o StrictHostKeyChecking=yes \
+  "root@${NODE}" "echo ok" >/dev/null 2>&1; then
 
   # Verify a key config element — hostname and lime-community presence
   NEW_HOSTNAME="$(ssh -o ConnectTimeout="${SSH_TIMEOUT}" -o BatchMode=yes \

@@ -42,18 +42,22 @@ This phase is read-only. No changes are made to anything.
    - Serial number (optional but useful)
 
 2. Check if this hardware model is in the community hardware notes:
+
    ```bash
    grep -i "<model-name>" inventories/hardware-models.yaml
    ```
+
    Replace `<model-name>` with the actual model, for example: `grep -i "archer" inventories/hardware-models.yaml`
    If the model is not listed, add it to `inventories/hardware-models.yaml` before continuing.
 
 ### Step 2 — Identify the site
 
 1. Confirm the site name matches an entry in `inventories/sites.yaml`.
+
    ```bash
    grep -i "<site-name>" inventories/sites.yaml
    ```
+
 2. If the site is new, add it first:
    - Name (short identifier, no spaces, e.g., `escola-central`)
    - Full name (human-readable)
@@ -68,6 +72,7 @@ This phase is read-only. No changes are made to anything.
 2. Open a browser and go to `http://192.168.1.1` (or the default IP for this model).
 
 3. If the router already has LibreMesh/OpenWrt installed and you can access the LuCI web interface or SSH, confirm this by running:
+
    ```bash
    ssh root@192.168.1.1
    uname -a
@@ -106,6 +111,7 @@ Send the operator a message like:
 > "I want to add a new node. Site is [site-name], hardware is [model], location is [description]. Generate the onboarding config for me."
 
 The operator (using the `mesh-onboarding` skill) will:
+
 1. Look up the community profile from `desired-state/mesh/community-profile/lime-community`
 2. Generate a `lime-node` config with the correct community settings applied
 3. Propose a hostname following the community naming convention
@@ -232,12 +238,14 @@ Ask the operator:
 > "Check the health of escola-ap-01 and verify it is working correctly."
 
 The operator will use `mesh-readonly` to:
+
 - Confirm the node is in the topology
 - Check link quality to its neighbors
 - Verify the config matches the community profile
 - Flag any remaining drift
 
 Expected checks:
+
 - [ ] Node responds to SSH
 - [ ] Hostname is correct
 - [ ] Mesh interface is up (`bat0` or equivalent)
@@ -261,6 +269,7 @@ Once the health check passes, update the node status in `inventories/mesh-nodes.
 ### Step 14 — Document the physical installation
 
 Add a note to the node's inventory entry or to `inventories/sites.yaml` describing:
+
 - Mounting location (rooftop, pole height, indoor window)
 - Cable run length
 - Power source (wall outlet, PoE switch, solar)
@@ -270,6 +279,7 @@ Add a note to the node's inventory entry or to `inventories/sites.yaml` describi
 ### Step 15 — Write a brief maintenance log entry
 
 Ask the knowledge-curator skill (or write it yourself) to log:
+
 - Node added: hostname, site, model, date
 - Who approved the config
 - Any issues encountered during installation
@@ -293,20 +303,24 @@ Ask the knowledge-curator skill (or write it yourself) to log:
 ## Troubleshooting During Onboarding
 
 **Node does not come back after reboot:**
+
 - Wait 5 minutes. LibreMesh can take longer on first boot after a config change.
 - If still unreachable, connect directly via cable and check `logread`.
 
 **Node does not appear in the mesh:**
+
 - Check that the mesh SSID and encryption settings match the community profile.
 - Run `lime-config` again and reboot.
 - Check for typos in the `lime-node` and `lime-community` config.
 
 **Config drift is reported immediately after onboarding:**
+
 - The node may have `lime-autogen` values conflicting with your settings.
 - Check if there is a node override in `desired-state/mesh/node-overrides/` that should be applied.
 - Do not edit `lime-autogen` directly — it is regenerated automatically.
 
 **Wrong hostname:**
+
 - Change the hostname in `lime-node`, run `lime-config`, and reboot.
 - Update `inventories/mesh-nodes.yaml` to match.
 
@@ -333,6 +347,7 @@ This wipes all config. The node will come back with a clean LibreMesh/OpenWrt in
 If the node had an existing config before onboarding (e.g., it was already part of the mesh):
 
 1. Restore from the state snapshot you collected in Step 4:
+
    ```bash
    ssh root@<router-ip>
    # Re-apply the previous lime-node content (from your Step 4 notes)

@@ -24,7 +24,7 @@ set -euo pipefail
 # ---------------------------------------------------------------------------
 # Resolve repo root regardless of where the script is called from
 # ---------------------------------------------------------------------------
-REPO_ROOT="$( cd "$(dirname "$0")/.." && pwd )"
+REPO_ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 
 # ---------------------------------------------------------------------------
 # Colour helpers (ANSI codes)
@@ -36,11 +36,11 @@ CYAN='\033[0;36m'
 BOLD='\033[1m'
 RESET='\033[0m'
 
-pass()  { echo -e "  ${GREEN}[PASS]${RESET} $*"; }
-warn()  { echo -e "  ${YELLOW}[WARN]${RESET} $*"; }
-fail()  { echo -e "  ${RED}[FAIL]${RESET} $*"; }
-info()  { echo -e "  ${CYAN}[INFO]${RESET} $*"; }
-header(){ echo -e "\n${BOLD}${CYAN}── $* ──${RESET}"; }
+pass() { echo -e "  ${GREEN}[PASS]${RESET} $*"; }
+warn() { echo -e "  ${YELLOW}[WARN]${RESET} $*"; }
+fail() { echo -e "  ${RED}[FAIL]${RESET} $*"; }
+info() { echo -e "  ${CYAN}[INFO]${RESET} $*"; }
+header() { echo -e "\n${BOLD}${CYAN}── $* ──${RESET}"; }
 
 # ---------------------------------------------------------------------------
 # Flags
@@ -48,12 +48,12 @@ header(){ echo -e "\n${BOLD}${CYAN}── $* ──${RESET}"; }
 CHECK_ONLY=false
 for arg in "$@"; do
   case "$arg" in
-    --check-only) CHECK_ONLY=true ;;
-    -h|--help)
-      echo "Usage: $0 [--check-only]"
-      echo "  --check-only   Only check prerequisites; do not suggest installing"
-      exit 0
-      ;;
+  --check-only) CHECK_ONLY=true ;;
+  -h | --help)
+    echo "Usage: $0 [--check-only]"
+    echo "  --check-only   Only check prerequisites; do not suggest installing"
+    exit 0
+    ;;
   esac
 done
 
@@ -67,11 +67,11 @@ MISSING_OPTIONAL=()
 # Detect OS for install suggestions
 # ---------------------------------------------------------------------------
 detect_os() {
-  if [[ "$OSTYPE" == "darwin"* ]]; then
+  if [[ $OSTYPE == "darwin"* ]]; then
     echo "macos"
   elif grep -qi microsoft /proc/version 2>/dev/null; then
     echo "wsl"
-  elif [[ "$OSTYPE" == "linux-gnu"* ]]; then
+  elif [[ $OSTYPE == "linux-gnu"* ]]; then
     echo "linux"
   else
     echo "unknown"
@@ -93,12 +93,15 @@ suggest_install() {
   fi
 
   case "$OS" in
-    macos)
-      [[ -n "$macos_cmd" ]] && info "Install suggestion: ${macos_cmd}" ;;
-    linux|wsl)
-      [[ -n "$linux_cmd" ]] && info "Install suggestion: ${linux_cmd}" ;;
-    *)
-      info "Install $tool manually for your platform." ;;
+  macos)
+    [[ -n $macos_cmd ]] && info "Install suggestion: ${macos_cmd}"
+    ;;
+  linux | wsl)
+    [[ -n $linux_cmd ]] && info "Install suggestion: ${linux_cmd}"
+    ;;
+  *)
+    info "Install $tool manually for your platform."
+    ;;
   esac
 }
 
@@ -127,10 +130,10 @@ check_node() {
   header "Node.js (v22+ required)"
   if command -v node &>/dev/null; then
     local raw_ver
-    raw_ver="$(node --version 2>&1)"          # e.g. v22.3.0
+    raw_ver="$(node --version 2>&1)" # e.g. v22.3.0
     local major
     major="$(echo "$raw_ver" | sed 's/v//' | cut -d. -f1)"
-    if [[ "$major" -ge 22 ]]; then
+    if [[ $major -ge 22 ]]; then
       pass "node $raw_ver"
     else
       fail "node $raw_ver found — v22+ required"
@@ -233,13 +236,13 @@ check_docker() {
     if ! docker info &>/dev/null; then
       warn "docker is installed but the daemon is not reachable."
       warn "Make sure Docker is running, or that your user is in the 'docker' group."
-      warn "  sudo usermod -aG docker \$USER  (then log out and back in)"
+      warn '  sudo usermod -aG docker $USER  (then log out and back in)'
     fi
   else
     warn "docker not found (strongly recommended for local services)"
     MISSING_OPTIONAL+=("docker")
     suggest_install "docker" \
-      "sudo apt install -y docker.io && sudo usermod -aG docker \$USER" \
+      'sudo apt install -y docker.io && sudo usermod -aG docker $USER' \
       "Install Docker Desktop: https://www.docker.com/products/docker-desktop/"
   fi
 }
@@ -258,7 +261,7 @@ check_openclaw() {
     fi
   done
 
-  if [[ -n "$oc_cmd" ]]; then
+  if [[ -n $oc_cmd ]]; then
     local ver
     ver="$("$oc_cmd" --version 2>&1 || true)"
     pass "OpenClaw: $ver"
@@ -343,7 +346,7 @@ print_summary() {
 # ---------------------------------------------------------------------------
 echo -e "\n${BOLD}${CYAN}Mesha Community Infrastructure Operator — Bootstrap${RESET}"
 echo -e "Repo root: ${REPO_ROOT}"
-[[ "$CHECK_ONLY" == true ]] && echo -e "Mode: ${YELLOW}check-only (no changes)${RESET}"
+[[ $CHECK_ONLY == true ]] && echo -e "Mode: ${YELLOW}check-only (no changes)${RESET}"
 
 check_git
 check_node

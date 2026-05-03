@@ -137,7 +137,9 @@ This setup should be implemented as a **single OpenClaw workspace** with multipl
 ### Main conversational entrypoint
 
 #### `community-ops-frontdesk`
+
 Responsibilities:
+
 - receive requests from chat channels
 - classify the request
 - ask clarifying questions if needed
@@ -150,14 +152,18 @@ This agent must **not** directly perform risky router or server changes.
 ### Specialist agents
 
 #### `mesh-planner`
+
 Responsibilities:
+
 - convert user requests into structured maintenance plans
 - determine whether a task is read-only, low-risk, or high-risk
 - request approval when needed
 - choose the right mesh skill chain
 
 #### `mesh-collector`
+
 Responsibilities:
+
 - read node inventory
 - read topology and routing state
 - collect health indicators and logs
@@ -165,7 +171,9 @@ Responsibilities:
 - produce normalized snapshots for the planner
 
 #### `mesh-executor`
+
 Responsibilities:
+
 - perform approved changes only
 - apply safe config updates
 - stage upgrades
@@ -173,13 +181,17 @@ Responsibilities:
 - rollback when validation fails
 
 #### `server-planner`
+
 Responsibilities:
+
 - turn local-server requests into structured plans
 - determine dependencies, risk, and rollback path
 - ensure local/offline assumptions are respected
 
 #### `server-executor`
+
 Responsibilities:
+
 - perform approved service installs and updates
 - configure local domains / reverse proxy
 - manage containers or services
@@ -187,7 +199,9 @@ Responsibilities:
 - rollback on failure
 
 #### `knowledge-curator`
+
 Responsibilities:
+
 - maintain inventory and documentation
 - write playbooks
 - keep incident notes
@@ -201,12 +215,15 @@ Responsibilities:
 ### Split the system into three layers
 
 #### 1. Conversation layer
+
 Handles chat, voice, summarization, translation, routing, and explanations.
 
 #### 2. Planning layer
+
 Turns intent into structured plans, risk levels, and execution steps.
 
 #### 3. Execution layer
+
 Performs narrow, approved actions through trusted skills and scripts.
 
 **Rule:** the conversation layer never directly shells into routers or servers for risky work.
@@ -576,13 +593,16 @@ If available in the chosen firmware or derivative, a guided first-boot flow shou
 Below is the recommended minimum skill catalog.
 
 ### 1. `community-ops-frontdesk`
+
 Purpose:
+
 - understand user requests
 - route work
 - explain results simply
 - produce short and voice-friendly summaries
 
 Must do:
+
 - classify intent
 - detect urgency
 - choose specialist
@@ -590,13 +610,17 @@ Must do:
 - maintain calm, community-friendly tone
 
 Must not do:
+
 - perform high-risk infrastructure changes directly
 
 ### 2. `mesh-readonly`
+
 Purpose:
+
 - inspect the mesh safely
 
 Must do:
+
 - inventory nodes
 - inspect topology
 - collect link health
@@ -605,15 +629,19 @@ Must do:
 - summarize findings in simple language
 
 Outputs:
+
 - normalized snapshots
 - human summary
 - recommended next steps
 
 ### 3. `mesh-rollout`
+
 Purpose:
+
 - perform approved mesh changes safely
 
 Must do:
+
 - create a plan before execution
 - perform canary-first updates
 - validate after each stage
@@ -622,14 +650,18 @@ Must do:
 - write a maintenance log
 
 Must not do:
+
 - mass upgrades without policy and approval
 - hidden changes
 
 ### 4. `mesh-onboarding`
+
 Purpose:
+
 - help add new routers and sites
 
 Must do:
+
 - gather site metadata
 - generate checklist
 - prepare community and node-level settings
@@ -637,10 +669,13 @@ Must do:
 - verify after installation
 
 ### 5. `server-readonly`
+
 Purpose:
+
 - inspect local hosts and services safely
 
 Must do:
+
 - collect host health
 - check storage and memory
 - test service reachability
@@ -648,10 +683,13 @@ Must do:
 - confirm offline behavior where possible
 
 ### 6. `server-services`
+
 Purpose:
+
 - install and manage approved local services
 
 Must do:
+
 - use approved recipes only
 - verify prerequisites
 - configure local domain access
@@ -659,10 +697,13 @@ Must do:
 - support backup and restore hooks
 
 ### 7. `incident-triage`
+
 Purpose:
+
 - respond to outages or reported issues
 
 Must do:
+
 - identify affected scope
 - propose likely causes
 - ask the smallest useful set of questions
@@ -670,10 +711,13 @@ Must do:
 - escalate when needed
 
 ### 8. `knowledge-curator`
+
 Purpose:
+
 - keep the project durable and teachable
 
 Must do:
+
 - update inventories
 - update known issues
 - write playbooks
@@ -681,10 +725,13 @@ Must do:
 - turn repeated incidents into reusable docs
 
 ### 9. `voice-friendly-response`
+
 Purpose:
+
 - adapt technical output to audio or low-literacy contexts
 
 Must do:
+
 - shorten dense explanations
 - use numbered field steps
 - avoid jargon where possible
@@ -699,7 +746,9 @@ This part is non-negotiable.
 ### Risk classes
 
 #### Class A — Read-only
+
 Examples:
+
 - inspect status
 - summarize issues
 - compare config drift
@@ -708,7 +757,9 @@ Examples:
 Approval required: no
 
 #### Class B — Low-risk write
+
 Examples:
+
 - restart a service
 - update documentation
 - create a draft config proposal
@@ -717,7 +768,9 @@ Examples:
 Approval required: usually yes for infrastructure, not always for documentation
 
 #### Class C — Medium-risk infrastructure change
+
 Examples:
+
 - change router settings
 - apply node config
 - install or update a local service
@@ -727,7 +780,9 @@ Approval required: yes
 Rollback required: yes
 
 #### Class D — High-risk or many-host change
+
 Examples:
+
 - firmware rollout
 - gateway changes
 - community-wide config changes
@@ -757,21 +812,27 @@ Canary required: yes
 This project should be easy to copy to a new host.
 
 ### Rule 1: everything project-specific lives in the workspace repo
+
 Do not bury critical logic in one person’s home directory without documentation.
 
 ### Rule 2: one standard bootstrap path
+
 All maintainers should follow the same install steps.
 
 ### Rule 3: one repo, many hosts
+
 The same repo should be usable on:
+
 - Linux
 - macOS
 - Windows via WSL2
 
 ### Rule 4: environment-specific data is separated
+
 Per-host secrets and machine-specific configuration must not be hardcoded into committed files.
 
 ### Rule 5: scripts must exist for all major host types
+
 The project should eventually include:
 
 - `scripts/bootstrap.sh`
@@ -781,6 +842,7 @@ The project should eventually include:
 - `scripts/activate-workspace.sh`
 
 ### Rule 6: document the minimum viable field path
+
 A maintainer with a fresh laptop should be able to:
 
 - install prerequisites
@@ -802,7 +864,9 @@ Do not start by giving the agent full autonomous control.
 > **Current status:** All three phases are complete. See `PROGRESS.md` for details and `TASKS.md` for any open follow-up work.
 
 ### Phase 1 — Safe visibility ✅ COMPLETED
+
 Build first:
+
 - workspace structure
 - frontdesk agent
 - mesh-readonly skill
@@ -813,10 +877,13 @@ Build first:
 - inventories and desired-state stubs
 
 Goal:
+
 - the system can explain the network and the server before it changes anything
 
 ### Phase 2 — Approved low-risk operations ✅ COMPLETED
+
 Build next:
+
 - service restart flows
 - approved server install recipes
 - simple node onboarding helper
@@ -824,10 +891,13 @@ Build next:
 - maintenance logs
 
 Goal:
+
 - the system can help safely with scoped operations
 
 ### Phase 3 — Rollouts ✅ COMPLETED
+
 Build after that:
+
 - canary firmware upgrades
 - staged multi-node changes
 - rollback hooks
@@ -835,6 +905,7 @@ Build after that:
 - stronger dashboards and analytics
 
 Goal:
+
 - the system can orchestrate controlled infrastructure change
 
 ---

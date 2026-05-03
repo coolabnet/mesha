@@ -1,6 +1,5 @@
 # inventories/sites.yaml
 # Physical sites in the community where mesh nodes are installed.
-#
 # Fields:
 #   name        — matches the site field in mesh-nodes.yaml
 #   location    — human-readable street or neighborhood description
@@ -29,3 +28,18 @@ sites:
       Community hub with active mesh network. Used mainly for weekly meetings (Thursdays 19h).
       UPS provides about 30 min backup. Key held by Marcos and one deputy. Dense mesh topology
       with 22+ originators and multiple relay paths. Basement node provides full-building coverage.
+
+  - name: "Escola Municipal"
+    location: "Escola Municipal — Telhado (rooftop)"
+    coordinates: null  # TODO: on-site verification needed
+    nodes:
+      - "Escola Municipal - Telhado"
+    contact:
+      name: "Direção da Escola"
+      phone: "+55 61 99999-0000"  # TODO: confirm actual contact on-site
+    power: "grid (school mains)"
+    notes: >
+      School rooftop gateway site. Location and contact details need on-site verification.
+      Gateway node (CPE510 v3) provides fiber uplink for the mesh network.
+      Contact school administration for rooftop access during business hours.
+      Fiber uplink provided by Prefeitura Municipal (see gateways.yaml).
