@@ -1,0 +1,77 @@
+name: QEMU Integration Test
+
+on:
+  pull_request:
+    paths:
+      - 'adapters/mesh/**'
+      - 'skills/mesh-readonly/**'
+      - 'skills/mesh-rollout/**'
+      - 'scripts/qemu-testbed/**'
+      - 'tests/qemu/**'
+      - 'testbed/config/**'
+  schedule:
+    - cron: '0 3 * * *'  # nightly at 03:00 UTC
+  workflow_dispatch:  # manual trigger
+
+jobs:
+  qemu-test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install QEMU and dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends \
+            qemu-system-x86 qemu-utils cmake g++ pkg-config \
+            libnl-3-dev libnl-genl-3-dev iproute2 \
+            python3-yaml jq
+
+      - name: Cache firmware image
+        uses: actions/cache@v4
+        with:
+          path: testbed/images/
+          key: libremesh-x86-64-${{ hashFiles('scripts/qemu-testbed/build-libremesh-image.sh', 'docker/qemu-builder/Dockerfile', 'scripts/qemu-testbed/libremesh-testbed.defconfig') }}
+
+      - name: Build firmware (if not cached)
+        run: |
+          if [ ! -f testbed/images/*.img.gz ]; then
+            echo "::group::Building LibreMesh firmware (2-4 hours)..."
+            bash scripts/qemu-testbed/build-libremesh-image.sh
+            echo "::endgroup::"
+          else
+            echo "Using cached firmware image"
+          fi
+
+      - name: Start test bed
+        run: |
+          sudo bash scripts/qemu-testbed/start-vwifi.sh
+          sudo bash scripts/qemu-testbed/start-mesh.sh
+
+      - name: Configure VMs
+        run: bash scripts/qemu-testbed/configure-vms.sh
+        timeout-minutes: 10
+
+      - name: Run integration tests
+        run: bash tests/qemu/run-all.sh
+        timeout-minutes: 15
+        env:
+          CONVERGE_WAIT: "45"
+
+      - name: Collect logs
+        if: always()
+        run: bash scripts/qemu-testbed/collect-logs.sh
+
+      - name: Upload logs
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: qemu-test-logs
+          path: testbed/run/logs/
+          retention-days: 7
+
+      - name: Stop test bed
+        if: always()
+        run: sudo bash scripts/qemu-testbed/stop-mesh.sh
