@@ -1,0 +1,10 @@
+run/
+images/*.img
+images/*.img.gz
+images/*.tar.gz
+images/*.bin
+bin/
+ssh-keys/
+*.qcow2
+build-inputs.hash
+.cache-version
