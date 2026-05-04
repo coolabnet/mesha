@@ -9,6 +9,16 @@ echo "# Config Drift Tests"
 tap_plan 2
 
 GATEWAY=$(get_gateway)
+DRIFT_CLEANUP_DONE=false
+
+cleanup_drift() {
+    $DRIFT_CLEANUP_DONE && return
+    DRIFT_CLEANUP_DONE=true
+    # Restore original channel
+    [ -n "${ORIGINAL_CHANNEL:-}" ] && \
+        ssh_vm "$GATEWAY" "uci set wireless.radio0.channel='${ORIGINAL_CHANNEL}'; uci commit wireless" 2>/dev/null || true
+}
+trap cleanup_drift EXIT INT TERM
 
 # Test 1: UCI write and read-back succeeds
 echo "# Testing UCI write/read..."
