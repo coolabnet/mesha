@@ -41,17 +41,17 @@ if [[ ! -f "$ADAPTER_SCRIPT" ]]; then
 fi
 
 # ─── Resolve SSH config ───
-SSH_CONFIG="${TESTBED_CONFIG}/ssh-config.resolved"
-if [[ ! -f "$SSH_CONFIG" ]]; then
-    # Fallback: use template with live sed substitution
-    SSH_CONFIG="${TESTBED_CONFIG}/ssh-config"
-fi
-
-# Resolve SSH key path
+# Replace __REPO_ROOT__ placeholder with absolute path
 SSH_KEY="${REPO_ROOT_REAL}/testbed/run/ssh-keys/id_ed25519"
-SSH_KEY_ARG=""
-if [[ -f "${SSH_KEY}" ]]; then
-    SSH_KEY_ARG="-i ${SSH_KEY}"
+SSH_CONFIG_RESOLVED="${TESTBED_CONFIG}/ssh-config.resolved"
+SSH_CONFIG_TEMPLATE="${TESTBED_CONFIG}/ssh-config"
+
+if [[ -f "$SSH_CONFIG_RESOLVED" ]]; then
+    SSH_CONFIG="$SSH_CONFIG_RESOLVED"
+else
+    # Generate resolved config from template
+    SSH_CONFIG=$(mktemp /tmp/mesha-ssh-config.XXXXXX)
+    sed "s|__REPO_ROOT__|${REPO_ROOT_REAL}|g" "$SSH_CONFIG_TEMPLATE" > "$SSH_CONFIG"
 fi
 
 # ─── Backup and symlink function ───
@@ -76,7 +76,7 @@ backup_and_link() {
         mkdir -p "$BACKUP_DIR"
         if [[ ! -e "${BACKUP_DIR}/${name}" ]]; then
             mv "$target" "${BACKUP_DIR}/${name}"
-            echo "  Backed up ${name}/ to ${BACKUP_DIR}/${name}"
+            echo "  Backed up ${name}/ to ${BACKUP_DIR}/${name}" >&2
         else
             # Backup already exists — just remove current (already backed up)
             rm -rf "$target"
@@ -90,7 +90,7 @@ backup_and_link() {
 
     # Create symlink
     ln -s "$source" "$target"
-    echo "  Linked ${name}/ -> testbed/config/${name}/"
+    echo "  Linked ${name}/ -> testbed/config/${name}/" >&2
 }
 
 # ─── Restore function ───
@@ -106,45 +106,57 @@ restore() {
     # Restore backup if it exists
     if [[ -e "${BACKUP_DIR}/${name}" ]]; then
         mv "${BACKUP_DIR}/${name}" "$target"
-        echo "  Restored ${name}/ from backup"
+        echo "  Restored ${name}/ from backup" >&2
     fi
 }
 
 cleanup() {
-    echo ""
-    echo "Restoring original inventories/ and desired-state/..."
+    echo "" >&2
+    echo "Restoring original inventories/ and desired-state/..." >&2
     restore "inventories"
     restore "desired-state"
     rmdir "$BACKUP_DIR" 2>/dev/null || true
-    echo "Done."
+    # Clean up SSH wrapper and resolved config
+    rm -rf "${SSH_WRAPPER_DIR:-}" 2>/dev/null || true
+    # Clean temp ssh config if we created one
+    case "${SSH_CONFIG:-}" in /tmp/mesha-ssh-config.*) rm -f "$SSH_CONFIG" ;; esac
+    echo "Done." >&2
 }
 
 trap cleanup EXIT
 
 # ─── Set up symlinks ───
-echo "Setting up testbed adapter environment..."
+echo "Setting up testbed adapter environment..." >&2
 backup_and_link "inventories"
 backup_and_link "desired-state"
 
 # ─── Export environment variables for adapter scripts ───
 export REPO_ROOT="$TESTBED_CONFIG"
 export WORKSPACE_ROOT="$TESTBED_CONFIG"
-# Use -F for isolated SSH config (no modification to user's ~/.ssh/config)
-# Include -i for SSH key so adapter scripts that call ssh directly get the key
-if [[ -f "${SSH_CONFIG}" ]]; then
-    export GIT_SSH_COMMAND="ssh -F ${SSH_CONFIG} ${SSH_KEY_ARG}"
-    export SSH_CONFIG_PATH="${SSH_CONFIG}"
-else
-    export GIT_SSH_COMMAND="ssh -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null ${SSH_KEY_ARG}"
-fi
+export SSH_CONFIG_PATH="${SSH_CONFIG}"
 export SSH_KEY="${SSH_KEY}"
+# GIT_SSH_COMMAND works for git-based adapters
+export GIT_SSH_COMMAND="ssh -F ${SSH_CONFIG}"
+# For adapter scripts that call ssh directly, create a wrapper
+SSH_WRAPPER_DIR=$(mktemp -d /tmp/mesha-ssh-wrapper.XXXXXX)
+cat > "${SSH_WRAPPER_DIR}/ssh" << 'WRAPPER'
+#!/usr/bin/env bash
+# SSH wrapper that injects testbed config
+if [ -n "${SSH_CONFIG_PATH:-}" ] && [ -f "${SSH_CONFIG_PATH}" ]; then
+    exec /usr/bin/ssh -F "${SSH_CONFIG_PATH}" "$@"
+else
+    exec /usr/bin/ssh "$@"
+fi
+WRAPPER
+chmod +x "${SSH_WRAPPER_DIR}/ssh"
+export PATH="${SSH_WRAPPER_DIR}:${PATH}"
 
-echo ""
-echo "Running adapter: ${ADAPTER_SCRIPT} ${ADAPTER_ARGS[*]}"
-echo "  REPO_ROOT=${REPO_ROOT}"
-echo "  WORKSPACE_ROOT=${WORKSPACE_ROOT}"
-echo "  GIT_SSH_COMMAND=${GIT_SSH_COMMAND}"
-echo ""
+echo "" >&2
+echo "Running adapter: ${ADAPTER_SCRIPT} ${ADAPTER_ARGS[*]}" >&2
+echo "  REPO_ROOT=${REPO_ROOT}" >&2
+echo "  WORKSPACE_ROOT=${WORKSPACE_ROOT}" >&2
+echo "  GIT_SSH_COMMAND=${GIT_SSH_COMMAND}" >&2
+echo "" >&2
 
 # ─── Run the adapter script ───
 "$ADAPTER_SCRIPT" "${ADAPTER_ARGS[@]}"
