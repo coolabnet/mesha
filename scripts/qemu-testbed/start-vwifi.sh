@@ -14,6 +14,20 @@ VWIFI_PORT="${VWIFI_PORT:-8212}"  # TCP primary port
 
 mkdir -p "${VWIFI_DIR}" "${REPO_ROOT}/testbed/run"
 
+# ─── Cleanup handler ────────────────────────────────────────────────────────────
+cleanup_vwifi() {
+    if [ -f "$PID_FILE" ]; then
+        local pid
+        pid=$(cat "$PID_FILE")
+        if kill -0 "$pid" 2>/dev/null; then
+            echo "Cleaning up vwifi-server (PID $pid)..."
+            kill "$pid" 2>/dev/null || true
+        fi
+        rm -f "$PID_FILE"
+    fi
+}
+trap cleanup_vwifi EXIT INT TERM HUP
+
 # Check if already running
 if [ -f "$PID_FILE" ] && kill -0 "$(cat "$PID_FILE")" 2>/dev/null; then
     echo "vwifi-server already running (PID $(cat "$PID_FILE"))"

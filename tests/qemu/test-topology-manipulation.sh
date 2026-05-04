@@ -77,8 +77,43 @@ if [ -n "$NODE3_PID" ]; then
     fi
 
     # Restart node-3 (restart QEMU with same overlay)
-    # For simplicity, note that this requires start-mesh.sh support for single-VM restart
-    echo "  # Note: node-3 stopped. Restart with: stop-mesh.sh && start-mesh.sh" >&2
+    echo "  # Restarting node-3..."
+    NODE3_OVERLAY="${REPO_ROOT}/testbed/run/node-3.qcow2"
+    if [ -f "$NODE3_OVERLAY" ] && command -v qemu-system-x86_64 &>/dev/null; then
+        # Detect acceleration (reuse same as start-mesh.sh)
+        ACCEL_FLAG="-accel tcg"
+        CPU_FLAG="-cpu qemu64"
+        [ -w /dev/kvm ] && ACCEL_FLAG="-enable-kvm" && CPU_FLAG="-cpu host"
+
+        # Read topology for tap/mac/ram (fallback to defaults)
+        TAP_IDX=2
+        MAC_MESH="52:54:00:00:00:03"
+        MAC_WAN="52:54:00:01:00:03"
+        RAM=256
+        if [ -f "${REPO_ROOT}/testbed/config/topology.yaml" ]; then
+            _ti=$(awk '/^    - id: 3/,/^    - id:/ { print }' "${REPO_ROOT}/testbed/config/topology.yaml" | grep 'tap_index:' | head -1 | awk '{print $2}')
+            _mm=$(awk '/^    - id: 3/,/^    - id:/ { print }' "${REPO_ROOT}/testbed/config/topology.yaml" | grep 'mac_mesh:' | head -1 | awk '{print $2}' | tr -d '"')
+            [ -n "$_ti" ] && TAP_IDX="$_ti"
+            [ -n "$_mm" ] && MAC_MESH="$_mm"
+        fi
+
+        TAP_PREFIX="mesha-tap"
+        _tp=$(grep 'tap_prefix:' "${REPO_ROOT}/testbed/config/topology.yaml" 2>/dev/null | head -1 | awk '{print $2}' | tr -d '"')
+        [ -n "$_tp" ] && TAP_PREFIX="$_tp"
+
+        qemu-system-x86_64 \
+            ${ACCEL_FLAG} -M q35 ${CPU_FLAG} -smp 2 -m "${RAM}M" -nographic \
+            -drive "file=${NODE3_OVERLAY},format=qcow2" \
+            -device "virtio-net-pci,netdev=mesh0,mac=${MAC_MESH}" \
+            -netdev "tap,id=mesh0,ifname=${TAP_PREFIX}${TAP_IDX},script=no,downscript=no" \
+            -device "virtio-net-pci,netdev=wan0,mac=${MAC_WAN}" \
+            -netdev user,id=wan0 \
+            -serial "file:${REPO_ROOT}/testbed/run/logs/node-3.serial.log" &
+        echo "$!" > "${REPO_ROOT}/testbed/run/node-3.pid"
+        echo "  # node-3 restarted (PID $(cat "${REPO_ROOT}/testbed/run/node-3.pid"))"
+    else
+        echo "  # WARN: Could not restart node-3 automatically. Run stop-mesh.sh && start-mesh.sh" >&2
+    fi
 else
     skip "test_node_removal_detected" "node-3 PID not found"
 fi

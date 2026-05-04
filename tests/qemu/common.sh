@@ -79,15 +79,31 @@ wait_for_ssh() {
     done
 }
 
-# Wait until a JSON field meets a condition
+# TCG timeout multiplier support
+TIMEOUT_MULTIPLIER="${QEMU_TIMEOUT_MULTIPLIER:-1}"
+
+# Wait until a JSON field meets a condition (polls in a loop)
 wait_until_json_gte() {
     local json="$1"
     local field="$2"
     local threshold="$3"
     local timeout="${4:-60}"
-    local value
-    value=$(echo "$json" | python3 -c "import sys,json; print(json.load(sys.stdin)${field})" 2>/dev/null) || return 1
-    [ "$value" -ge "$threshold" ] 2>/dev/null
+    timeout=$((timeout * TIMEOUT_MULTIPLIER))
+    local start
+    start=$(date +%s)
+    while true; do
+        local value
+        value=$(echo "$json" | python3 -c "import sys,json; print(json.load(sys.stdin)${field})" 2>/dev/null) || return 1
+        if [ "$value" -ge "$threshold" ] 2>/dev/null; then
+            return 0
+        fi
+        local now
+        now=$(date +%s)
+        if (( now - start >= timeout )); then
+            return 1
+        fi
+        sleep 5
+    done
 }
 
 # Wait for BMX7 convergence on a node

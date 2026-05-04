@@ -114,6 +114,55 @@ sudo bash scripts/qemu-testbed/stop-mesh.sh
 sudo bash scripts/qemu-testbed/start-mesh.sh
 ```
 
+## vwifi-ctrl issues
+
+**Symptoms:** `vwifi-ctrl` commands fail or topology changes not taking effect
+
+**Checks:**
+
+```bash
+# Verify vwifi-ctrl binary exists
+ls -la testbed/bin/vwifi-ctrl
+
+# Check vwifi-server is running
+cat testbed/run/vwifi-server.pid
+kill -0 $(cat testbed/run/vwifi-server.pid)
+
+# Test basic connectivity
+testbed/bin/vwifi-ctrl list    # list all connected VMs
+testbed/bin/vwifi-ctrl get 1   # get coordinates of node 1
+
+# Set coordinates and verify
+testbed/bin/vwifi-ctrl set 1 0 0 0
+testbed/bin/vwifi-ctrl get 1
+
+# Enable/disable packet loss simulation
+testbed/bin/vwifi-ctrl loss yes
+testbed/bin/vwifi-ctrl loss no
+```
+
+**Common causes:**
+
+- vwifi-server not running — run `bash scripts/qemu-testbed/start-vwifi.sh`
+- Wrong control port — check `VWIFI_PORT` matches vwifi-server's TCP port
+- vwifi-client not connected on VMs — check `uci show vwifi` inside a VM
+
+## Reset mesh state
+
+To completely reset the testbed (stop VMs, clean overlays, restart fresh):
+
+```bash
+# Full reset using stop-mesh.sh
+sudo bash scripts/qemu-testbed/stop-mesh.sh
+
+# Then restart
+sudo bash scripts/qemu-testbed/start-mesh.sh
+bash scripts/qemu-testbed/configure-vms.sh
+```
+
+This stops all QEMU VMs, vwifi-server, removes TAP devices and bridge,
+deletes qcow2 overlays, and removes the lock file.
+
 ## Lock file stuck
 
 **Symptoms:** "Test bed already running" but no VMs

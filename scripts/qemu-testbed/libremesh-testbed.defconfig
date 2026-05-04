@@ -15,4 +15,4 @@ CONFIG_PACKAGE_netcat=y
 CONFIG_PACKAGE_iw=y
 CONFIG_PACKAGE_lime-system=y
 CONFIG_PACKAGE_lime-proto-bmx7=y
-CONFIG_PACKAGE_ccache=y
+CONFIG_CCACHE=y

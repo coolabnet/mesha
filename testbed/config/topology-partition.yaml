@@ -1,4 +1,5 @@
-# Star topology: all nodes connect through node-1 (gateway hub)
+# Partition topology: starts as full mesh, intended for partition testing
+# All nodes connected initially; vwifi-ctrl can partition by setting distant coordinates
 mesh:
   nodes:
     - id: 1
@@ -47,10 +48,5 @@ mesh:
     tap_prefix: "mesha-tap"
     thisnode_alias: "lm-testbed-node-1"
   topology:
-    type: star
-    description: "all nodes through gateway hub"
-  links:
-    - from: 1
-      to: 2
-    - from: 1
-      to: 3
+    type: full-mesh
+    description: "Full mesh for partition testing"

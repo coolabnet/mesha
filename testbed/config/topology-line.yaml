@@ -50,3 +50,8 @@ mesh:
   topology:
     type: line
     description: "node-1 → node-2 → node-3 (multi-hop)"
+  links:
+    - from: 1
+      to: 2
+    - from: 2
+      to: 3

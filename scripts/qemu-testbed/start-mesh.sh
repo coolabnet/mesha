@@ -113,9 +113,10 @@ get_node_field() {
     local node_id="$1"
     local field="$2"
     # Parse the YAML section for the matching node id
+    # Use word-boundary-aware matching to avoid e.g. "ip:" matching "bridge_ip:"
     awk -v id="$node_id" -v fld="$field" '
         /^    - id:/ { current_id=$3 }
-        $0 ~ fld && current_id == id { gsub(/"/, "", $2); print $2; exit }
+        current_id == id && $0 ~ "(^| )(" fld ")" { gsub(/"/, "", $2); print $2; exit }
     ' "$TOPOLOGY_FILE"
 }
 

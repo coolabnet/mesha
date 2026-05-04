@@ -34,14 +34,14 @@ parse_topology() {
             *"hostname:"*)
                 NODE_HOSTNAMES+=("$(echo "$line" | awk -F': ' '{print $2}' | tr -d '"')")
                 ;;
-            *"ip:"*)
+            *" ip:"*)
                 NODE_IPS+=("$(echo "$line" | awk -F': ' '{print $2}' | tr -d '"')")
                 ;;
         esac
     done < <(awk '
         /^    - id:/ { in_node=1 }
         in_node && /hostname:/ { print }
-        in_node && /ip:/ { print; in_node=0 }
+        in_node && / ip:/ { print; in_node=0 }
     ' "$TOPOLOGY_FILE")
 }
 
@@ -51,7 +51,7 @@ ssh_vm() {
     shift
     ssh -o StrictHostKeyChecking=no \
         -o UserKnownHostsFile=/dev/null \
-        -o BatchMode=yes \
+        -o BatchMode=no \
         -o ConnectTimeout="${SSH_BASE_TIMEOUT}" \
         "root@${ip}" "$@"
 }
@@ -61,6 +61,7 @@ ssh_vm_with_key() {
     shift
     ssh -o StrictHostKeyChecking=no \
         -o UserKnownHostsFile=/dev/null \
+        -o BatchMode=yes \
         -i "${SSH_KEY}" \
         -o ConnectTimeout="${SSH_BASE_TIMEOUT}" \
         "root@${ip}" "$@"
@@ -123,20 +124,25 @@ configure_vm() {
         uci commit vwifi
     " || true
 
-    # Set lime-community UCI config
+    # Set lime-community UCI config (create sections with types first)
     ssh_vm "$ip" "
-        uci set lime-community.ap_ssid='Mesha-Testbed'
-        uci set lime-community.apname='Mesha-Testbed'
+        uci set lime-community.wifi=wifi
+        uci set lime-community.wifi.ap_ssid='Mesha-Testbed'
+        uci set lime-community.wifi.apname='Mesha-Testbed'
         uci set lime-community.wifi.mode='adhoc'
         uci set lime-community.wifi.channel='11'
-        uci set lime-community.protocols='bmx7'
-        uci set lime-community.domain='testbed.mesh'
+        uci set lime-community.network=network
+        uci set lime-community.network.protocols='bmx7'
+        uci set lime-community.network.domain='testbed.mesh'
+        uci set lime-community.system=system
+        uci set lime-community.system.community_name='Mesha-Testbed'
         uci commit lime-community
     " || true
 
-    # Set lime-node UCI config
+    # Set lime-node UCI config (create section with type first)
     ssh_vm "$ip" "
-        uci set lime-node.main_ipv4_address='${ip}/16'
+        uci set lime-node.network=network
+        uci set lime-node.network.main_ipv4_address='${ip}/16'
         uci commit lime-node
     " || true
 

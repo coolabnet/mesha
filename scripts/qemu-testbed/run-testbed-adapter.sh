@@ -47,6 +47,13 @@ if [[ ! -f "$SSH_CONFIG" ]]; then
     SSH_CONFIG="${TESTBED_CONFIG}/ssh-config"
 fi
 
+# Resolve SSH key path
+SSH_KEY="${REPO_ROOT_REAL}/testbed/run/ssh-keys/id_ed25519"
+SSH_KEY_ARG=""
+if [[ -f "${SSH_KEY}" ]]; then
+    SSH_KEY_ARG="-i ${SSH_KEY}"
+fi
+
 # ─── Backup and symlink function ───
 BACKUP_DIR="${REPO_ROOT_REAL}/.testbed-backup"
 
@@ -122,7 +129,15 @@ backup_and_link "desired-state"
 # ─── Export environment variables for adapter scripts ───
 export REPO_ROOT="$TESTBED_CONFIG"
 export WORKSPACE_ROOT="$TESTBED_CONFIG"
-export GIT_SSH_COMMAND="ssh -F ${SSH_CONFIG}"
+# Use -F for isolated SSH config (no modification to user's ~/.ssh/config)
+# Include -i for SSH key so adapter scripts that call ssh directly get the key
+if [[ -f "${SSH_CONFIG}" ]]; then
+    export GIT_SSH_COMMAND="ssh -F ${SSH_CONFIG} ${SSH_KEY_ARG}"
+    export SSH_CONFIG_PATH="${SSH_CONFIG}"
+else
+    export GIT_SSH_COMMAND="ssh -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null ${SSH_KEY_ARG}"
+fi
+export SSH_KEY="${SSH_KEY}"
 
 echo ""
 echo "Running adapter: ${ADAPTER_SCRIPT} ${ADAPTER_ARGS[*]}"

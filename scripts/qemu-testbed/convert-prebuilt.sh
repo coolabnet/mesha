@@ -37,7 +37,11 @@ for arg in "$@"; do
         --skip-download) SKIP_DOWNLOAD=true ;;
         --output)
             shift
-            OUTPUT_PATH="$1"
+            OUTPUT_PATH="${1:-}"
+            if [[ -z "${OUTPUT_PATH}" ]]; then
+                echo "[ERROR] --output requires a value" >&2
+                exit 1
+            fi
             ;;
     esac
 done

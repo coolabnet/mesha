@@ -31,20 +31,23 @@ if [ -f "${REPO_ROOT}/testbed/run/vwifi-server.pid" ]; then
 fi
 
 # Collect VM logs via SSH (if VMs are reachable)
-for entry in lm-testbed-node-1 lm-testbed-node-2 lm-testbed-node-3 lm-testbed-tester; do
-    if [ -f "${SSH_CONFIG}" ]; then
+if [ ! -f "${SSH_CONFIG}" ]; then
+    echo "WARN: SSH config not found at ${SSH_CONFIG} — skipping VM log collection"
+    echo "  Run configure-vms.sh first to generate the SSH config"
+else
+    for entry in lm-testbed-node-1 lm-testbed-node-2 lm-testbed-node-3 lm-testbed-tester; do
         {
             echo "=== ${entry}: dmesg ==="
-            ssh -F "${SSH_CONFIG}" -o ConnectTimeout=5 -o BatchMode=yes "root@${entry}" "dmesg" 2>/dev/null || echo "unreachable"
+            ssh -F "${SSH_CONFIG}" -o ConnectTimeout=5 -o BatchMode=yes "root@${entry}" "dmesg" 2>&1 || echo "unreachable"
             echo ""
             echo "=== ${entry}: logread (last 50) ==="
-            ssh -F "${SSH_CONFIG}" -o ConnectTimeout=5 -o BatchMode=yes "root@${entry}" "logread | tail -50" 2>/dev/null || echo "unreachable"
+            ssh -F "${SSH_CONFIG}" -o ConnectTimeout=5 -o BatchMode=yes "root@${entry}" "logread | tail -50" 2>&1 || echo "unreachable"
             echo ""
             echo "=== ${entry}: BMX7 status ==="
-            ssh -F "${SSH_CONFIG}" -o ConnectTimeout=5 -o BatchMode=yes "root@${entry}" "bmx7 -c status 2>/dev/null || echo 'bmx7 not running'" 2>/dev/null || echo "unreachable"
+            ssh -F "${SSH_CONFIG}" -o ConnectTimeout=5 -o BatchMode=yes "root@${entry}" "bmx7 -c status 2>/dev/null || echo 'bmx7 not running'" 2>&1 || echo "unreachable"
         } > "${LOG_DIR}/${entry}.log" 2>&1
-    fi
-done
+    done
+fi
 
 echo "Logs collected in ${LOG_DIR}/"
 ls -la "${LOG_DIR}/"

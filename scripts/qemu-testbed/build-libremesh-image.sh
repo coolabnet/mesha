@@ -82,38 +82,6 @@ command -v make >/dev/null  || die "make is required"
 
 mkdir -p "${BUILD_DIR}" "${OUTPUT_DIR}"
 
-# ─── Compute input hash (for caching) ──────────────────────────────────────────
-compute_input_hash() {
-    local hash_input=""
-    hash_input+="$(cat "$0")"
-    hash_input+=$(cat "${DEFCONFIG}")
-    hash_input+=$(cat "${DOCKERFILE}")
-
-    # Include feed commit hashes if we can resolve them
-    if [[ -d "${BUILD_DIR}/lime-packages" ]]; then
-        hash_input+=$(cd "${BUILD_DIR}/lime-packages" && git rev-parse HEAD 2>/dev/null || echo "unknown")
-    fi
-    if [[ -d "${BUILD_DIR}/lime-packages/openwrt" ]]; then
-        hash_input+=$(cd "${BUILD_DIR}/lime-packages/openwrt" && git rev-parse HEAD 2>/dev/null || echo "unknown")
-    fi
-
-    echo -n "${hash_input}" | sha256sum | awk '{print $1}'
-}
-
-CURRENT_HASH="$(compute_input_hash)"
-CACHED_HASH_FILE="${OUTPUT_DIR}/build-inputs.hash"
-
-if [[ "${FORCE_REBUILD}" == "false" ]] && [[ -f "${CACHED_HASH_FILE}" ]]; then
-    CACHED_HASH="$(cat "${CACHED_HASH_FILE}")"
-    if [[ "${CURRENT_HASH}" == "${CACHED_HASH}" ]]; then
-        log "Build inputs unchanged (hash: ${CURRENT_HASH:0:12}). Skipping build."
-        log "Use --force to rebuild."
-        exit 0
-    fi
-fi
-
-log "Build input hash: ${CURRENT_HASH:0:12}"
-
 # ─── Step 1: Clone lime-packages ───────────────────────────────────────────────
 log "Step 1: Cloning lime-packages..."
 if [[ ! -d "${BUILD_DIR}/lime-packages" ]]; then
@@ -160,6 +128,44 @@ log "Step 4: Updating and installing feeds..."
 ./scripts/feeds update -a
 ./scripts/feeds install -a
 
+# Pin vwifi feed to specific commit if requested
+if [[ -n "${VWIFI_FEED_COMMIT}" && "${VWIFI_FEED_COMMIT}" != "HEAD" ]]; then
+    log "  Pinning vwifi feed to commit: ${VWIFI_FEED_COMMIT}"
+    (cd "${OPENWRT_DIR}/feeds/vwifi" && git checkout "${VWIFI_FEED_COMMIT}" 2>/dev/null) || \
+        log "  WARN: Could not pin vwifi feed to ${VWIFI_FEED_COMMIT}"
+fi
+
+# ─── Compute input hash AFTER feeds are cloned/updated ─────────────────────────
+compute_input_hash() {
+    local hash_input=""
+    hash_input+="$(cat "$0")"
+    hash_input+=$(cat "${DEFCONFIG}")
+    hash_input+=$(cat "${DOCKERFILE}")
+
+    # Include feed commit hashes (now available after clone/update)
+    hash_input+=$(cd "${BUILD_DIR}/lime-packages" && git rev-parse HEAD 2>/dev/null || echo "unknown")
+    hash_input+=$(cd "${OPENWRT_DIR}" && git rev-parse HEAD 2>/dev/null || echo "unknown")
+    if [[ -d "${OPENWRT_DIR}/feeds/vwifi" ]]; then
+        hash_input+=$(cd "${OPENWRT_DIR}/feeds/vwifi" && git rev-parse HEAD 2>/dev/null || echo "unknown")
+    fi
+
+    echo -n "${hash_input}" | sha256sum | awk '{print $1}'
+}
+
+CURRENT_HASH="$(compute_input_hash)"
+CACHED_HASH_FILE="${OUTPUT_DIR}/build-inputs.hash"
+
+if [[ "${FORCE_REBUILD}" == "false" ]] && [[ -f "${CACHED_HASH_FILE}" ]]; then
+    CACHED_HASH="$(cat "${CACHED_HASH_FILE}")"
+    if [[ "${CURRENT_HASH}" == "${CACHED_HASH}" ]]; then
+        log "Build inputs unchanged (hash: ${CURRENT_HASH:0:12}). Skipping build."
+        log "Use --force to rebuild."
+        exit 0
+    fi
+fi
+
+log "Build input hash: ${CURRENT_HASH:0:12}"
+
 # ─── Step 5: Copy defconfig ────────────────────────────────────────────────────
 log "Step 5: Applying defconfig..."
 cp "${DEFCONFIG}" .config
@@ -197,6 +203,14 @@ DEST_NAME="libremesh-x86-64-${SHORT_HASH}-${DATE_STAMP}.img.gz"
 
 cp "${SOURCE_IMG}" "${OUTPUT_DIR}/${DEST_NAME}"
 log "Image copied: ${OUTPUT_DIR}/${DEST_NAME}"
+
+# ─── Image size verification (Gate 1.1: must be >50MB) ────────────────────────
+IMAGE_SIZE=$(stat -c%s "${OUTPUT_DIR}/${DEST_NAME}" 2>/dev/null || stat -f%z "${OUTPUT_DIR}/${DEST_NAME}")
+MIN_IMAGE_SIZE=$((50 * 1024 * 1024))  # 50 MB
+if [[ "${IMAGE_SIZE}" -lt "${MIN_IMAGE_SIZE}" ]]; then
+    die "Image size verification FAILED: ${IMAGE_SIZE} bytes < 50MB minimum (Gate 1.1)"
+fi
+log "Image size verification passed: $((IMAGE_SIZE / 1024 / 1024)) MB >= 50 MB"
 
 # ─── Generate build-manifest.yaml ──────────────────────────────────────────────
 log "Generating build-manifest.yaml..."

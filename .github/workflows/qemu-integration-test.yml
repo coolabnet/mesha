@@ -33,9 +33,10 @@ jobs:
         uses: actions/cache@v4
         with:
           path: testbed/images/
-          key: libremesh-x86-64-${{ hashFiles('scripts/qemu-testbed/build-libremesh-image.sh', 'docker/qemu-builder/Dockerfile', 'scripts/qemu-testbed/libremesh-testbed.defconfig') }}
+          key: libremesh-x86-64-${{ hashFiles('scripts/qemu-testbed/build-libremesh-image.sh', 'docker/qemu-builder/Dockerfile', 'scripts/qemu-testbed/libremesh-testbed.defconfig', 'testbed/images/build-inputs.hash') }}
 
       - name: Build firmware (if not cached)
+        timeout-minutes: 240
         run: |
           if [ ! -f testbed/images/*.img.gz ]; then
             echo "::group::Building LibreMesh firmware (2-4 hours)..."

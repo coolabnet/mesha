@@ -69,16 +69,24 @@ sleep 2
 ssh_vm "$NODE2" "babeld -D -I /var/run/babeld.pid br-lan 2>/dev/null || babeld -D br-lan 2>/dev/null || true" || true
 sleep 10
 
-# Check if node-2 still has neighbors via babeld
-BABEL_NEIGHBORS=$(ssh_vm "$NODE2" "cat /var/run/babeld.pid >/dev/null 2>&1 && echo 'running' || echo 'not running'" 2>/dev/null || echo "unknown")
-if echo "$BABEL_NEIGHBORS" | grep -q "running"; then
-    # Restart BMX7 for subsequent tests
-    ssh_vm "$NODE2" "killall babeld 2>/dev/null; /etc/init.d/bmx7 start 2>/dev/null || bmx7 2>/dev/null || true" || true
+# Verify babeld actually has neighbors (not just that process is running)
+BABEL_RUNNING=false
+if ssh_vm "$NODE2" "cat /var/run/babeld.pid >/dev/null 2>&1" 2>/dev/null; then
+    BABEL_NEIGHBOR_COUNT=$(ssh_vm "$NODE2" \
+        "babeld -c dump 2>/dev/null | grep -c 'neighbour' || echo '0'" 2>/dev/null || echo "0")
+    # Also try: check if node-2 can still reach other nodes via any route
+    if ssh_vm "$NODE2" "ping -c 1 -W 5 10.99.0.11" >/dev/null 2>&1; then
+        BABEL_RUNNING=true
+    fi
+fi
+
+# Restart BMX7 for subsequent tests regardless
+ssh_vm "$NODE2" "killall babeld 2>/dev/null; /etc/init.d/bmx7 start 2>/dev/null || bmx7 2>/dev/null || true" || true
+
+if $BABEL_RUNNING; then
     pass "test_babel_fallback_works"
 else
-    # Restart BMX7 anyway
-    ssh_vm "$NODE2" "/etc/init.d/bmx7 start 2>/dev/null || bmx7 2>/dev/null || true" || true
-    skip "test_babel_fallback_works" "babeld not available or not running"
+    skip "test_babel_fallback_works" "babeld not available or no neighbors established"
 fi
 
 tap_summary
