@@ -32,23 +32,25 @@ INV_BACKUP="$(mktemp /tmp/mesh-nodes-real-XXXXXX.yaml)"
 cp "${ORIG_POLICY}" "${POLICY_BACKUP}"
 cp "${ORIG_INV}" "${INV_BACKUP}"
 
-restore_fixtures() {
+# Create a dummy firmware file for dry-run (local path avoids HTTP download)
+DUMMY_FIRMWARE="$(mktemp /tmp/dry-run-firmware-XXXXXX.bin)"
+dd if=/dev/zero of="${DUMMY_FIRMWARE}" bs=1K count=64 2>/dev/null
+cleanup_firmware() {
     cp "${POLICY_BACKUP}" "${ORIG_POLICY}" 2>/dev/null || true
     cp "${INV_BACKUP}" "${ORIG_INV}" 2>/dev/null || true
-    rm -f "${POLICY_BACKUP}" "${INV_BACKUP}"
+    rm -f "${POLICY_BACKUP}" "${INV_BACKUP}" "${DUMMY_FIRMWARE}"
 }
-trap restore_fixtures EXIT INT TERM
+trap cleanup_firmware EXIT INT TERM
 
 # Install fixtures
 cp "${FIXTURE_POLICY}" "${ORIG_POLICY}"
 cp "${FIXTURE_INV}" "${ORIG_INV}"
 
-# Run dry-run
+# Run dry-run using local file path (avoids HTTP download which fails on fake URLs)
 ROLLOUT_OUTPUT=""
 ROLLOUT_EXIT=0
 ROLLOUT_OUTPUT="$(bash "${REPO_ROOT_REAL}/skills/mesh-rollout/scripts/run-rollout.sh" \
-    --firmware-url "http://example.test/fake-firmware.bin" \
-    --checksum "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa" \
+    --firmware-url "${DUMMY_FIRMWARE}" \
     --dry-run 2>&1)" || ROLLOUT_EXIT=$?
 
 if [ "${ROLLOUT_EXIT}" -eq 0 ]; then
@@ -72,11 +74,13 @@ if [ ! -f "${STATE_FILE}" ] || [ ! -s "${STATE_FILE}" ]; then
     # State file doesn't exist or is empty — dry-run correctly didn't create it
     pass "test_dry_run_does_not_modify_state"
 else
-    # State file exists — check it doesn't have in_progress status from our dry-run
-    if ! grep -q "in_progress" "${STATE_FILE}" 2>/dev/null; then
+    # State file exists — check the actual status line is not in_progress
+    # (grep only the non-comment status line, not the schema comments)
+    STATE_STATUS=$(grep -v '^#' "${STATE_FILE}" | grep '^status:' | head -1 | awk '{print $2}' 2>/dev/null || echo "")
+    if [ "${STATE_STATUS}" != "in_progress" ]; then
         pass "test_dry_run_does_not_modify_state"
     else
-        fail "test_dry_run_does_not_modify_state" "rollout-state.yaml contains in_progress after dry-run"
+        fail "test_dry_run_does_not_modify_state" "rollout-state.yaml status is in_progress after dry-run"
     fi
 fi
 
