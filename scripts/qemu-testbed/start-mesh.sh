@@ -17,6 +17,7 @@ BRIDGE_IP="10.99.0.254/16"
 TAP_PREFIX="mesha-tap"
 NODE_COUNT=4
 BASE_IMAGE="${REPO_ROOT}/testbed/images/libremesh-x86-64.ext4"
+KERNEL_IMAGE="${REPO_ROOT}/testbed/images/generic-kernel.bin"
 
 mkdir -p "${RUN_DIR}" "${LOG_DIR}"
 
@@ -196,21 +197,55 @@ launch_vm() {
     rm -f "$overlay"
     qemu-img create -f qcow2 -b "${BASE_IMAGE}" -F raw "$overlay" >/dev/null
 
+    # Build kernel boot args if prebuilt kernel exists
+    local -a KERNEL_OPTS=()
+
+    # Detect if image has its own bootloader (source-built images do)
+    local HAS_BOOTLOADER=false
+    if command -v file &>/dev/null; then
+        # Source-built images have a partition table; prebuilt are raw ext4
+        if file "${BASE_IMAGE}" | grep -q "DOS/MBR boot sector\|partition table"; then
+            HAS_BOOTLOADER=true
+        fi
+    fi
+
+    if [ -f "${KERNEL_IMAGE}" ] && [ "${HAS_BOOTLOADER}" = "false" ]; then
+        KERNEL_OPTS+=(-kernel "${KERNEL_IMAGE}" -append "root=/dev/sda rootfstype=ext4 rootwait console=ttyS0")
+    fi
+
     echo "  [Node ${node_id}] Launching QEMU..."
-    qemu-system-x86_64 \
-        ${ACCEL} \
-        -M q35 \
-        ${CPU} \
-        -smp 2 \
-        -m "${ram_mb}M" \
-        -nographic \
-        -drive "file=${overlay},format=qcow2" \
-        -device virtio-net-pci,netdev=mesh0,mac="${mac_mesh}" \
-        -netdev "tap,id=mesh0,ifname=${TAP_PREFIX}${tap_index},script=no,downscript=no" \
-        -device virtio-net-pci,netdev=wan0,mac="${mac_wan}" \
-        -netdev user,id=wan0 \
-        -serial "file:${serial_log}" \
-        &
+    if [[ ${#KERNEL_OPTS[@]} -gt 0 ]]; then
+        qemu-system-x86_64 \
+            ${ACCEL} \
+            -M q35 \
+            ${CPU} \
+            -smp 2 \
+            -m "${ram_mb}M" \
+            -nographic \
+            -drive "file=${overlay},format=qcow2" \
+            "${KERNEL_OPTS[@]}" \
+            -device virtio-net-pci,netdev=mesh0,mac="${mac_mesh}" \
+            -netdev "tap,id=mesh0,ifname=${TAP_PREFIX}${tap_index},script=no,downscript=no" \
+            -device virtio-net-pci,netdev=wan0,mac="${mac_wan}" \
+            -netdev user,id=wan0 \
+            -serial "file:${serial_log}" \
+            &
+    else
+        qemu-system-x86_64 \
+            ${ACCEL} \
+            -M q35 \
+            ${CPU} \
+            -smp 2 \
+            -m "${ram_mb}M" \
+            -nographic \
+            -drive "file=${overlay},format=qcow2" \
+            -device virtio-net-pci,netdev=mesh0,mac="${mac_mesh}" \
+            -netdev "tap,id=mesh0,ifname=${TAP_PREFIX}${tap_index},script=no,downscript=no" \
+            -device virtio-net-pci,netdev=wan0,mac="${mac_wan}" \
+            -netdev user,id=wan0 \
+            -serial "file:${serial_log}" \
+            &
+    fi
     local qemu_pid=$!
     echo "$qemu_pid" > "$pid_file"
     QEMU_PIDS+=("$qemu_pid")

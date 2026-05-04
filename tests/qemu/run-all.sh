@@ -40,6 +40,8 @@ run_test_file "Mesh Protocols" "${SCRIPT_DIR}/test-mesh-protocols.sh"
 run_test_file "Validate Node" "${SCRIPT_DIR}/test-validate-node.sh"
 run_test_file "Config Drift" "${SCRIPT_DIR}/test-config-drift.sh"
 run_test_file "Topology Manipulation" "${SCRIPT_DIR}/test-topology-manipulation.sh"
+run_test_file "Firmware Upgrade" "${SCRIPT_DIR}/test-firmware-upgrade.sh"
+run_test_file "Multi-Hop Mesh" "${SCRIPT_DIR}/test-multi-hop.sh"
 
 echo "=========================================="
 echo "Results: ${TOTAL_PASS} passed, ${TOTAL_FAIL} failed"

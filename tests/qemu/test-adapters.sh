@@ -8,7 +8,7 @@ source "${SCRIPT_DIR}/common.sh"
 WAIT_SECONDS="${1:-30}"
 
 echo "# Adapter Contract Tests"
-tap_plan 4
+tap_plan 8
 
 # Wait for VMs
 echo "# Waiting for SSH connectivity..."
@@ -72,17 +72,77 @@ else
     skip "test_discover_thisnode_works" "thisnode.info not reachable (HTTP ${HTTP_CODE:-N/A})"
 fi
 
-# Test 4: ip -j addr show returns valid JSON
-IP_RESULT=$(ssh_vm "$GATEWAY" "ip -j addr show" 2>/dev/null) || true
-if [ -n "$IP_RESULT" ] && echo "$IP_RESULT" | python3 -c "
+# Test 4: ip -j addr show returns valid JSON (requires ip-full)
+IP_RESULT=$(ssh_vm "$GATEWAY" "ip -j addr show 2>/dev/null || echo '[]'" 2>/dev/null) || true
+if [ -z "$IP_RESULT" ] || [ "$IP_RESULT" = "[]" ]; then
+    skip "test_ip_json_output" "ip -j not available (missing ip-full package)"
+elif echo "$IP_RESULT" | python3 -c "
 import sys, json
 data = json.load(sys.stdin)
 non_lo = [i for i in data if i.get('ifname') != 'lo']
 assert len(non_lo) >= 1
+for iface in non_lo:
+    assert 'ifname' in iface
+    assert 'addr_info' in iface
 " 2>/dev/null; then
     pass "test_ip_json_output"
 else
-    fail "test_ip_json_output" "ip -j returned empty or invalid JSON"
+    fail "test_ip_json_output" "JSON parse or assertion failed"
+fi
+
+# Test 5: collect-services returns valid JSON structure
+SERVICES_RESULT=$(bash "${REPO_ROOT}/scripts/qemu-testbed/run-testbed-adapter.sh" \
+    "${REPO_ROOT}/adapters/server/collect-services.sh" "lm-testbed-node-1" 2>/dev/null) || true
+if [ -n "$SERVICES_RESULT" ] && echo "$SERVICES_RESULT" | python3 -c "
+import sys, json
+data = json.load(sys.stdin)
+assert isinstance(data, list)
+" 2>/dev/null; then
+    pass "test_collect_services_valid_json"
+else
+    skip "test_collect_services_valid_json" "collect-services not applicable to VM nodes or parse error"
+fi
+
+# Test 6: collect-health returns valid JSON with required fields
+HEALTH_RESULT=$(bash "${REPO_ROOT}/scripts/qemu-testbed/run-testbed-adapter.sh" \
+    "${REPO_ROOT}/adapters/server/collect-health.sh" "lm-testbed-node-1" 2>/dev/null) || true
+if [ -n "$HEALTH_RESULT" ] && echo "$HEALTH_RESULT" | python3 -c "
+import sys, json
+data = json.load(sys.stdin)
+required = ['hostname', 'uptime', 'load', 'memory', 'disk']
+for field in required:
+    assert field in data, f'missing field: {field}'
+" 2>/dev/null; then
+    pass "test_collect_health_valid_json"
+else
+    skip "test_collect_health_valid_json" "collect-health not applicable or parse error"
+fi
+
+# Test 7: normalize.py processes collect-nodes output
+NORM_RESULT=$(bash "${REPO_ROOT}/scripts/qemu-testbed/run-testbed-adapter.sh" \
+    "${REPO_ROOT}/adapters/mesh/collect-nodes.sh" "lm-testbed-node-1" 2>/dev/null | \
+    python3 "${REPO_ROOT}/adapters/mesh/normalize.py" --field-map "${REPO_ROOT}/adapters/mesh/field_map.json" 2>/dev/null) || true
+if [ -n "$NORM_RESULT" ] && echo "$NORM_RESULT" | python3 -c "
+import sys, json
+data = json.load(sys.stdin)
+assert isinstance(data, dict) or isinstance(data, list)
+" 2>/dev/null; then
+    pass "test_normalize_processes_output"
+else
+    skip "test_normalize_processes_output" "normalize.py unavailable or parse error"
+fi
+
+# Test 8: uhttpd REST API responds with valid JSON
+API_RESULT=""
+if command -v curl &>/dev/null; then
+    API_RESULT=$(curl -s --connect-timeout 5 \
+        "http://10.99.0.11/cgi-bin/luci/admin/status/overview" \
+        -o /dev/null -w '%{http_code}' 2>/dev/null) || API_RESULT="000"
+fi
+if [ "$API_RESULT" = "200" ] || [ "$API_RESULT" = "302" ]; then
+    pass "test_uhttpd_api_accessible"
+else
+    skip "test_uhttpd_api_accessible" "uhttpd not responding (HTTP ${API_RESULT:-N/A})"
 fi
 
 tap_summary

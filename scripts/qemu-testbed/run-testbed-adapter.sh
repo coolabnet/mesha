@@ -135,6 +135,11 @@ export REPO_ROOT="$TESTBED_CONFIG"
 export WORKSPACE_ROOT="$TESTBED_CONFIG"
 export SSH_CONFIG_PATH="${SSH_CONFIG}"
 export SSH_KEY="${SSH_KEY}"
+# thisnode.info resolution
+HOSTALIASES_FILE="${REPO_ROOT_REAL}/testbed/run/host-aliases"
+if [ -f "${HOSTALIASES_FILE}" ]; then
+    export HOSTALIASES="${HOSTALIASES_FILE}"
+fi
 # GIT_SSH_COMMAND works for git-based adapters
 export GIT_SSH_COMMAND="ssh -F ${SSH_CONFIG}"
 # For adapter scripts that call ssh directly, create a wrapper

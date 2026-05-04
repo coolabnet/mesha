@@ -9,6 +9,12 @@ TEST_COUNT=0
 PASS_COUNT=0
 FAIL_COUNT=0
 
+# thisnode.info resolution via HOSTALIASES
+HOSTALIASES_FILE="${REPO_ROOT}/testbed/run/host-aliases"
+if [ -f "${HOSTALIASES_FILE}" ]; then
+    export HOSTALIASES="${HOSTALIASES_FILE}"
+fi
+
 # TAP output functions
 tap_plan() {
     echo "1..$1"

@@ -143,6 +143,15 @@ log "Copying kernel..."
 sudo mkdir -p "${MOUNT_POINT}/boot"
 sudo cp "${DOWNLOAD_DIR}/${KERNEL_FILE}" "${MOUNT_POINT}/boot/vmlinuz"
 
+# Inject /sbin/service shim for prebuilt images
+cat > "${MOUNT_POINT}/sbin/service" << 'SERVICEEOF'
+#!/bin/sh
+# Minimal /sbin/service shim for LibreRouterOS prebuilt
+/etc/init.d/"$@"
+SERVICEEOF
+chmod +x "${MOUNT_POINT}/sbin/service"
+log "  Injected /sbin/service shim"
+
 log "Syncing and unmounting..."
 sync
 sudo umount "${MOUNT_POINT}"
@@ -157,7 +166,7 @@ log ""
 log "To boot with QEMU:"
 log "  qemu-system-x86_64 -m 256 -drive file=${OUTPUT_PATH},format=raw \\"
 log "    -kernel ${DOWNLOAD_DIR}/${KERNEL_FILE} -nographic \\"
-log "    -append 'root=/dev/vda rootfstype=ext4 rootwait console=ttyS0'"
+log "    -append 'root=/dev/sda rootfstype=ext4 rootwait console=ttyS0'"
 log ""
 log "Note: Pre-built images do NOT include mac80211_hwsim or vwifi-client."
 log "      BMX7 mesh will only work over wired (tap) interfaces."
