@@ -8,7 +8,7 @@ REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 RUN_DIR="${REPO_ROOT}/testbed/run"
 TOPOLOGY_FILE="${REPO_ROOT}/testbed/config/topology.yaml"
 SSH_KEY_DIR="${RUN_DIR}/ssh-keys"
-SSH_KEY="${SSH_KEY_DIR}/id_ed25519"
+SSH_KEY="${SSH_KEY_DIR}/id_rsa"
 
 # Timeout multiplier for TCG mode
 TIMEOUT_MULTIPLIER="${QEMU_TIMEOUT_MULTIPLIER:-1}"
@@ -51,6 +51,8 @@ ssh_vm() {
     shift
     ssh -o StrictHostKeyChecking=no \
         -o UserKnownHostsFile=/dev/null \
+        -o HostKeyAlgorithms=+ssh-rsa \
+        -o PubkeyAcceptedKeyTypes=+ssh-rsa \
         -o BatchMode=no \
         -o ConnectTimeout="${SSH_BASE_TIMEOUT}" \
         "root@${ip}" "$@"
@@ -61,6 +63,8 @@ ssh_vm_with_key() {
     shift
     ssh -o StrictHostKeyChecking=no \
         -o UserKnownHostsFile=/dev/null \
+        -o HostKeyAlgorithms=+ssh-rsa \
+        -o PubkeyAcceptedKeyTypes=+ssh-rsa \
         -o BatchMode=yes \
         -i "${SSH_KEY}" \
         -o ConnectTimeout="${SSH_BASE_TIMEOUT}" \
@@ -194,8 +198,8 @@ generate_and_inject_keys() {
 
     # Generate key pair if needed
     if [ ! -f "${SSH_KEY}" ]; then
-        echo "  Generating ed25519 SSH key pair..."
-        ssh-keygen -t ed25519 -f "${SSH_KEY}" -N "" -C "mesha-testbed" >/dev/null
+        echo "  Generating RSA SSH key pair (compatible with prebuilt dropbear)..."
+        ssh-keygen -t rsa -b 2048 -f "${SSH_KEY}" -N "" -C "mesha-testbed" >/dev/null
     fi
 
     local public_key

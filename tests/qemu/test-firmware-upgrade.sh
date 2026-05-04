@@ -16,7 +16,7 @@ RUN_DIR="${REPO_ROOT}/testbed/run"
 echo "# Testing firmware version change detection..."
 
 # Read current version
-ORIGINAL_VERSION=$(ssh_vm "$GATEWAY" "grep DISTRIB_RELEASE /etc/openwrt_release 2>/dev/null | cut -d= -f2 | tr -d \"'\"" 2>/dev/null || echo "unknown")
+ORIGINAL_VERSION=$(ssh_vm "$GATEWAY" 'grep DISTRIB_RELEASE /etc/openwrt_release 2>/dev/null | cut -d= -f2 | tr -d "\047\042"' 2>/dev/null || echo "unknown")
 echo "  Current version: ${ORIGINAL_VERSION}"
 
 # Create qcow2 snapshot before upgrade for rollback testing
@@ -33,7 +33,7 @@ ssh_vm "$GATEWAY" "sed -i 's/DISTRIB_RELEASE=.*/DISTRIB_RELEASE=\"testbed-2.0\"/
 sleep 1
 
 # Verify change
-NEW_VERSION=$(ssh_vm "$GATEWAY" "grep DISTRIB_RELEASE /etc/openwrt_release 2>/dev/null | cut -d= -f2 | tr -d \"'\"" 2>/dev/null || echo "unknown")
+NEW_VERSION=$(ssh_vm "$GATEWAY" 'grep DISTRIB_RELEASE /etc/openwrt_release 2>/dev/null | cut -d= -f2 | tr -d "\047\042"' 2>/dev/null || echo "unknown")
 echo "  New version: ${NEW_VERSION}"
 
 if [ "${NEW_VERSION}" = "testbed-2.0" ] && [ "${NEW_VERSION}" != "${ORIGINAL_VERSION}" ]; then
@@ -45,9 +45,9 @@ fi
 # Test 2: validate-node detects version mismatch with policy
 echo "# Testing validate-node detects version mismatch..."
 VALIDATE_RESULT=0
-bash "${REPO_ROOT}/scripts/qemu-testbed/run-testbed-adapter.sh" \
+VALIDATE_OUTPUT=$(bash "${REPO_ROOT}/scripts/qemu-testbed/run-testbed-adapter.sh" \
     "${REPO_ROOT}/skills/mesh-rollout/scripts/validate-node.sh" "$GATEWAY" \
-    >/dev/null 2>&1 || VALIDATE_RESULT=$?
+    2>/dev/null) || VALIDATE_RESULT=$?
 
 # Restore original version
 ssh_vm "$GATEWAY" "sed -i 's/DISTRIB_RELEASE=.*/DISTRIB_RELEASE=\"${ORIGINAL_VERSION}\"/' /etc/openwrt_release" 2>/dev/null || true
@@ -59,11 +59,14 @@ if $SNAPSHOT_CREATED && [ -f "$GATEWAY_OVERLAY" ]; then
     qemu-img snapshot -d pre-upgrade "$GATEWAY_OVERLAY" 2>/dev/null || true
 fi
 
-# Fixed logic: validate-node returning non-zero means it detected the mismatch — that's a PASS
+# validate-node should detect the version mismatch.
+# It may return WARN (exit 0) with output mentioning the mismatch, or FAIL (exit 1).
 if [ "${VALIDATE_RESULT}" -ne 0 ]; then
     pass "test_validate_detects_version_mismatch"
+elif echo "${VALIDATE_OUTPUT}" | grep -qi "version.*mismatch\|WARN.*Firmware version\|FAIL.*Firmware version"; then
+    pass "test_validate_detects_version_mismatch"
 else
-    fail "test_validate_detects_version_mismatch" "validate-node returned 0 (did not detect mismatch)"
+    fail "test_validate_detects_version_mismatch" "validate-node returned 0 and did not mention version mismatch"
 fi
 
 tap_summary

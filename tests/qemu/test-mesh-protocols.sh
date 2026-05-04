@@ -14,7 +14,24 @@ NODE3="lm-testbed-node-3"
 
 # Wait for BMX7 convergence
 echo "# Waiting for BMX7 convergence (90s timeout)..."
-if ! wait_for_bmx7 "$GATEWAY" 2 90; then
+BMX7_RESULT=0
+wait_for_bmx7 "$GATEWAY" 2 90 || BMX7_RESULT=$?
+
+if [ "${BMX7_RESULT}" -eq 2 ]; then
+    echo "# BMX7 not installed — skipping mesh protocol tests"
+    tap_plan 4
+    skip "test_bmx7_neighbors_exist" "BMX7 not installed on prebuilt image"
+    skip "test_bmx7_originators_cover_mesh" "BMX7 not installed on prebuilt image"
+    # Still test basic L2 connectivity
+    if ssh_vm "$NODE3" "ping -c 3 -W 5 10.99.0.11" >/dev/null 2>&1; then
+        pass "test_mesh_routing_works"
+    else
+        fail "test_mesh_routing_works" "node-3 cannot reach node-1 via L2"
+    fi
+    skip "test_babel_fallback_works" "BMX7 not installed on prebuilt image"
+    tap_summary
+    exit 0
+elif [ "${BMX7_RESULT}" -ne 0 ]; then
     echo "Bail out! BMX7 did not converge on gateway"
     exit 1
 fi

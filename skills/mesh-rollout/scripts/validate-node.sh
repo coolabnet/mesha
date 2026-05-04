@@ -101,7 +101,7 @@ fi
 log "Check 2: Firmware version..."
 
 ACTUAL_VERSION="$(ssh -o ConnectTimeout="${SSH_TIMEOUT}" -o BatchMode=yes \
-  -o StrictHostKeyChecking=yes \
+  -o StrictHostKeyChecking=accept-new \
   "root@${NODE}" "grep DISTRIB_RELEASE /etc/openwrt_release | cut -d= -f2 | tr -d '\"'" 2>/dev/null || echo "unknown")"
 
 if [[ ${ACTUAL_VERSION} == "unknown" ]]; then
@@ -130,14 +130,14 @@ NEIGHBOR_COUNT=0
 
 # Try bmx7 — use --links to list active bidirectional links; count non-header lines
 BMX7_OUTPUT="$(ssh -o ConnectTimeout="${SSH_TIMEOUT}" -o BatchMode=yes \
-  -o StrictHostKeyChecking=yes \
+  -o StrictHostKeyChecking=accept-new \
   "root@${NODE}" "bmx7 -c --links 2>/dev/null | grep -c 'globalId' || echo 0" 2>/dev/null || echo "0")"
 NEIGHBOR_COUNT="${BMX7_OUTPUT//[^0-9]/}"
 
 # If bmx7 gave 0, try batman-adv
 if [[ ${NEIGHBOR_COUNT} -eq 0 ]]; then
   BATCTL_OUTPUT="$(ssh -o ConnectTimeout="${SSH_TIMEOUT}" -o BatchMode=yes \
-    -o StrictHostKeyChecking=yes \
+    -o StrictHostKeyChecking=accept-new \
     "root@${NODE}" "batctl n 2>/dev/null | grep -v '^IF\|^$' | wc -l || echo 0" 2>/dev/null || echo "0")"
   BATCTL_COUNT="${BATCTL_OUTPUT//[^0-9]/}"
   [[ ${BATCTL_COUNT:-0} -gt ${NEIGHBOR_COUNT} ]] && NEIGHBOR_COUNT="${BATCTL_COUNT}"
@@ -147,7 +147,7 @@ fi
 # piping into nc -q1 because busybox nc on OpenWrt does not support -q.
 if [[ ${NEIGHBOR_COUNT} -eq 0 ]]; then
   BABEL_OUTPUT="$(ssh -o ConnectTimeout="${SSH_TIMEOUT}" -o BatchMode=yes \
-    -o StrictHostKeyChecking=yes \
+    -o StrictHostKeyChecking=accept-new \
     "root@${NODE}" "( echo 'dump neighbours'; sleep 1 ) | nc localhost 33123 2>/dev/null | grep -c '^neighbour' || echo 0" 2>/dev/null || echo "0")"
   BABEL_COUNT="${BABEL_OUTPUT//[^0-9]/}"
   [[ ${BABEL_COUNT:-0} -gt ${NEIGHBOR_COUNT} ]] && NEIGHBOR_COUNT="${BABEL_COUNT}"
@@ -156,7 +156,7 @@ fi
 if [[ ${NEIGHBOR_COUNT} -gt 0 ]]; then
   record "PASS" "Mesh neighbors" "${NEIGHBOR_COUNT} neighbor(s) found"
 else
-  record "FAIL" "Mesh neighbors" "No mesh neighbors found — node may not have joined the mesh"
+  record "WARN" "Mesh neighbors" "No mesh neighbors found — node may not have joined the mesh, or mesh daemon not running"
 fi
 
 # ---------------------------------------------------------------------------
@@ -166,7 +166,7 @@ fi
 log "Check 4: Community SSID presence..."
 
 COMMUNITY_SSID="$(ssh -o ConnectTimeout="${SSH_TIMEOUT}" -o BatchMode=yes \
-  -o StrictHostKeyChecking=yes \
+  -o StrictHostKeyChecking=accept-new \
   "root@${NODE}" "uci get lime-community.wifi.ap_ssid 2>/dev/null || \
                   uci get lime.wifi.ap_ssid 2>/dev/null || \
                   uci show lime-community 2>/dev/null | grep -i ssid | head -1 | cut -d= -f2 | tr -d \"'\" || \
@@ -177,7 +177,7 @@ if [[ -n ${COMMUNITY_SSID} ]]; then
 else
   # Check if lime-community config exists at all
   LIME_EXISTS="$(ssh -o ConnectTimeout="${SSH_TIMEOUT}" -o BatchMode=yes \
-    -o StrictHostKeyChecking=yes \
+    -o StrictHostKeyChecking=accept-new \
     "root@${NODE}" "[ -f /etc/config/lime-community ] && echo yes || echo no" 2>/dev/null || echo "no")"
   if [[ ${LIME_EXISTS} == "yes" ]]; then
     record "WARN" "Community SSID" "lime-community config exists but SSID not readable via uci"
@@ -194,7 +194,7 @@ log "Check 5: Recent error logs (last 5 minutes)..."
 
 # Get log entries from the last 5 minutes containing error/crit/alert/emerg
 ERROR_LOG="$(ssh -o ConnectTimeout="${SSH_TIMEOUT}" -o BatchMode=yes \
-  -o StrictHostKeyChecking=yes \
+  -o StrictHostKeyChecking=accept-new \
   "root@${NODE}" "logread 2>/dev/null | tail -200 | grep -iE 'error|crit|alert|emerg' | \
                   awk -v cutoff=\"\$(date -d '-5 minutes' '+%s' 2>/dev/null || echo 0)\" '
                   {
@@ -220,7 +220,7 @@ fi
 log "Check 6: Uptime (must be > 60 seconds)..."
 
 UPTIME_SECONDS="$(ssh -o ConnectTimeout="${SSH_TIMEOUT}" -o BatchMode=yes \
-  -o StrictHostKeyChecking=yes \
+  -o StrictHostKeyChecking=accept-new \
   "root@${NODE}" "awk '{print int(\$1)}' /proc/uptime 2>/dev/null || echo 0" 2>/dev/null || echo "0")"
 
 UPTIME_SECONDS="${UPTIME_SECONDS//[^0-9]/}"

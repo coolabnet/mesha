@@ -10,7 +10,17 @@ tap_plan 2
 
 # Wait for BMX7 convergence
 GATEWAY=$(get_gateway)
-if ! wait_for_bmx7 "$GATEWAY" 3 120; then
+BMX7_RESULT=0
+wait_for_bmx7 "$GATEWAY" 3 120 || BMX7_RESULT=$?
+
+if [ "${BMX7_RESULT}" -eq 2 ]; then
+    echo "# BMX7 not installed — skipping multi-hop tests"
+    tap_plan 2
+    skip "test_node3_reachable_via_mesh" "BMX7 not installed on prebuilt image"
+    skip "test_topology_shows_mesh_links" "BMX7 not installed on prebuilt image"
+    tap_summary
+    exit 0
+elif [ "${BMX7_RESULT}" -ne 0 ]; then
     echo "Bail out! BMX7 not converged after 120s"
     exit 1
 fi

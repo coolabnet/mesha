@@ -112,11 +112,25 @@ wait_until_json_gte() {
     done
 }
 
+# Check if BMX7 is available on a node
+has_bmx7() {
+    local host="$1"
+    ssh_vm "$host" "which bmx7 >/dev/null 2>&1 || ls /usr/sbin/bmx7 >/dev/null 2>&1" 2>/dev/null
+}
+
 # Wait for BMX7 convergence on a node
+# Returns 0 if converged, 1 if timeout, 2 if bmx7 not installed
 wait_for_bmx7() {
     local host="$1"
     local min_neighbors="${2:-1}"
     local timeout="${3:-90}"
+
+    # Quick check: if bmx7 is not installed, return 2 immediately
+    if ! has_bmx7 "$host"; then
+        echo "  # bmx7 not installed on ${host}" >&2
+        return 2
+    fi
+
     local start
     start=$(date +%s)
     while true; do

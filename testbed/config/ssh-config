@@ -1,7 +1,7 @@
 Host lm-testbed-node-1
   HostName 10.99.0.11
   User root
-  IdentityFile __REPO_ROOT__/testbed/run/ssh-keys/id_ed25519
+  IdentityFile __REPO_ROOT__/testbed/run/ssh-keys/id_rsa
   StrictHostKeyChecking no
   UserKnownHostsFile /dev/null
   LogLevel ERROR
@@ -9,7 +9,7 @@ Host lm-testbed-node-1
 Host lm-testbed-node-2
   HostName 10.99.0.12
   User root
-  IdentityFile __REPO_ROOT__/testbed/run/ssh-keys/id_ed25519
+  IdentityFile __REPO_ROOT__/testbed/run/ssh-keys/id_rsa
   StrictHostKeyChecking no
   UserKnownHostsFile /dev/null
   LogLevel ERROR
@@ -17,7 +17,7 @@ Host lm-testbed-node-2
 Host lm-testbed-node-3
   HostName 10.99.0.13
   User root
-  IdentityFile __REPO_ROOT__/testbed/run/ssh-keys/id_ed25519
+  IdentityFile __REPO_ROOT__/testbed/run/ssh-keys/id_rsa
   StrictHostKeyChecking no
   UserKnownHostsFile /dev/null
   LogLevel ERROR
@@ -25,7 +25,7 @@ Host lm-testbed-node-3
 Host lm-testbed-tester
   HostName 10.99.0.14
   User root
-  IdentityFile __REPO_ROOT__/testbed/run/ssh-keys/id_ed25519
+  IdentityFile __REPO_ROOT__/testbed/run/ssh-keys/id_rsa
   StrictHostKeyChecking no
   UserKnownHostsFile /dev/null
   LogLevel ERROR
@@ -34,3 +34,5 @@ Host *
   ServerAliveInterval 10
   ServerAliveCountMax 3
   ConnectTimeout 30
+  HostKeyAlgorithms +ssh-rsa
+  PubkeyAcceptedKeyTypes +ssh-rsa

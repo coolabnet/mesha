@@ -13,7 +13,17 @@ VWIFI_CTRL="${REPO_ROOT}/testbed/bin/vwifi-ctrl"
 
 # Ensure BMX7 is stable
 echo "# Waiting for BMX7 convergence..."
-if ! wait_for_bmx7 "$GATEWAY" 2 90; then
+BMX7_RESULT=0
+wait_for_bmx7 "$GATEWAY" 2 90 || BMX7_RESULT=$?
+
+if [ "${BMX7_RESULT}" -eq 2 ]; then
+    echo "# BMX7 not installed — skipping topology manipulation tests"
+    tap_plan 2
+    skip "test_vwifi_ctrl_distance_based_loss" "BMX7 not installed on prebuilt image"
+    skip "test_node_removal_detected" "BMX7 not installed on prebuilt image"
+    tap_summary
+    exit 0
+elif [ "${BMX7_RESULT}" -ne 0 ]; then
     echo "Bail out! BMX7 not converged"
     exit 1
 fi
