@@ -34,7 +34,9 @@ echo "--- Stopping processes ---"
 
 for pid_file in "${RUN_DIR}"/*.pid; do
     [ -f "$pid_file" ] || continue
-    pid=$(cat "$pid_file")
+    pid=$(cat "$pid_file" 2>/dev/null)
+    # Skip empty or invalid PID files
+    [ -z "$pid" ] && { echo "  [$(basename "$pid_file" .pid)] Empty PID file, removing"; rm -f "$pid_file"; continue; }
     label=$(basename "$pid_file" .pid)
 
     if kill -0 "$pid" 2>/dev/null; then

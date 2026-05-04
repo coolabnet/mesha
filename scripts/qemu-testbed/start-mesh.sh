@@ -22,9 +22,11 @@ mkdir -p "${RUN_DIR}" "${LOG_DIR}"
 
 # ─── Concurrent run protection (mkdir-based lock) ───
 if ! mkdir "$LOCK_DIR" 2>/dev/null; then
-    echo "ERROR: Another test bed instance is running (lock: ${LOCK_DIR})"
+    LOCK_PID=$(cat "${LOCK_DIR}/pid" 2>/dev/null || echo "unknown")
+    echo "ERROR: Another test bed instance is running (PID ${LOCK_PID}, lock: ${LOCK_DIR})"
     exit 1
 fi
+echo $$ > "${LOCK_DIR}/pid"
 
 # ─── Cleanup state ───
 CLEANUP_DONE=0
@@ -104,7 +106,8 @@ parse_topology() {
     tap_prefix=$(grep 'tap_prefix:' "$TOPOLOGY_FILE" | head -1 | awk '{print $2}' | tr -d '"')
 
     [ -n "$bridge_name" ] && BRIDGE_NAME="$bridge_name"
-    [ -n "$bridge_ip" ] && BRIDGE_IP="${bridge_ip}/16"
+    # Strip existing CIDR suffix before appending subnet mask
+    [ -n "$bridge_ip" ] && BRIDGE_IP="${bridge_ip%%/*}/16"
     [ -n "$tap_prefix" ] && TAP_PREFIX="$tap_prefix"
 }
 
