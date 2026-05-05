@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
 # build-libremesh-image.sh — Build a LibreMesh x86-64 image for QEMU test bed
 #
-# This script clones the lime-packages SDK builder, adds the vwifi feed,
-# and produces a bootable disk image suitable for QEMU.
+# Clones the OpenWrt buildroot, adds lime-packages and vwifi as feeds,
+# and produces a bootable disk image with mac80211_hwsim support.
 #
 # Usage:
 #   ./build-libremesh-image.sh [OPTIONS]
@@ -13,6 +13,7 @@
 #   REPO_ROOT        — Root of the mesha repository (auto-detected if unset)
 #   VWIFI_FEED_URL   — Git URL for the vwifi feed (default: https://github.com/javierbrk/vwifi_cli_package.git)
 #   VWIFI_FEED_COMMIT — Git ref for the vwifi feed (default: HEAD)
+#   OPENWRT_VERSION  — OpenWrt branch or tag to build (default: v23.05.5)
 #
 # Options:
 #   -h, --help       — Show this help text
@@ -63,8 +64,10 @@ BUILD_DIR="${BUILD_DIR:-/tmp/libremesh-build}"
 OUTPUT_DIR="${OUTPUT_DIR:-${REPO_ROOT}/testbed/images}"
 VWIFI_FEED_URL="${VWIFI_FEED_URL:-https://github.com/javierbrk/vwifi_cli_package.git}"
 VWIFI_FEED_COMMIT="${VWIFI_FEED_COMMIT:-HEAD}"
+OPENWRT_VERSION="${OPENWRT_VERSION:-v23.05.5}"
 
 LIME_REPO_URL="https://github.com/libremesh/lime-packages.git"
+OPENWRT_REPO_URL="https://github.com/openwrt/openwrt.git"
 DEFCONFIG="${REPO_ROOT}/scripts/qemu-testbed/libremesh-testbed.defconfig"
 DOCKERFILE="${REPO_ROOT}/docker/qemu-builder/Dockerfile"
 
@@ -82,43 +85,55 @@ command -v make >/dev/null  || die "make is required"
 
 mkdir -p "${BUILD_DIR}" "${OUTPUT_DIR}"
 
-# ─── Step 1: Clone lime-packages ───────────────────────────────────────────────
-log "Step 1: Cloning lime-packages..."
-if [[ ! -d "${BUILD_DIR}/lime-packages" ]]; then
-    git clone "${LIME_REPO_URL}" "${BUILD_DIR}/lime-packages"
+# ─── Step 1: Clone OpenWrt buildroot ────────────────────────────────────────────
+log "Step 1: Cloning OpenWrt ${OPENWRT_VERSION}..."
+OPENWRT_DIR="${BUILD_DIR}/openwrt"
+if [[ ! -d "${OPENWRT_DIR}" ]]; then
+    git clone --branch "${OPENWRT_VERSION}" --single-branch --depth 1 \
+        "${OPENWRT_REPO_URL}" "${OPENWRT_DIR}"
 else
-    log "  lime-packages already cloned, pulling latest..."
-    (cd "${BUILD_DIR}/lime-packages" && git pull --ff-only || true)
+    log "  OpenWrt already cloned at ${OPENWRT_DIR}, fetching ${OPENWRT_VERSION}..."
+    (cd "${OPENWRT_DIR}" && git fetch origin "${OPENWRT_VERSION}" && git checkout "${OPENWRT_VERSION}" || true)
 fi
 
-LIME_COMMIT="$(cd "${BUILD_DIR}/lime-packages" && git rev-parse HEAD)"
-log "  lime-packages commit: ${LIME_COMMIT:0:12}"
-
-# ─── Step 2: Run lime-packages make (clones OpenWrt, sets up feeds) ────────────
-log "Step 2: Running lime-packages make (this clones OpenWrt and sets up feeds)..."
-cd "${BUILD_DIR}/lime-packages"
-make
-
-# After make, the OpenWrt tree is at lime-packages/openwrt
-OPENWRT_DIR="${BUILD_DIR}/lime-packages/openwrt"
-[[ -d "${OPENWRT_DIR}" ]] || die "OpenWrt directory not found after make: ${OPENWRT_DIR}"
-
-OPENWRT_VERSION=""
-if [[ -f "${OPENWRT_DIR}/.git/refs/heads/main" ]]; then
-    OPENWRT_VERSION="$(cat "${OPENWRT_DIR}/.git/refs/heads/main")"
-elif [[ -f "${OPENWRT_DIR}/.git/refs/heads/master" ]]; then
-    OPENWRT_VERSION="$(cat "${OPENWRT_DIR}/.git/refs/heads/master")"
-else
-    OPENWRT_VERSION="$(cd "${OPENWRT_DIR}" && git rev-parse HEAD)"
-fi
-log "  OpenWrt version: ${OPENWRT_VERSION:0:12}"
+OPENWRT_COMMIT="$(cd "${OPENWRT_DIR}" && git rev-parse HEAD)"
+log "  OpenWrt commit: ${OPENWRT_COMMIT:0:12}"
 
 cd "${OPENWRT_DIR}"
 
-# ─── Step 3: Add vwifi feed ────────────────────────────────────────────────────
-log "Step 3: Adding vwifi feed..."
+# ─── Step 2: Clone lime-packages feed ───────────────────────────────────────────
+log "Step 2: Cloning lime-packages feed..."
+LIME_FEED_DIR="${BUILD_DIR}/lime-packages"
+if [[ ! -d "${LIME_FEED_DIR}" ]]; then
+    git clone "${LIME_REPO_URL}" "${LIME_FEED_DIR}"
+else
+    log "  lime-packages already cloned, pulling latest..."
+    (cd "${LIME_FEED_DIR}" && git pull --ff-only || true)
+fi
+
+LIME_COMMIT="$(cd "${LIME_FEED_DIR}" && git rev-parse HEAD)"
+log "  lime-packages commit: ${LIME_COMMIT:0:12}"
+
+# ─── Step 3: Add feeds to feeds.conf ────────────────────────────────────────────
+log "Step 3: Adding lime-packages and vwifi feeds to feeds.conf..."
+
+# Start with default feeds.conf if feeds.conf doesn't exist
+if [[ ! -f feeds.conf ]]; then
+    cp feeds.conf.default feeds.conf 2>/dev/null || true
+fi
+
+# Add lime-packages feed
+if ! grep -q "src-git lime" feeds.conf 2>/dev/null; then
+    echo "src-git lime ${LIME_FEED_DIR}" >> feeds.conf
+    log "  Added lime feed"
+else
+    log "  lime feed already in feeds.conf"
+fi
+
+# Add vwifi feed
 if ! grep -q "src-git vwifi" feeds.conf 2>/dev/null; then
     echo "src-git vwifi ${VWIFI_FEED_URL}" >> feeds.conf
+    log "  Added vwifi feed"
 else
     log "  vwifi feed already in feeds.conf"
 fi
@@ -143,7 +158,7 @@ compute_input_hash() {
     hash_input+=$(cat "${DOCKERFILE}")
 
     # Include feed commit hashes (now available after clone/update)
-    hash_input+=$(cd "${BUILD_DIR}/lime-packages" && git rev-parse HEAD 2>/dev/null || echo "unknown")
+    hash_input+=$(cd "${LIME_FEED_DIR}" && git rev-parse HEAD 2>/dev/null || echo "unknown")
     hash_input+=$(cd "${OPENWRT_DIR}" && git rev-parse HEAD 2>/dev/null || echo "unknown")
     if [[ -d "${OPENWRT_DIR}/feeds/vwifi" ]]; then
         hash_input+=$(cd "${OPENWRT_DIR}/feeds/vwifi" && git rev-parse HEAD 2>/dev/null || echo "unknown")
@@ -185,15 +200,16 @@ fi
 log "  vwifi-client: ${VWIFI_LINE}"
 
 # ─── Step 8: Build ─────────────────────────────────────────────────────────────
-log "Step 8: Building (this will take a while)..."
-make -j"$(nproc)"
+log "Step 8: Building (this will take 2-4 hours)..."
+log "  Using $(nproc) parallel jobs"
+make -j"$(nproc)" || { err "Build failed. Try: cd ${OPENWRT_DIR} && make -j1 V=s for verbose output"; exit 1; }
 
 # ─── Post-build: copy image ────────────────────────────────────────────────────
 log "Copying image to output directory..."
 SOURCE_IMG="${OPENWRT_DIR}/bin/targets/x86/64/openwrt-x86-64-generic-ext4-rootfs.img.gz"
 if [[ ! -f "${SOURCE_IMG}" ]]; then
-    # Try alternative names
-    SOURCE_IMG="$(find "${OPENWRT_DIR}/bin/targets/x86/64/" -name '*-ext4-rootfs.img.gz' -o -name '*-combined-ext4.img.gz' | head -1)"
+    # Try alternative names (combined ext4 image)
+    SOURCE_IMG="$(find "${OPENWRT_DIR}/bin/targets/x86/64/" -name '*-ext4-rootfs.img.gz' -o -name '*-combined-ext4.img.gz' 2>/dev/null | head -1)"
 fi
 [[ -f "${SOURCE_IMG}" ]] || die "Built image not found in bin/targets/x86/64/"
 
@@ -231,7 +247,7 @@ cat > "${OUTPUT_DIR}/build-manifest.yaml" <<EOF
 build_date: "$(date -u +%Y-%m-%dT%H:%M:%SZ)"
 image_file: "${DEST_NAME}"
 lime_packages_commit: "${LIME_COMMIT}"
-openwrt_version: "${OPENWRT_VERSION}"
+openwrt_version: "${OPENWRT_COMMIT}"
 vwifi_commit: "${VWIFI_COMMIT}"
 build_input_hash: "${CURRENT_HASH}"
 

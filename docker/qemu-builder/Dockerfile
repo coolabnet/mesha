@@ -6,8 +6,10 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     build-essential cmake g++ pkg-config \
     libncurses-dev zlib1g-dev gawk git gettext \
     libssl-dev rsync swig unzip wget python3 \
+    python3-distutils python3-stdlib \
     libnl-3-dev libnl-genl-3-dev \
     qemu-utils ccache ca-certificates file \
+    time \
     && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /build
