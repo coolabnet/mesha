@@ -190,14 +190,14 @@ log "Step 6: Expanding defconfig..."
 make defconfig
 
 # ─── Step 7: Verify vwifi is enabled ───────────────────────────────────────────
-log "Step 7: Verifying vwifi-client package..."
-VWIFI_LINE="$(grep 'CONFIG_PACKAGE_vwifi-client' .config || true)"
+log "Step 7: Verifying vwifi package..."
+VWIFI_LINE="$(grep 'CONFIG_PACKAGE_vwifi=' .config || true)"
 if echo "${VWIFI_LINE}" | grep -q 'is not set' || [[ -z "${VWIFI_LINE}" ]]; then
-    err "vwifi-client is NOT enabled in .config!"
+    err "vwifi package is NOT enabled in .config!"
     err "  Got: ${VWIFI_LINE:-'(not found)'}"
-    die "Cannot build without vwifi-client. Check that the vwifi feed was added correctly."
+    die "Cannot build without vwifi. Check that the vwifi feed was added correctly."
 fi
-log "  vwifi-client: ${VWIFI_LINE}"
+log "  vwifi: ${VWIFI_LINE}"
 
 # ─── Step 8: Build ─────────────────────────────────────────────────────────────
 log "Step 8: Building (this will take 2-4 hours)..."
