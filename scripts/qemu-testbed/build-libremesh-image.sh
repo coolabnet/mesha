@@ -219,7 +219,7 @@ log "  vwifi: ${VWIFI_LINE}"
 log "Step 8: Building (this will take 2-4 hours)..."
 # First pass: tools and target with -j1 to avoid race conditions
 log "  Phase 1: tools and target (single-threaded to avoid races)..."
-make -j1 tools/install target/compile || { err "Tools/target build failed."; exit 1; }
+make -j1 tools/install toolchain/install target/compile || { err "Tools/toolchain/target build failed."; exit 1; }
 
 # Fix staging_dir python3 symlink if it points to a WASM build
 STAGING_PYTHON="${OPENWRT_DIR}/staging_dir/host/bin/python3"
