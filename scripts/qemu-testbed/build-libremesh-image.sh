@@ -13,7 +13,7 @@
 #   REPO_ROOT        — Root of the mesha repository (auto-detected if unset)
 #   VWIFI_FEED_URL   — Git URL for the vwifi feed (default: https://github.com/javierbrk/vwifi_cli_package.git)
 #   VWIFI_FEED_COMMIT — Git ref for the vwifi feed (default: HEAD)
-#   OPENWRT_VERSION  — OpenWrt branch or tag to build (default: v23.05.5)
+#   OPENWRT_VERSION  — OpenWrt branch or tag to build (default: v24.10.6)
 #
 # Options:
 #   -h, --help       — Show this help text
@@ -64,7 +64,7 @@ BUILD_DIR="${BUILD_DIR:-/tmp/libremesh-build}"
 OUTPUT_DIR="${OUTPUT_DIR:-${REPO_ROOT}/testbed/images}"
 VWIFI_FEED_URL="${VWIFI_FEED_URL:-https://github.com/javierbrk/vwifi_cli_package.git}"
 VWIFI_FEED_COMMIT="${VWIFI_FEED_COMMIT:-HEAD}"
-OPENWRT_VERSION="${OPENWRT_VERSION:-v23.05.5}"
+OPENWRT_VERSION="${OPENWRT_VERSION:-v24.10.6}"
 
 LIME_REPO_URL="https://github.com/libremesh/lime-packages.git"
 OPENWRT_REPO_URL="https://github.com/openwrt/openwrt.git"
@@ -181,6 +181,22 @@ fi
 
 log "Build input hash: ${CURRENT_HASH:0:12}"
 
+# ─── Fix host Python (prevent WASM/Pyodide Python from breaking builds) ────────
+# Some environments have a pyodide/emscripten WASM Python in PATH that cannot
+# access the local filesystem. Detect and fix it before compilation starts.
+SYSTEM_PYTHON="$(command -v python3 2>/dev/null || true)"
+if [[ -n "${SYSTEM_PYTHON}" ]]; then
+    PYTHON_TYPE="$(file "${SYSTEM_PYTHON}" 2>/dev/null || true)"
+    if echo "${PYTHON_TYPE}" | grep -qi "wasm\|emscripten\|pyodide"; then
+        log "  WARNING: Detected WASM Python at ${SYSTEM_PYTHON}"
+        REAL_PYTHON="$(command -v python3.12 2>/dev/null || command -v python3.11 2>/dev/null || command -v /usr/bin/python3 2>/dev/null || true)"
+        if [[ -n "${REAL_PYTHON}" && "${REAL_PYTHON}" != "${SYSTEM_PYTHON}" ]]; then
+            log "  Using native Python instead: ${REAL_PYTHON}"
+            export PYTHON="${REAL_PYTHON}"
+        fi
+    fi
+fi
+
 # ─── Step 5: Copy defconfig ────────────────────────────────────────────────────
 log "Step 5: Applying defconfig..."
 cp "${DEFCONFIG}" .config
@@ -201,8 +217,33 @@ log "  vwifi: ${VWIFI_LINE}"
 
 # ─── Step 8: Build ─────────────────────────────────────────────────────────────
 log "Step 8: Building (this will take 2-4 hours)..."
-log "  Using $(nproc) parallel jobs"
-make -j"$(nproc)" || { err "Build failed. Try: cd ${OPENWRT_DIR} && make -j1 V=s for verbose output"; exit 1; }
+# First pass: tools and target with -j1 to avoid race conditions
+log "  Phase 1: tools and target (single-threaded to avoid races)..."
+make -j1 tools/install target/compile || { err "Tools/target build failed."; exit 1; }
+
+# Fix staging_dir python3 symlink if it points to a WASM build
+STAGING_PYTHON="${OPENWRT_DIR}/staging_dir/host/bin/python3"
+if [[ -L "${STAGING_PYTHON}" ]]; then
+    PYTHON_TARGET="$(readlink -f "${STAGING_PYTHON}" 2>/dev/null || true)"
+    if [[ -n "${PYTHON_TARGET}" ]]; then
+        PYTHON_FILE="$(file "${PYTHON_TARGET}" 2>/dev/null || true)"
+        if echo "${PYTHON_FILE}" | grep -qi "wasm\|emscripten\|pyodide"; then
+            log "  Fixing WASM python3 symlink in staging_dir..."
+            NATIVE_PYTHON="$(command -v python3.12 2>/dev/null || command -v python3.11 2>/dev/null || command -v /usr/bin/python3 2>/dev/null || true)"
+            if [[ -n "${NATIVE_PYTHON}" ]]; then
+                rm -f "${STAGING_PYTHON}"
+                ln -s "${NATIVE_PYTHON}" "${STAGING_PYTHON}"
+                log "  Fixed: ${STAGING_PYTHON} -> ${NATIVE_PYTHON}"
+            fi
+        fi
+    fi
+fi
+# Second pass: packages with parallelism
+log "  Phase 2: packages ($(nproc) parallel jobs)..."
+make -j"$(nproc)" package/compile || { err "Package build failed."; exit 1; }
+# Final: assemble image
+log "  Phase 3: assembling image..."
+make -j1 package/index target/install || { err "Image assembly failed."; exit 1; }
 
 # ─── Post-build: copy image ────────────────────────────────────────────────────
 log "Copying image to output directory..."
