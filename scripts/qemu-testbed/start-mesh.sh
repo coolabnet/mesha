@@ -175,6 +175,7 @@ setup_host_networking() {
             &
         local dhcp_pid=$!
         echo $dhcp_pid > "${RUN_DIR}/dnsmasq-dhcp.pid"
+        sleep 1  # Wait for dnsmasq to bind
         echo "  DHCP server started (PID $dhcp_pid, range 10.99.0.11-20)"
     else
         echo "  WARNING: dnsmasq not found — DHCP not available for source-built images"

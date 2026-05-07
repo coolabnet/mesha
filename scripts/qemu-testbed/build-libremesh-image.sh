@@ -241,6 +241,8 @@ fi
 # Second pass: packages with parallelism
 log "  Phase 2: packages ($(nproc) parallel jobs)..."
 make -j"$(nproc)" package/compile || { err "Package build failed."; exit 1; }
+log "  Phase 2b: installing packages to rootfs..."
+make -j1 package/install || { err "Package install failed."; exit 1; }
 # Final: assemble image
 log "  Phase 3: assembling image..."
 make -j1 package/index target/install || { err "Image assembly failed."; exit 1; }
@@ -305,3 +307,24 @@ log "Hash file written: ${CACHED_HASH_FILE}"
 log "Build complete!"
 log "  Image: ${OUTPUT_DIR}/${DEST_NAME}"
 log "  Manifest: ${OUTPUT_DIR}/build-manifest.yaml"
+
+# ─── Post-build: configure image for testbed ────────────────────────────────────
+# Decompress and configure the image for QEMU testbed use
+log "Decompressing image..."
+gunzip -fk "${OUTPUT_DIR}/${DEST_NAME}"
+DEST_IMG="${OUTPUT_DIR}/${DEST_NAME%.gz}"
+
+log "Configuring image for testbed..."
+bash "${SCRIPT_DIR}/configure-source-image.sh" --image "${DEST_IMG}" || {
+    err "Image configuration failed. You can run configure-source-image.sh manually."
+    err "  bash scripts/qemu-testbed/configure-source-image.sh --image ${DEST_IMG}"
+}
+
+# Update symlink
+ln -sf "$(basename "${DEST_IMG}")" "${OUTPUT_DIR}/libremesh-x86-64.ext4"
+log "Symlink updated: libremesh-x86-64.ext4 -> $(basename "${DEST_IMG}")"
+
+log ""
+log "Image is ready for testbed use."
+log "  To boot: sudo bash scripts/qemu-testbed/start-mesh.sh"
+log "  Then:    bash scripts/qemu-testbed/configure-vms.sh"
