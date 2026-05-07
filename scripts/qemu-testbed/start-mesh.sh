@@ -82,6 +82,18 @@ cleanup() {
         ip tuntap del dev "$tap" mode tap 2>/dev/null || true
     done
 
+    # Kill DHCP server (dnsmasq)
+    local dhcp_pid_file="${RUN_DIR}/dnsmasq-dhcp.pid"
+    if [ -f "$dhcp_pid_file" ]; then
+        local dhcp_pid
+        dhcp_pid=$(cat "$dhcp_pid_file")
+        if kill -0 "$dhcp_pid" 2>/dev/null; then
+            echo "  Stopping DHCP server PID $dhcp_pid..."
+            kill "$dhcp_pid" 2>/dev/null || true
+        fi
+        rm -f "$dhcp_pid_file"
+    fi
+
     # Delete bridge
     ip link set "${BRIDGE_NAME}" down 2>/dev/null || true
     ip link del "${BRIDGE_NAME}" 2>/dev/null || true
@@ -145,6 +157,28 @@ setup_host_networking() {
     done
 
     echo "  Bridge ${BRIDGE_NAME}: $(ip -4 addr show "${BRIDGE_NAME}" | grep inet | awk '{print $2}')"
+
+    # Start DHCP server on bridge for source-built images
+    if command -v dnsmasq &>/dev/null; then
+        echo "  Starting DHCP server on ${BRIDGE_NAME}..."
+        dnsmasq \
+            --keep-in-foreground \
+            --no-hosts \
+            --no-resolv \
+            --bind-interfaces \
+            --interface="${BRIDGE_NAME}" \
+            --listen-address="${BRIDGE_IP%%/*}" \
+            --dhcp-range=10.99.0.11,10.99.0.20,255.255.0.0,12h \
+            --dhcp-option=3,"${BRIDGE_IP%%/*}" \
+            --dhcp-option=6,"${BRIDGE_IP%%/*}" \
+            --pid-file="${RUN_DIR}/dnsmasq-dhcp.pid" \
+            &
+        local dhcp_pid=$!
+        echo $dhcp_pid > "${RUN_DIR}/dnsmasq-dhcp.pid"
+        echo "  DHCP server started (PID $dhcp_pid, range 10.99.0.11-20)"
+    else
+        echo "  WARNING: dnsmasq not found — DHCP not available for source-built images"
+    fi
 }
 
 # ─── KVM / TCG detection ───
@@ -204,7 +238,7 @@ launch_vm() {
     local HAS_BOOTLOADER=false
     if command -v file &>/dev/null; then
         # Source-built images have a partition table; prebuilt are raw ext4
-        if file "${BASE_IMAGE}" | grep -q "DOS/MBR boot sector\|partition table"; then
+        if file -L "${BASE_IMAGE}" | grep -q "DOS/MBR boot sector\|partition table"; then
             HAS_BOOTLOADER=true
         fi
     fi

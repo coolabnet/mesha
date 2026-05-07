@@ -42,7 +42,7 @@ fi
 
 # ─── Resolve SSH config ───
 # Replace __REPO_ROOT__ placeholder with absolute path
-SSH_KEY="${REPO_ROOT_REAL}/testbed/run/ssh-keys/id_ed25519"
+SSH_KEY="${REPO_ROOT_REAL}/testbed/run/ssh-keys/id_rsa"
 SSH_CONFIG_RESOLVED="${TESTBED_CONFIG}/ssh-config.resolved"
 SSH_CONFIG_TEMPLATE="${TESTBED_CONFIG}/ssh-config"
 
