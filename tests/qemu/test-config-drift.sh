@@ -11,6 +11,9 @@ tap_plan 2
 GATEWAY=$(get_gateway)
 DRIFT_CLEANUP_DONE=false
 
+# Check if wireless config exists (VMs without wireless hardware skip these tests)
+HAS_WIRELESS=$(ssh_vm "$GATEWAY" "uci show wireless.radio0 2>/dev/null && echo yes || echo no" 2>/dev/null | tail -1)
+
 cleanup_drift() {
     $DRIFT_CLEANUP_DONE && return
     DRIFT_CLEANUP_DONE=true
@@ -22,6 +25,13 @@ trap cleanup_drift EXIT INT TERM
 
 # Test 1: UCI write and read-back succeeds
 echo "# Testing UCI write/read..."
+if [ "${HAS_WIRELESS}" != "yes" ]; then
+    skip "test_uci_write_succeeds" "wireless.radio0 not available (no wireless hardware)"
+    skip "test_drift_detection_finds_changed_channel" "wireless.radio0 not available (no wireless hardware)"
+    tap_summary
+    exit 0
+fi
+
 ORIGINAL_CHANNEL=$(ssh_vm "$GATEWAY" "uci get wireless.radio0.channel 2>/dev/null || echo '11'" 2>/dev/null)
 ssh_vm "$GATEWAY" "uci set wireless.radio0.channel='6'; uci commit wireless" 2>/dev/null || true
 sleep 1

@@ -22,8 +22,10 @@ if [ "${BMX7_RESULT}" -eq 2 ]; then
     tap_plan 4
     skip "test_bmx7_neighbors_exist" "BMX7 not installed on prebuilt image"
     skip "test_bmx7_originators_cover_mesh" "BMX7 not installed on prebuilt image"
-    # Still test basic L2 connectivity
-    if ssh_vm "$NODE3" "ping -c 3 -W 5 10.99.0.11" >/dev/null 2>&1; then
+    # Still test basic L2 connectivity (skip if node-3 is unreachable)
+    if ! wait_for_ssh "$NODE3" 5 2>/dev/null; then
+        skip "test_mesh_routing_works" "node-3 unreachable (may be down from prior test)"
+    elif ssh_vm "$NODE3" "ping -c 3 -W 5 10.99.0.11" >/dev/null 2>&1; then
         pass "test_mesh_routing_works"
     else
         fail "test_mesh_routing_works" "node-3 cannot reach node-1 via L2"

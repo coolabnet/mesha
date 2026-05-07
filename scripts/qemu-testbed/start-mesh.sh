@@ -161,6 +161,9 @@ setup_host_networking() {
     # Start DHCP server on bridge for source-built images
     if command -v dnsmasq &>/dev/null; then
         echo "  Starting DHCP server on ${BRIDGE_NAME}..."
+        # Kill any existing dnsmasq on this interface
+        pkill -f "dnsmasq.*${BRIDGE_NAME}" 2>/dev/null || true
+        sleep 0.5
         dnsmasq \
             --keep-in-foreground \
             --no-hosts \
@@ -244,8 +247,12 @@ launch_vm() {
         fi
     fi
 
+    echo "  [Node ${node_id}] Kernel: ${KERNEL_IMAGE} (exists=$([ -f "${KERNEL_IMAGE}" ] && echo yes || echo no)), HAS_BOOTLOADER=${HAS_BOOTLOADER}"
     if [ -f "${KERNEL_IMAGE}" ] && [ "${HAS_BOOTLOADER}" = "false" ]; then
         KERNEL_OPTS+=(-kernel "${KERNEL_IMAGE}" -append "root=/dev/sda rootfstype=ext4 rootwait console=ttyS0")
+        echo "  [Node ${node_id}] Using kernel boot"
+    else
+        echo "  [Node ${node_id}] Booting from image directly"
     fi
 
     echo "  [Node ${node_id}] Launching QEMU..."
