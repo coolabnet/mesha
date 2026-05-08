@@ -1,6 +1,10 @@
 #!/usr/bin/env bash
 # configure-vms.sh — Post-boot configuration for Mesha QEMU LibreMesh VMs
 # Waits for SSH, configures mesh networking, injects SSH keys
+#
+# Supports two image types:
+#   - Prebuilt: connects via password auth, injects keys
+#   - Source-built (prepared): connects via key auth (keys pre-baked into image)
 
 set -euo pipefail
 
@@ -46,9 +50,26 @@ parse_topology() {
 }
 
 # ─── SSH helper ───
+# Tries key auth first (if SSH key exists), falls back to password auth.
+# This makes the script work with both source-built (pre-baked keys) and
+# prebuilt images (password auth) transparently.
 ssh_vm() {
     local ip="$1"
     shift
+
+    # Try key-based auth first when key file exists (source-built images)
+    if [[ -f "${SSH_KEY}" ]]; then
+        ssh -o StrictHostKeyChecking=no \
+            -o UserKnownHostsFile=/dev/null \
+            -o HostKeyAlgorithms=+ssh-rsa \
+            -o PubkeyAcceptedKeyTypes=+ssh-rsa \
+            -o BatchMode=yes \
+            -i "${SSH_KEY}" \
+            -o ConnectTimeout="${SSH_BASE_TIMEOUT}" \
+            "root@${ip}" "$@" 2>/dev/null && return 0
+    fi
+
+    # Fallback: password auth (prebuilt images, BatchMode=no allows password prompt)
     ssh -o StrictHostKeyChecking=no \
         -o UserKnownHostsFile=/dev/null \
         -o HostKeyAlgorithms=+ssh-rsa \
@@ -112,6 +133,22 @@ configure_vm() {
         uci set network.lan.netmask='255.255.0.0'
         uci commit network
     " || true
+
+    # Restart network to apply the IP change (needed for source-built images
+    # where the pre-baked IP is 10.99.0.11 for all nodes)
+    echo "  [${hostname}] Restarting network to apply IP ${ip}..."
+    ssh_vm "$ip" "/etc/init.d/network restart" || true
+    sleep 3
+
+    # Wait for SSH to come back after network restart
+    local retry=0
+    while [ $retry -lt 10 ]; do
+        if ssh_vm "$ip" "echo ok" &>/dev/null; then
+            break
+        fi
+        sleep 2
+        retry=$((retry + 1))
+    done
 
     # Load mac80211_hwsim (remove real radios, replaced by vwifi)
     ssh_vm "$ip" "modprobe mac80211_hwsim radios=0 2>/dev/null || true" || true
@@ -208,6 +245,21 @@ generate_and_inject_keys() {
     local idx=0
     for ip in "${NODE_IPS[@]}"; do
         local hostname="${NODE_HOSTNAMES[$idx]}"
+
+        # Check if key is already present (pre-baked by prepare-source-image.sh)
+        if ssh_vm "$ip" "grep -qF '$(echo "${public_key}" | awk '{print $2}')' /root/.ssh/authorized_keys 2>/dev/null" &>/dev/null; then
+            echo "  [${hostname}] SSH key already present (pre-baked), skipping injection."
+            # Still lock down dropbear for consistency
+            ssh_vm "$ip" "
+                uci set dropbear.@dropbear[0].PasswordAuth='off'
+                uci set dropbear.@dropbear[0].RootPasswordAuth='off'
+                uci commit dropbear
+                service dropbear restart
+            " 2>/dev/null || echo "  [${hostname}] WARN: Could not lock dropbear"
+            idx=$((idx + 1))
+            continue
+        fi
+
         echo "  [${hostname}] Injecting SSH key..."
 
         # Inject public key
@@ -301,6 +353,49 @@ main() {
 
     # Phase 2: SSH keys
     generate_and_inject_keys
+
+    # Phase 3: Mesh convergence (source-built images with bmx7)
+    echo ""
+    echo "=== Phase 3: Mesh convergence ==="
+    local bmx7_available=false
+    # Check if bmx7 is available on the first node
+    if ssh_vm "${NODE_IPS[0]}" "which bmx7 >/dev/null 2>&1" 2>/dev/null; then
+        bmx7_available=true
+    fi
+
+    if ${bmx7_available}; then
+        echo "  BMX7 detected — waiting for mesh convergence..."
+        local convergence_ok=true
+        for ip in "${NODE_IPS[@]}"; do
+            local expected_peers=$(( ${#NODE_IPS[@]} - 1 ))
+            local attempt=0
+            local max_attempts=18  # 90 seconds at 5s intervals
+            echo -n "  [${ip}] Waiting for ${expected_peers} BMX7 peers..."
+            while [ $attempt -lt $max_attempts ]; do
+                local peer_count
+                peer_count=$(ssh_vm "$ip" "bmx7 -c originators 2>/dev/null | tail -n +2 | wc -l" 2>/dev/null || echo "0")
+                peer_count=$(echo "$peer_count" | tr -d '[:space:]')
+                if [ "${peer_count}" -ge "${expected_peers}" ] 2>/dev/null; then
+                    echo " OK (${peer_count} peers)"
+                    break
+                fi
+                if [ $attempt -eq $((max_attempts - 1)) ]; then
+                    echo " TIMEOUT (${peer_count}/${expected_peers} peers)"
+                    convergence_ok=false
+                fi
+                sleep 5
+                attempt=$((attempt + 1))
+            done
+        done
+
+        if ${convergence_ok}; then
+            echo "  Mesh converged — all nodes see each other."
+        else
+            echo "  WARN: Mesh did not fully converge. Tests may still pass with partial connectivity."
+        fi
+    else
+        echo "  BMX7 not available (prebuilt image) — skipping mesh convergence."
+    fi
 
     # Verification
     verify_key_access
