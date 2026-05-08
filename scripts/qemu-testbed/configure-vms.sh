@@ -69,7 +69,17 @@ ssh_vm() {
             "root@${ip}" "$@" 2>/dev/null && return 0
     fi
 
-    # Fallback: password auth (prebuilt images, BatchMode=no allows password prompt)
+    # Fallback: password auth via sshpass (empty password for source-built images)
+    if command -v sshpass >/dev/null 2>&1; then
+        sshpass -p "" ssh -o StrictHostKeyChecking=no \
+            -o UserKnownHostsFile=/dev/null \
+            -o HostKeyAlgorithms=+ssh-rsa \
+            -o PubkeyAcceptedKeyTypes=+ssh-rsa \
+            -o ConnectTimeout="${SSH_BASE_TIMEOUT}" \
+            "root@${ip}" "$@" 2>/dev/null && return 0
+    fi
+
+    # Last resort: interactive password prompt
     ssh -o StrictHostKeyChecking=no \
         -o UserKnownHostsFile=/dev/null \
         -o HostKeyAlgorithms=+ssh-rsa \
