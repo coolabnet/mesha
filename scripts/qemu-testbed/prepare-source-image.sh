@@ -3,13 +3,14 @@
 #
 # Mounts the source-built flat image and injects:
 #   - SSH public key into /root/.ssh/authorized_keys and /etc/dropbear/authorized_keys
-#   - Static network config (10.99.0.11/16 on br-lan)
+#   - DHCP network config (dnsmasq assigns IPs by MAC on bridge)
 #   - Empty root password
 #   - Dropbear configured for password + root login
 #   - /sbin/service shim (needed by mesha adapters)
 #
 # This eliminates the dropbear blank-password-auth problem by enabling
-# SSH key auth from first boot. configure-vms.sh then changes the IP per node.
+# SSH key auth from first boot. dnsmasq on the bridge assigns deterministic IPs
+# based on MAC address (configured in start-mesh.sh with --dhcp-host entries).
 #
 # Usage:
 #   ./prepare-source-image.sh [OPTIONS]
@@ -52,8 +53,6 @@ IMAGE_DIR="${REPO_ROOT}/testbed/images"
 IMAGE_PATH="${IMAGE_PATH:-${IMAGE_DIR}/libremesh-x86-64-source-built-flat.img}"
 SSH_KEY_PATH="${SSH_KEY_PATH:-${REPO_ROOT}/testbed/run/ssh-keys/id_rsa.pub}"
 SSH_KEY_DIR="${REPO_ROOT}/testbed/run/ssh-keys"
-BASE_IP="10.99.0.11"
-BASE_NETMASK="255.255.0.0"
 
 # ─── Helpers ────────────────────────────────────────────────────────────────────
 log() { echo "[prepare-source-image] $*"; }
@@ -140,10 +139,12 @@ echo "${PUBLIC_KEY}" | sudo tee "${MOUNT_POINT}/etc/dropbear/authorized_keys" > 
 sudo chmod 600 "${MOUNT_POINT}/etc/dropbear/authorized_keys"
 log "  Written to /etc/dropbear/authorized_keys"
 
-# ─── Configure network (static IP on br-lan) ───────────────────────────────────
-log "Configuring network (static ${BASE_IP}/${BASE_NETMASK} on br-lan)..."
+# ─── Configure network (DHCP on br-lan) ─────────────────────────────────────────
+# Use DHCP because all 4 VMs share the same base image.
+# dnsmasq on the bridge assigns deterministic IPs based on MAC address
+# (configured in start-mesh.sh with --dhcp-host entries).
+log "Configuring network (DHCP on br-lan)..."
 
-# Write network UCI config with static IP
 sudo tee "${MOUNT_POINT}/etc/config/network" > /dev/null << 'NETEOF'
 config interface 'loopback'
     option device 'lo'
@@ -161,14 +162,10 @@ config device
 
 config interface 'lan'
     option device 'br-lan'
-    option proto 'static'
-    option ipaddr '10.99.0.11'
-    option netmask '255.255.0.0'
-    option gateway '10.99.0.254'
-    list dns '10.99.0.254'
+    option proto 'dhcp'
 NETEOF
 
-log "  Network: static ${BASE_IP}/16 on br-lan (eth0 bridged)"
+log "  Network: DHCP on br-lan (eth0 bridged, dnsmasq assigns IPs by MAC)"
 
 # ─── Clear root password ───────────────────────────────────────────────────────
 log "Clearing root password..."
@@ -231,11 +228,10 @@ sudo chmod +x "${MOUNT_POINT}/sbin/service"
 log "  /sbin/service shim created"
 
 # ─── Disable board.d network regeneration ───────────────────────────────────────
-# Prevent first-boot scripts from overwriting our static IP config
-# Remove the default network generation script if it exists
+# Prevent first-boot scripts from overwriting our DHCP config
 if [[ -f "${MOUNT_POINT}/etc/board.d/99-default_network" ]]; then
     log "Disabling board.d network auto-generation..."
-    # Replace with a no-op that preserves our static config
+    # Replace with a no-op that preserves our DHCP config
     sudo tee "${MOUNT_POINT}/etc/board.d/99-default_network" > /dev/null << 'BOARDEOF'
 #!/bin/sh
 # Disabled — network config pre-baked by prepare-source-image.sh
@@ -263,11 +259,11 @@ log " Source-built image prepared successfully"
 log "=========================================="
 log "  Image:     ${IMAGE_PATH}"
 log "  SSH key:   ${SSH_KEY_PATH}"
-log "  Network:   ${BASE_IP}/16 (br-lan)"
+log "  Network:   DHCP (dnsmasq assigns IPs by MAC)"
 log ""
 log "Next steps:"
 log "  1. sudo bash scripts/qemu-testbed/start-mesh.sh"
 log "  2. bash scripts/qemu-testbed/configure-vms.sh"
 log ""
 log "The SSH key auth will work from first boot."
-log "configure-vms.sh will change IPs per node via SSH."
+log "dnsmasq assigns deterministic IPs based on MAC address."

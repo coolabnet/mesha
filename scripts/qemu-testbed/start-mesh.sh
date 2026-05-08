@@ -98,6 +98,9 @@ cleanup() {
     ip link set "${BRIDGE_NAME}" down 2>/dev/null || true
     ip link del "${BRIDGE_NAME}" 2>/dev/null || true
 
+    # Remove serial/monitor sockets
+    rm -f /tmp/node-*-serial.sock /tmp/node-*-monitor.sock 2>/dev/null
+
     # Remove lock
     rm -rf "$LOCK_DIR"
 
@@ -164,6 +167,30 @@ setup_host_networking() {
         # Kill any existing dnsmasq on this interface
         pkill -f "dnsmasq.*${BRIDGE_NAME}" 2>/dev/null || true
         sleep 0.5
+
+        # Build --dhcp-host entries from topology for deterministic IP assignment
+        # Each VM gets a fixed IP based on its MAC address, so configure-vms.sh
+        # can reach all nodes at their expected IPs from first boot.
+        local -a DHCP_HOST_OPTS=()
+        if [ -f "$TOPOLOGY_FILE" ]; then
+            for node_id in $(awk '/^    - id:/ {print $3}' "$TOPOLOGY_FILE"); do
+                local node_mac node_ip
+                node_mac=$(get_node_field "$node_id" "mac_mesh:")
+                node_ip=$(get_node_field "$node_id" "ip:")
+                if [ -n "$node_mac" ] && [ -n "$node_ip" ]; then
+                    DHCP_HOST_OPTS+=(--dhcp-host="${node_mac},${node_ip}")
+                fi
+            done
+        else
+            # Fallback defaults
+            DHCP_HOST_OPTS=(
+                --dhcp-host="52:54:00:00:00:01,10.99.0.11"
+                --dhcp-host="52:54:00:00:00:02,10.99.0.12"
+                --dhcp-host="52:54:00:00:00:03,10.99.0.13"
+                --dhcp-host="52:54:00:00:00:04,10.99.0.14"
+            )
+        fi
+
         dnsmasq \
             --keep-in-foreground \
             --no-hosts \
@@ -172,6 +199,7 @@ setup_host_networking() {
             --interface="${BRIDGE_NAME}" \
             --listen-address="${BRIDGE_IP%%/*}" \
             --dhcp-range=10.99.0.11,10.99.0.20,255.255.0.0,12h \
+            "${DHCP_HOST_OPTS[@]}" \
             --dhcp-option=3,"${BRIDGE_IP%%/*}" \
             --dhcp-option=6,"${BRIDGE_IP%%/*}" \
             --pid-file="${RUN_DIR}/dnsmasq-dhcp.pid" \
@@ -179,7 +207,7 @@ setup_host_networking() {
         local dhcp_pid=$!
         echo $dhcp_pid > "${RUN_DIR}/dnsmasq-dhcp.pid"
         sleep 1  # Wait for dnsmasq to bind
-        echo "  DHCP server started (PID $dhcp_pid, range 10.99.0.11-20)"
+        echo "  DHCP server started (PID $dhcp_pid, range 10.99.0.11-20, ${#DHCP_HOST_OPTS[@]} host reservations)"
     else
         echo "  WARNING: dnsmasq not found — DHCP not available for source-built images"
     fi
@@ -229,7 +257,6 @@ launch_vm() {
 
     local overlay="${RUN_DIR}/node-${node_id}.qcow2"
     local pid_file="${RUN_DIR}/node-${node_id}.pid"
-    local serial_log="${LOG_DIR}/node-${node_id}.serial.log"
 
     echo "  [Node ${node_id}] ${hostname} (${ip}) — creating overlay..."
     rm -f "$overlay"
@@ -255,6 +282,9 @@ launch_vm() {
         echo "  [Node ${node_id}] Booting from image directly"
     fi
 
+    # Add serial sockets for all nodes (needed for source-built image configuration)
+    local serial_arg="unix:/tmp/node-${node_id}-serial.sock,server,nowait"
+
     echo "  [Node ${node_id}] Launching QEMU..."
     if [[ ${#KERNEL_OPTS[@]} -gt 0 ]]; then
         qemu-system-x86_64 \
@@ -270,7 +300,7 @@ launch_vm() {
             -netdev "tap,id=mesh0,ifname=${TAP_PREFIX}${tap_index},script=no,downscript=no" \
             -device virtio-net-pci,netdev=wan0,mac="${mac_wan}" \
             -netdev user,id=wan0 \
-            -serial "file:${serial_log}" \
+            -serial "${serial_arg}" \
             &
     else
         qemu-system-x86_64 \
@@ -285,7 +315,7 @@ launch_vm() {
             -netdev "tap,id=mesh0,ifname=${TAP_PREFIX}${tap_index},script=no,downscript=no" \
             -device virtio-net-pci,netdev=wan0,mac="${mac_wan}" \
             -netdev user,id=wan0 \
-            -serial "file:${serial_log}" \
+            -serial "${serial_arg}" \
             &
     fi
     local qemu_pid=$!

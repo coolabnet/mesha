@@ -127,28 +127,15 @@ configure_vm() {
     # Set hostname
     ssh_vm "$ip" "uci set system.@system[0].hostname='${hostname}' && uci commit system && echo '${hostname}' > /proc/sys/kernel/hostname" || true
 
-    # Configure mesh interface IP on br-lan
+    # Configure mesh interface IP on br-lan (set static for when DHCP lease expires;
+    # for source-built images, dnsmasq already assigned the correct IP via DHCP)
     ssh_vm "$ip" "
+        uci set network.lan.proto='static'
         uci set network.lan.ipaddr='${ip}'
         uci set network.lan.netmask='255.255.0.0'
+        uci set network.lan.gateway='10.99.0.254'
         uci commit network
     " || true
-
-    # Restart network to apply the IP change (needed for source-built images
-    # where the pre-baked IP is 10.99.0.11 for all nodes)
-    echo "  [${hostname}] Restarting network to apply IP ${ip}..."
-    ssh_vm "$ip" "/etc/init.d/network restart" || true
-    sleep 3
-
-    # Wait for SSH to come back after network restart
-    local retry=0
-    while [ $retry -lt 10 ]; do
-        if ssh_vm "$ip" "echo ok" &>/dev/null; then
-            break
-        fi
-        sleep 2
-        retry=$((retry + 1))
-    done
 
     # Load mac80211_hwsim (remove real radios, replaced by vwifi)
     ssh_vm "$ip" "modprobe mac80211_hwsim radios=0 2>/dev/null || true" || true
