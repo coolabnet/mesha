@@ -64,6 +64,7 @@ ssh_vm() {
             -o HostKeyAlgorithms=+ssh-rsa \
             -o PubkeyAcceptedKeyTypes=+ssh-rsa \
             -o BatchMode=yes \
+            -o IdentitiesOnly=yes \
             -i "${SSH_KEY}" \
             -o ConnectTimeout="${SSH_BASE_TIMEOUT}" \
             "root@${ip}" "$@" 2>/dev/null && return 0
@@ -79,14 +80,17 @@ ssh_vm() {
             "root@${ip}" "$@" 2>/dev/null && return 0
     fi
 
-    # Last resort: interactive password prompt
-    ssh -o StrictHostKeyChecking=no \
+    # Last resort: try without key (for prebuilt images with password)
+    # Use NumberOfPasswordPrompts=0 to avoid hanging on interactive prompt
+    sshpass -p "root" ssh -o StrictHostKeyChecking=no \
         -o UserKnownHostsFile=/dev/null \
         -o HostKeyAlgorithms=+ssh-rsa \
         -o PubkeyAcceptedKeyTypes=+ssh-rsa \
-        -o BatchMode=no \
         -o ConnectTimeout="${SSH_BASE_TIMEOUT}" \
-        "root@${ip}" "$@"
+        -o NumberOfPasswordPrompts=0 \
+        "root@${ip}" "$@" 2>/dev/null && return 0
+
+    return 1
 }
 
 ssh_vm_with_key() {
@@ -97,6 +101,7 @@ ssh_vm_with_key() {
         -o HostKeyAlgorithms=+ssh-rsa \
         -o PubkeyAcceptedKeyTypes=+ssh-rsa \
         -o BatchMode=yes \
+        -o IdentitiesOnly=yes \
         -i "${SSH_KEY}" \
         -o ConnectTimeout="${SSH_BASE_TIMEOUT}" \
         "root@${ip}" "$@"
@@ -162,39 +167,81 @@ configure_vm() {
         uci commit vwifi
     " || true
 
-    # Set lime-community UCI config (type is 'lime' per LibreMesh convention)
-    # Only set if sections don't already exist from lime-packages install
-    ssh_vm "$ip" "
-        uci get lime-community.wifi >/dev/null 2>&1 || uci set lime-community.wifi=lime
-        uci set lime-community.wifi.ap_ssid='MeshaTestBed'
-        uci set lime-community.wifi.apname='MeshaTestBed'
-        uci set lime-community.wifi.mode='adhoc'
-        uci set lime-community.wifi.channel='11'
-        uci get lime-community.network >/dev/null 2>&1 || uci set lime-community.network=lime
-        uci set lime-community.network.protocols='bmx7'
-        uci set lime-community.network.domain='testbed.mesh'
-        uci get lime-community.system >/dev/null 2>&1 || uci set lime-community.system=lime
-        uci set lime-community.system.community_name='Mesha-Testbed'
-        uci commit lime-community
-    " || true
+    # Detect if lime-config is available (full LibreMesh vs bare OpenWrt)
+    local has_lime_config
+    has_lime_config=$(ssh_vm "$ip" "which lime-config 2>/dev/null && echo yes || echo no") || has_lime_config="no"
 
-    # Set lime-node UCI config (section may already exist from lime-packages)
-    ssh_vm "$ip" "
-        uci get lime-node.network >/dev/null 2>&1 || uci set lime-node.network=lime
-        uci set lime-node.network.main_ipv4_address='${ip}/16'
-        uci commit lime-node
-    " || true
+    if [[ "${has_lime_config}" == *"yes"* ]]; then
+        echo "  [${hostname}] Full LibreMesh detected, using lime-config..."
 
-    # Run lime-config sequence (single chain, no duplicate vwifi-client start)
-    echo "  [${hostname}] Running lime-config sequence..."
-    ssh_vm "$ip" "
-        service vwifi-client start && \
-        wifi config && \
-        lime-config && \
-        wifi down && \
-        sleep 7 && \
-        wifi up
-    " || echo "  [${hostname}] WARN: lime-config sequence had errors (may be expected if vwifi-client is missing)"
+        # Set lime-community UCI config
+        ssh_vm "$ip" "
+            uci get lime-community.wifi >/dev/null 2>&1 || uci set lime-community.wifi=lime
+            uci set lime-community.wifi.ap_ssid='MeshaTestBed'
+            uci set lime-community.wifi.apname='MeshaTestBed'
+            uci set lime-community.wifi.mode='adhoc'
+            uci set lime-community.wifi.channel='11'
+            uci get lime-community.network >/dev/null 2>&1 || uci set lime-community.network=lime
+            uci set lime-community.network.protocols='bmx7'
+            uci set lime-community.network.domain='testbed.mesh'
+            uci get lime-community.system >/dev/null 2>&1 || uci set lime-community.system=lime
+            uci set lime-community.system.community_name='Mesha-Testbed'
+            uci commit lime-community
+        " || true
+
+        # Set lime-node UCI config
+        ssh_vm "$ip" "
+            uci get lime-node.network >/dev/null 2>&1 || uci set lime-node.network=lime
+            uci set lime-node.network.main_ipv4_address='${ip}/16'
+            uci commit lime-node
+        " || true
+
+        # Run lime-config sequence
+        echo "  [${hostname}] Running lime-config sequence..."
+        ssh_vm "$ip" "
+            service vwifi-client start && \
+            wifi config && \
+            lime-config && \
+            wifi down && \
+            sleep 7 && \
+            wifi up
+        " || echo "  [${hostname}] WARN: lime-config sequence had errors"
+    else
+        echo "  [${hostname}] Bare OpenWrt detected (no lime-config), configuring bmx7 directly..."
+
+        # Start vwifi-client if vwifi is installed
+        ssh_vm "$ip" "service vwifi-client start 2>/dev/null || true" || true
+
+        # Configure wireless for adhoc mesh
+        ssh_vm "$ip" "
+            # Enable radio0 and set to adhoc mode on channel 11
+            uci set wireless.radio0.disabled='0'
+            uci set wireless.radio0.channel='11'
+            uci set wireless.radio0.band='2g'
+            uci set wireless.radio0.htmode='HT20'
+            # Remove default AP iface and add adhoc iface for mesh
+            uci delete wireless.default_radio0 2>/dev/null || true
+            uci set wireless.mesh0=wifi-iface
+            uci set wireless.mesh0.device='radio0'
+            uci set wireless.mesh0.mode='adhoc'
+            uci set wireless.mesh0.ssid='MeshaTestBed'
+            uci set wireless.mesh0.encryption='none'
+            uci set wireless.mesh0.network='lan'
+            uci commit wireless
+        " || true
+
+        # Configure and start bmx7
+        # Use br-lan for bmx7 (wired mesh) because vwifi IBSS doesn't
+        # forward beacons between VMs — wireless adhoc discovery fails.
+        ssh_vm "$ip" "
+            # Start bmx7 on br-lan (wired interface, all VMs share the bridge)
+            killall bmx7 2>/dev/null || true
+            bmx7 dev=br-lan 2>&1 || true
+        " || true
+
+        # Apply wireless config
+        ssh_vm "$ip" "wifi reload 2>/dev/null || wifi up 2>/dev/null || true" || true
+    fi
 
     # Enable uhttpd
     ssh_vm "$ip" "
