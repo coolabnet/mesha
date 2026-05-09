@@ -296,9 +296,9 @@ launch_vm() {
             -nographic \
             -drive "file=${overlay},format=qcow2" \
             "${KERNEL_OPTS[@]}" \
-            -device virtio-net-pci,netdev=mesh0,mac="${mac_mesh}" \
+            -device e1000,netdev=mesh0,mac="${mac_mesh}" \
             -netdev "tap,id=mesh0,ifname=${TAP_PREFIX}${tap_index},script=no,downscript=no" \
-            -device virtio-net-pci,netdev=wan0,mac="${mac_wan}" \
+            -device e1000,netdev=wan0,mac="${mac_wan}" \
             -netdev user,id=wan0 \
             -serial "${serial_arg}" \
             &
@@ -311,9 +311,9 @@ launch_vm() {
             -m "${ram_mb}M" \
             -nographic \
             -drive "file=${overlay},format=qcow2" \
-            -device virtio-net-pci,netdev=mesh0,mac="${mac_mesh}" \
+            -device e1000,netdev=mesh0,mac="${mac_mesh}" \
             -netdev "tap,id=mesh0,ifname=${TAP_PREFIX}${tap_index},script=no,downscript=no" \
-            -device virtio-net-pci,netdev=wan0,mac="${mac_wan}" \
+            -device e1000,netdev=wan0,mac="${mac_wan}" \
             -netdev user,id=wan0 \
             -serial "${serial_arg}" \
             &
