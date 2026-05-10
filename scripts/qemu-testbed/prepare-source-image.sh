@@ -128,16 +128,38 @@ log "Injecting SSH public key..."
 
 # /root/.ssh/authorized_keys
 sudo mkdir -p "${MOUNT_POINT}/root/.ssh"
-echo "${PUBLIC_KEY}" | sudo tee "${MOUNT_POINT}/root/.ssh/authorized_keys" > /dev/null
+if [[ -f "${MOUNT_POINT}/root/.ssh/authorized_keys" ]]; then
+    EXISTING="$(sudo cat "${MOUNT_POINT}/root/.ssh/authorized_keys" 2>/dev/null || true)"
+    if echo "${EXISTING}" | grep -qF "$(echo "${PUBLIC_KEY}" | awk '{print $2}')"; then
+        log "  /root/.ssh/authorized_keys already contains the key — skipping"
+    else
+        echo "${PUBLIC_KEY}" | sudo tee -a "${MOUNT_POINT}/root/.ssh/authorized_keys" > /dev/null
+        sudo chmod 600 "${MOUNT_POINT}/root/.ssh/authorized_keys"
+        log "  Appended to /root/.ssh/authorized_keys"
+    fi
+else
+    echo "${PUBLIC_KEY}" | sudo tee "${MOUNT_POINT}/root/.ssh/authorized_keys" > /dev/null
+    sudo chmod 600 "${MOUNT_POINT}/root/.ssh/authorized_keys"
+    log "  Written to /root/.ssh/authorized_keys"
+fi
 sudo chmod 700 "${MOUNT_POINT}/root/.ssh"
-sudo chmod 600 "${MOUNT_POINT}/root/.ssh/authorized_keys"
-log "  Written to /root/.ssh/authorized_keys"
 
 # /etc/dropbear/authorized_keys (for dropbear key auth)
 sudo mkdir -p "${MOUNT_POINT}/etc/dropbear"
-echo "${PUBLIC_KEY}" | sudo tee "${MOUNT_POINT}/etc/dropbear/authorized_keys" > /dev/null
-sudo chmod 600 "${MOUNT_POINT}/etc/dropbear/authorized_keys"
-log "  Written to /etc/dropbear/authorized_keys"
+if [[ -f "${MOUNT_POINT}/etc/dropbear/authorized_keys" ]]; then
+    EXISTING_DB="$(sudo cat "${MOUNT_POINT}/etc/dropbear/authorized_keys" 2>/dev/null || true)"
+    if echo "${EXISTING_DB}" | grep -qF "$(echo "${PUBLIC_KEY}" | awk '{print $2}')"; then
+        log "  /etc/dropbear/authorized_keys already contains the key — skipping"
+    else
+        echo "${PUBLIC_KEY}" | sudo tee -a "${MOUNT_POINT}/etc/dropbear/authorized_keys" > /dev/null
+        sudo chmod 600 "${MOUNT_POINT}/etc/dropbear/authorized_keys"
+        log "  Appended to /etc/dropbear/authorized_keys"
+    fi
+else
+    echo "${PUBLIC_KEY}" | sudo tee "${MOUNT_POINT}/etc/dropbear/authorized_keys" > /dev/null
+    sudo chmod 600 "${MOUNT_POINT}/etc/dropbear/authorized_keys"
+    log "  Written to /etc/dropbear/authorized_keys"
+fi
 
 # ─── Configure network (DHCP on br-lan) ─────────────────────────────────────────
 # Use DHCP because all 4 VMs share the same base image.
@@ -145,7 +167,13 @@ log "  Written to /etc/dropbear/authorized_keys"
 # (configured in start-mesh.sh with --dhcp-host entries).
 log "Configuring network (DHCP on br-lan)..."
 
-sudo tee "${MOUNT_POINT}/etc/config/network" > /dev/null << 'NETEOF'
+# Check if network config already matches
+NET_FILE="${MOUNT_POINT}/etc/config/network"
+if [[ -f "${NET_FILE}" ]] && sudo grep -q "option proto '"'"'dhcp'"'"'" "${NET_FILE}" 2>/dev/null \
+   && sudo grep -q "option name '"'"'br-lan'"'"'" "${NET_FILE}" 2>/dev/null; then
+    log "  Network config already has DHCP on br-lan — skipping"
+else
+    sudo tee "${NET_FILE}" > /dev/null << 'NETEOF'
 config interface 'loopback'
     option device 'lo'
     option proto 'static'
@@ -164,12 +192,17 @@ config interface 'lan'
     option device 'br-lan'
     option proto 'dhcp'
 NETEOF
-
-log "  Network: DHCP on br-lan (eth0 bridged, dnsmasq assigns IPs by MAC)"
+    log "  Network: DHCP on br-lan (eth0 bridged, dnsmasq assigns IPs by MAC)"
+fi
 
 # ─── Clear root password ───────────────────────────────────────────────────────
 log "Clearing root password..."
-sudo sed -i 's|^root:.*|root::0:0:99999:7:::|' "${MOUNT_POINT}/etc/shadow"
+if sudo grep -q '^root::' "${MOUNT_POINT}/etc/shadow" 2>/dev/null; then
+    log "  Root password already cleared — skipping"
+else
+    sudo sed -i 's|^root:.*|root::0:0:99999:7:::|' "${MOUNT_POINT}/etc/shadow"
+    log "  Root password cleared"
+fi
 
 # ─── Configure dropbear ────────────────────────────────────────────────────────
 log "Configuring dropbear for key + password auth..."
@@ -202,7 +235,11 @@ fi
 # Mesha adapters use `service <name> <action>` which doesn't exist on OpenWrt
 # by default (they use /etc/init.d/<name> directly)
 log "Creating /sbin/service shim..."
-sudo tee "${MOUNT_POINT}/sbin/service" > /dev/null << 'SERVICEEOF'
+SERVICE_SHIM="${MOUNT_POINT}/sbin/service"
+if [[ -f "${SERVICE_SHIM}" ]] && sudo head -1 "${SERVICE_SHIM}" 2>/dev/null | grep -q 'service shim'; then
+    log "  /sbin/service shim already exists — skipping"
+else
+    sudo tee "${SERVICE_SHIM}" > /dev/null << 'SERVICEEOF'
 #!/bin/sh
 # /sbin/service shim — maps `service <name> <action>` to `/etc/init.d/<name> <action>`
 # Needed by mesha adapters that expect service(8) behavior
@@ -224,20 +261,26 @@ else
     exit 1
 fi
 SERVICEEOF
-sudo chmod +x "${MOUNT_POINT}/sbin/service"
-log "  /sbin/service shim created"
+    sudo chmod +x "${SERVICE_SHIM}"
+    log "  /sbin/service shim created"
+fi
 
 # ─── Disable board.d network regeneration ───────────────────────────────────────
 # Prevent first-boot scripts from overwriting our DHCP config
-if [[ -f "${MOUNT_POINT}/etc/board.d/99-default_network" ]]; then
-    log "Disabling board.d network auto-generation..."
-    # Replace with a no-op that preserves our DHCP config
-    sudo tee "${MOUNT_POINT}/etc/board.d/99-default_network" > /dev/null << 'BOARDEOF'
+BOARD_NET="${MOUNT_POINT}/etc/board.d/99-default_network"
+if [[ -f "${BOARD_NET}" ]]; then
+    if sudo head -3 "${BOARD_NET}" 2>/dev/null | grep -q 'Disabled'; then
+        log "  board.d network already disabled — skipping"
+    else
+        log "Disabling board.d network auto-generation..."
+        # Replace with a no-op that preserves our DHCP config
+        sudo tee "${BOARD_NET}" > /dev/null << 'BOARDEOF'
 #!/bin/sh
 # Disabled — network config pre-baked by prepare-source-image.sh
 exit 0
 BOARDEOF
-    sudo chmod +x "${MOUNT_POINT}/etc/board.d/99-default_network"
+        sudo chmod +x "${BOARD_NET}"
+    fi
 fi
 
 # Also remove any uci-defaults that might reset network config

@@ -86,29 +86,43 @@ cleanup() {
 trap cleanup EXIT
 
 # ─── Find rootfs partition offset ───────────────────────────────────────────────
-# Source-built images are MBR with partition 1 = boot, partition 2 = rootfs
-log "Analyzing partition table of ${IMAGE_PATH}..."
+# Source-built images can be:
+#   1. Combined image (MBR with partition 1 = boot, partition 2 = rootfs)
+#   2. Flat image (raw ext4, no partition table — like the prebuilt image)
 
-# Parse fdisk output to find partition 2 (rootfs) start sector
-PART2_START=$(fdisk -l "${IMAGE_PATH}" 2>/dev/null | awk '
-    /^\/dev/ && $1 ~ /2$/ {
-        print $2
-    }
-')
+log "Analyzing image format of ${IMAGE_PATH}..."
 
-if [[ -z "${PART2_START}" ]]; then
-    die "Could not find partition 2 (rootfs) in ${IMAGE_PATH}. Is this a source-built combined image?"
+IS_FLAT=false
+if file -L "${IMAGE_PATH}" | grep -q "DOS/MBR boot sector"; then
+    # Combined image with partition table
+    PART2_START=$(fdisk -l "${IMAGE_PATH}" 2>/dev/null | awk '
+        /^\/dev/ && $1 ~ /2$/ {
+            print $2
+        }
+    ')
+
+    if [[ -z "${PART2_START}" ]]; then
+        die "Could not find partition 2 (rootfs) in ${IMAGE_PATH}. Is this a source-built combined image?"
+    fi
+
+    SECTOR_SIZE=512
+    ROOTFS_OFFSET=$((PART2_START * SECTOR_SIZE))
+    log "Combined image: rootfs partition at sector ${PART2_START} (offset ${ROOTFS_OFFSET} bytes)"
+else
+    # Flat image — no partition table, mount directly
+    IS_FLAT=true
+    ROOTFS_OFFSET=0
+    log "Flat image: mounting directly (no partition table)"
 fi
-
-# Sector size is typically 512
-SECTOR_SIZE=512
-ROOTFS_OFFSET=$((PART2_START * SECTOR_SIZE))
-log "Rootfs partition at sector ${PART2_START} (offset ${ROOTFS_OFFSET} bytes)"
 
 # ─── Mount rootfs ───────────────────────────────────────────────────────────────
 MOUNT_POINT="$(mktemp -d /tmp/source-rootfs.XXXXXX)"
 log "Mounting rootfs at ${MOUNT_POINT}..."
-sudo mount -o loop,offset="${ROOTFS_OFFSET}" "${IMAGE_PATH}" "${MOUNT_POINT}"
+if [[ "${IS_FLAT}" = "true" ]]; then
+    sudo mount -o loop "${IMAGE_PATH}" "${MOUNT_POINT}"
+else
+    sudo mount -o loop,offset="${ROOTFS_OFFSET}" "${IMAGE_PATH}" "${MOUNT_POINT}"
+fi
 
 # ─── Configure network ─────────────────────────────────────────────────────────
 log "Configuring network (DHCP on br-lan)..."
@@ -154,11 +168,22 @@ fi
 log "Clearing root password..."
 sudo sed -i 's|^root:.*|root::0:0:99999:7:::|' "${MOUNT_POINT}/etc/shadow"
 
-# ─── Ensure dropbear allows root login ─────────────────────────────────────────
+# ─── Ensure dropbear allows root login with blank password ──────────────────────
 if [[ -f "${MOUNT_POINT}/etc/config/dropbear" ]]; then
-    if ! sudo grep -q "PasswordAuth 'off'" "${MOUNT_POINT}/etc/config/dropbear"; then
-        log "  Ensuring dropbear allows password auth for initial setup..."
-        # configure-vms.sh will lock this down later
+    log "  Configuring dropbear for blank password login..."
+    # Add BlankPasswordAuth option to dropbear config
+    if ! sudo grep -q "BlankPasswordAuth" "${MOUNT_POINT}/etc/config/dropbear"; then
+        echo "	option BlankPasswordAuth '1'" | sudo tee -a "${MOUNT_POINT}/etc/config/dropbear" > /dev/null
+    fi
+
+    # Patch dropbear init script to support -B flag (Allow blank passwords)
+    DROPBEAR_INIT="${MOUNT_POINT}/etc/init.d/dropbear"
+    if [[ -f "${DROPBEAR_INIT}" ]] && ! sudo grep -q "BlankPasswordAuth.*-B" "${DROPBEAR_INIT}"; then
+        # Add -B flag handling after RootPasswordAuth handling
+        sudo sed -i '/RootPasswordAuth.*-g/a\\t[ "${BlankPasswordAuth}" -eq 1 ] \&\& procd_append_param command -B' "${DROPBEAR_INIT}"
+        # Add BlankPasswordAuth to the validate function
+        sudo sed -i "/RootLogin:bool:1/a\\t\t'BlankPasswordAuth:bool:0' \\\\" "${DROPBEAR_INIT}"
+        log "  Patched dropbear init script with -B (blank password) support"
     fi
 fi
 
