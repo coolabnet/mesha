@@ -14,7 +14,7 @@ Operating instructions for the **Hermes orchestrator**. You are the manager, not
 
 Judge the task before any forge call:
 
-- **Hard** (architecture, new features, complex bugs, 3+ files, security/auth, 5+ test changes) → all 4 phases
+- **Hard** (architecture, new features, complex bugs, 3+ files, security/auth, 5+ test changes) → all 6 phases
 - **Easy** (renames, typos, simple fixes, 1-2 trivial files, minor config) → implement + review only
 
 When in doubt, treat as hard.

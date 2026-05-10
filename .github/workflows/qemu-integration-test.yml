@@ -45,7 +45,7 @@ jobs:
         timeout-minutes: 240
         run: |
           export LIBREMESH_LAB_ROOT="${{ github.workspace }}/libremesh-lab"
-          if [ ! -f libremesh-lab/images/*.img.gz ]; then
+          if ! compgen -G 'libremesh-lab/images/*.img.gz' >/dev/null 2>&1; then
             echo "::group::Building LibreMesh firmware (2-4 hours)..."
             bash scripts/libremesh-lab.sh build
             echo "::endgroup::"

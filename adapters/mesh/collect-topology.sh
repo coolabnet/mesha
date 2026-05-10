@@ -307,7 +307,7 @@ if link_header_found and link_col_nbLocalIp is not None:
             try:
                 tx_val = tokens[link_col_txRate]
                 if tx_val.upper().endswith('M'):
-                    tx_rate = int(float(tx_val[:-1]))
+                    tx_rate = int(float(tx_val[:-1]) * 1000000)
                 elif tx_val.upper().endswith('K'):
                     tx_rate = int(float(tx_val[:-1]) * 1000)
                 elif tx_val != '-1':
