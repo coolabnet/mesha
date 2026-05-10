@@ -47,6 +47,7 @@ die() {
 }
 
 confirm() {
+  [ "${SKIP_CONFIRM:-0}" = "1" ] && return 0   # --yes skips interactive prompt
   _prompt="$1"
   echo ""
   echo "${_prompt}"
@@ -58,13 +59,11 @@ confirm() {
 }
 
 usage() {
-  echo "Usage: $0 <node-hostname-or-ip> <backup-file.uci.gz>"
+  echo "Usage: $0 <node-hostname-or-ip> <backup-file.uci.gz> [--yes]"
   echo ""
   echo "  node-hostname-or-ip   Hostname or IP address of the target node"
   echo "  backup-file.uci.gz    Path to the gzipped UCI config backup file"
-  echo ""
-  echo "The backup file should be a gzipped UCI export, created on the node with:"
-  echo '  ssh root@<node> "uci export | gzip" > config-backup-<node>-<date>.uci.gz'
+  echo "  --yes                 Skip interactive YES/NO confirmation (for automated tests)"
   echo ""
   echo "Example:"
   echo "  $0 lm-associacao-salao backups/config-backup-lm-associacao-salao-20260316.uci.gz"
@@ -74,6 +73,16 @@ usage() {
 # ---------------------------------------------------------------------------
 # Argument parsing
 # ---------------------------------------------------------------------------
+
+SKIP_CONFIRM=0
+while [ $# -gt 0 ]; do
+  case "$1" in
+    --yes) SKIP_CONFIRM=1; shift ;;
+    --) shift; break ;;
+    -*) usage ;;
+    *) break ;;
+  esac
+done
 
 [ $# -lt 2 ] && usage
 

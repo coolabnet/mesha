@@ -31,6 +31,11 @@ secrets/credentials
 logs/
 exports/
 
+# Firmware images (large binaries, download on demand)
+firmware/*.img
+firmware/*.img.gz
+firmware/*.bin
+
 # OS and editor noise
 .DS_Store
 Thumbs.db
@@ -57,3 +62,4 @@ venv/
 .superset/
 .openclaw/
 .junie/
+.deepsec/
