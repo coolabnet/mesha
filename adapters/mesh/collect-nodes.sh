@@ -373,17 +373,41 @@ else:
             })
 
 # Parse Babel neighbors as fallback
+# babeld output formats:
+#   "add neighbour <ip> ifindex <n> ..."  (dump neighbours)
+#   "Neighbour <ip> dev <iface> ..."       (some builds)
 if not neighbors:
     babel_raw = extract_block("__BABEL_START__", "__BABEL_END__", lines)
     for line in babel_raw.splitlines():
         tokens = line.strip().split()
         if len(tokens) >= 2 and ("neighbour" in line.lower() or ":" in tokens[0]):
-            neighbors.append({
-                "protocol": "babeld",
-                "ip": tokens[0],
-                "interface": tokens[1] if len(tokens) > 1 else None,
-                "metric": None,
-            })
+            # Find the IP token (first token containing '.' or ':')
+            ip = None
+            iface = None
+            for t in tokens:
+                if '.' in t or ':' in t:
+                    ip = t
+                    break
+            if ip is None and len(tokens) >= 2:
+                # Fallback: if no IP-like token found, use heuristic based on format
+                if tokens[0].lower() in ('add', 'neighbour'):
+                    # "add neighbour IP ..." or "Neighbour IP ..."
+                    for t in tokens[1:]:
+                        if '.' in t or ':' in t:
+                            ip = t
+                            break
+            if ip:
+                # Try to find interface after 'dev' keyword
+                for i, t in enumerate(tokens):
+                    if t == 'dev' and i + 1 < len(tokens):
+                        iface = tokens[i + 1]
+                        break
+                neighbors.append({
+                    "protocol": "babeld",
+                    "ip": ip,
+                    "interface": iface,
+                    "metric": None,
+                })
 
 result = {
     "collected_at": "${COLLECTED_AT}",
