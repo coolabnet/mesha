@@ -315,6 +315,7 @@ Mesha: [produces short, simple explanation suitable for audio playback]
 | [docs/configuration.md](docs/configuration.md) | Required inventories, secrets, maintainer identities, and adapter config |
 | [docs/deployment.md](docs/deployment.md) | Full deployment guide |
 | [docs/testing/isolated-compose-plan.md](docs/testing/isolated-compose-plan.md) | Plan for an isolated Compose-based onboarding test stack |
+| [docs/testing/libremesh-lab.md](docs/testing/libremesh-lab.md) | QEMU/LibreMesh simulation dependency and adapter test wrapper |
 | [docs/troubleshooting.md](docs/troubleshooting.md) | Common problems and fixes |
 | [docs/playbooks/](docs/playbooks/) | Operational procedures |
 
@@ -359,6 +360,23 @@ bash scripts/test-compose-phase1.sh
 ```
 
 This is the recommended first validation for a brand-new maintainer. It builds the fake LibreMesh fixtures, runs discovery, runs the live mesh reader, and verifies heartbeat output in a disposable workspace copy.
+
+### LibreMesh Lab Adapter Tests
+
+QEMU/LibreMesh simulation lives in the sibling `../libremesh-lab` repository.
+Mesha keeps only wrappers and adapter contracts.
+
+```bash
+# default sibling location
+bash tests/qemu/run-all.sh
+
+# custom lab location
+LIBREMESH_LAB_ROOT=/path/to/libremesh-lab bash tests/qemu/run-all.sh
+```
+
+Use `bash scripts/libremesh-lab.sh run-adapter ...` to run a single Mesha
+adapter against a running lab without modifying Mesha inventories or desired
+state.
 
 ### Test Coverage
 

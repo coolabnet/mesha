@@ -30,15 +30,11 @@ secrets/credentials
 # Runtime and logs (generated at runtime, not source-controlled)
 logs/
 exports/
-testbed/run/
-testbed/config/ssh-config.resolved
 
-# Testbed build artifacts (images, compiled binaries, cloned sources)
-testbed/images/*.img
-testbed/images/*.img.gz
-testbed/images/*.ext4
-testbed/bin/
-testbed/src/
+# Firmware images (large binaries, download on demand)
+firmware/*.img
+firmware/*.img.gz
+firmware/*.bin
 
 # OS and editor noise
 .DS_Store
