@@ -67,6 +67,14 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 WORKSPACE_ROOT="$(cd "${SCRIPT_DIR}/../../.." && pwd)"
 POLICY_FILE="${WORKSPACE_ROOT}/desired-state/mesh/firmware-policy.yaml"
 
+# SECURITY NOTE on StrictHostKeyChecking=accept-new:
+# Newly flashed nodes present unknown SSH host keys. 'accept-new' automatically
+# trusts the first connection, which is safe ONLY in a controlled deployment
+# environment where the network is trusted (e.g., local LAN or management VLAN).
+# If an attacker can reach the node before you, they could impersonate it (MITM).
+# For production hardening, pre-populate known_hosts via a trusted out-of-band
+# channel and revert to StrictHostKeyChecking=yes.
+
 log "Starting validation of node: ${NODE}"
 echo ""
 
@@ -156,7 +164,7 @@ fi
 if [[ ${NEIGHBOR_COUNT} -gt 0 ]]; then
   record "PASS" "Mesh neighbors" "${NEIGHBOR_COUNT} neighbor(s) found"
 else
-  record "WARN" "Mesh neighbors" "No mesh neighbors found — node may not have joined the mesh, or mesh daemon not running"
+  record "FAIL" "Mesh neighbors" "No mesh neighbors found — node may not have joined the mesh, or mesh daemon not running"
 fi
 
 # ---------------------------------------------------------------------------

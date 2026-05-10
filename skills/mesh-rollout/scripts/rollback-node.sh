@@ -74,12 +74,17 @@ usage() {
 # Argument parsing
 # ---------------------------------------------------------------------------
 
-[ $# -lt 2 ] && usage
-
 SKIP_CONFIRM=0
-for _arg in "$@"; do
-  [ "$_arg" = "--yes" ] && SKIP_CONFIRM=1
+while [ $# -gt 0 ]; do
+  case "$1" in
+    --yes) SKIP_CONFIRM=1; shift ;;
+    --) shift; break ;;
+    -*) usage ;;
+    *) break ;;
+  esac
 done
+
+[ $# -lt 2 ] && usage
 
 NODE="$1"
 BACKUP_FILE="$2"

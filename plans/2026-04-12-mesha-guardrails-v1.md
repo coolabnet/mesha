@@ -76,7 +76,7 @@ Implement automated quality and safety guardrails for the Mesha project covering
 ### 2.1 Shellcheck Integration
 
 - [ ] Add `shellcheck-py` hook to `.pre-commit-config.yaml` targeting all `.sh` files
-- [ ] Configure `args: ["--severity=warning"]` — warnings are non-blocking in pre-commit, errors block
+- [ ] Configure `args: ["--severity=warning"]` — `shellcheck` only reports warnings and above; pre-commit blocks on all findings (warnings and errors)
 - [ ] Fix existing shellcheck warnings across all 36 `.sh` files (expected: SC2086, SC2155, SC2034, SC1090, SC1091 are common)
 - [ ] Add `# shellcheck disable=SCXXXX` directives where false positives are confirmed
 - [ ] Add CI job: `find . -name '*.sh' -not -path './.git/*' -print0 | xargs -0 shellcheck --severity=warning --format=json` with SARIF or JUnit output for PR annotations
@@ -527,7 +527,7 @@ The final `.pre-commit-config.yaml` should include these hooks:
 ## Potential Risks and Mitigations
 
 1. **Pre-commit hooks slow down developer workflow**
-   Mitigation: Use `pre-commit` with `--from-ref HEAD --to-ref HEAD` for speed. Configure hooks to run only on changed files. Betterleaks and shellcheck are fast (<2s on changed files).
+   Mitigation: Use `pre-commit` with `--from-ref HEAD~1 --to-ref HEAD` for speed. Configure hooks to run only on changed files. Betterleaks and shellcheck are fast (<2s on changed files).
 
 2. **False positives from betterleaks block legitimate commits**
    Mitigation: Use `.betterleaksignore` for known false positives. Use `# betterleaks:allow` inline comments for test fixtures. Establish a clean baseline first.

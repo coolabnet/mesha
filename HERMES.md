@@ -112,15 +112,19 @@ FORGE_SESSION__PROVIDER_ID="openai_compatible" FORGE_SESSION__MODEL_ID="deepseek
 Do this before EVERY forge call:
 
 ```bash
-USAGE=$(bash /home/luandro/Dev/scripts/zai_usage.sh 2>/dev/null | jq -r '.tokens.used // "0%"' | tr -d '%')
+USAGE=$(bash /home/luandro/Dev/scripts/zai_usage.sh 2>/dev/null | jq -r '.tokens.used // "error"' | tr -d '%')
 
-if [ "$USAGE" != "0" ] && [ "$USAGE" -lt 95 ] 2>/dev/null; then
+if [ "$USAGE" != "error" ] && [ "$USAGE" != "0" ] && [ "$USAGE" -lt 95 ] 2>/dev/null; then
   # Use Z.AI glm-5.1
+  PROVIDER="zai_coding"
+  MODEL="glm-5.1"
+elif [ "$USAGE" = "0" ]; then
+  # Z.AI quota fully available (0% used) — use primary provider
   PROVIDER="zai_coding"
   MODEL="glm-5.1"
 else
   # Use NVIDIA DeepSeek V4 Pro
-  # Also fallback here if the check script fails (USAGE=0)
+  # Also fallback here if the check script fails (USAGE=error)
   PROVIDER="openai_compatible"
   MODEL="deepseek-ai/deepseek-v4-pro"
   echo "→ Fallback: $(date +%H:%M) $(date +%Y-%m-%d) | reason=${USAGE}% | model=${MODEL}" >> plans/fallback-log.md

@@ -141,6 +141,8 @@ BABEL_NEIGHBORS=$(echo 'dump neighbours' | nc -q1 localhost 33123 2>/dev/null | 
 # --- Neighbor/ARP table for IPv6->IPv4 resolution ---
 # BMX7 on br-lan uses IPv6 link-local addresses; we need the ARP table
 # to resolve those to IPv4 (via MAC address correlation).
+# NOTE: 'ip neigh show' is added to the mesh-collector router command
+# allow-list (AGENTS.md) alongside the existing 'ip route' entry.
 NEIGHBOR_TABLE=$(ip neigh show 2>/dev/null || echo '')
 
 # --- Output everything as a simple key=value blob for parsing ---
@@ -277,7 +279,7 @@ def eui64_to_mac(ipv6):
         addr = ipaddress.IPv6Address(ipv6)
     except (ValueError, Exception):
         return None
-    if not ipv6.startswith('fe80'):
+    if not ipv6.lower().startswith('fe80'):
         return None
     iid = int(addr) & 0xFFFFFFFFFFFFFFFF
     iid_bytes = iid.to_bytes(8, 'big')
@@ -326,9 +328,22 @@ for line in bmx7_lines:
         break
 
 if link_header_found and link_col_nbLocalIp is not None:
+    # Store the actual header line so we skip it reliably regardless of
+    # which column appears first (nbLocalIp, shortId, link, etc.)
+    header_line_lower = None
+    for hl in bmx7_lines:
+        hl = hl.strip()
+        if not hl:
+            continue
+        tokens_lower_hl = hl.lower().split()
+        if 'nblocalip' in tokens_lower_hl:
+            header_line_lower = hl.lower()
+            break
     for line in bmx7_lines:
         line = line.strip()
-        if not line or line.lower().startswith('link') or line.lower().startswith('shortid'):
+        if not line:
+            continue
+        if header_line_lower is not None and line.lower() == header_line_lower:
             continue
         tokens = line.split()
         if len(tokens) <= link_col_nbLocalIp:

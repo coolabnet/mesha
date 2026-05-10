@@ -38,13 +38,8 @@ Implement automated quality and safety guardrails for the Mesha project covering
 
 ### 1.1 Betterleaks Setup
 
-**Rationale:** The project manages SSH keys to routers/servers, Telegram bot tokens, Tailscale auth keys, and database credentials. A leaked secret gives direct access to community infrastructure. The existing `.gitignore` covers the most common patterns but is missing some entries documented as required in `secrets/README.md:94-103`. The test suite (`tests/01-file-inventory.sh:156-179`) checks that `secrets/` has no credential files, but secrets could leak into scripts or YAML elsewhere.
+**Rationale:** The project manages SSH keys to routers/servers, Telegram bot tokens, Tailscale auth keys, and database credentials. A leaked secret gives direct access to community infrastructure. The test suite (`tests/01-file-inventory.sh:156-179`) checks that `secrets/` has no credential files, but secrets could leak into scripts or YAML elsewhere.
 
-- [ ] Fix `.gitignore` gaps — add missing patterns from `secrets/README.md:94-103`:
-  - `secrets/*.token`
-  - `secrets/*.password`
-  - `secrets/credentials`
-  - `*.private`
 - [ ] Create `.betterleaks.toml` config at project root:
   - Extend default rules (`useDefault = true`)
   - Add global allowlist for `.env.example` files (contain empty variable names like `MESHA_TELEGRAM_BOT_TOKEN=`)
@@ -64,7 +59,21 @@ Implement automated quality and safety guardrails for the Mesha project covering
 - [ ] Intentionally stage a fake API key and verify the pre-commit hook blocks it
 - [ ] `.env.example` files do not trigger false positives
 
-### 1.2 Pre-Commit Framework Setup
+### 1.2 `.gitignore` Gaps (P1)
+
+**Rationale:** The existing `.gitignore` covers the most common patterns but is missing some entries documented as required in `secrets/README.md:94-103`. Existing `.env.*` catch and test suite already cover most cases, so this is P1 rather than P0.
+
+- [ ] Fix `.gitignore` gaps — add missing patterns from `secrets/README.md:94-103`:
+  - `secrets/*.token`
+  - `secrets/*.password`
+  - `secrets/credentials`
+  - `*.private`
+
+**Verification:**
+
+- [ ] `.gitignore` rejects `secrets/*.token`, `secrets/*.password`, `*.private` files
+
+### 1.3 Pre-Commit Framework Setup
 
 **Rationale:** No `.pre-commit-config.yaml` exists. This is the foundation that all other hooks depend on.
 

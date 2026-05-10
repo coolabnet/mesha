@@ -6,9 +6,8 @@ on:
       - 'adapters/mesh/**'
       - 'skills/mesh-readonly/**'
       - 'skills/mesh-rollout/**'
-      - 'scripts/qemu-testbed/**'
+      - 'scripts/libremesh-lab.sh'
       - 'tests/qemu/**'
-      - 'testbed/config/**'
   schedule:
     - cron: '0 3 * * *'  # nightly at 03:00 UTC
   workflow_dispatch:  # manual trigger
@@ -16,10 +15,17 @@ on:
 jobs:
   qemu-test:
     runs-on: ubuntu-latest
-    timeout-minutes: 60
+    timeout-minutes: 300
 
     steps:
       - uses: actions/checkout@v4
+
+      - name: Checkout libremesh-lab
+        uses: actions/checkout@v4
+        with:
+          repository: coolabnet/libremesh-lab
+          path: libremesh-lab
+          ref: main
 
       - name: Install QEMU and dependencies
         run: |
@@ -32,15 +38,16 @@ jobs:
       - name: Cache firmware image
         uses: actions/cache@v4
         with:
-          path: testbed/images/
-          key: libremesh-x86-64-${{ hashFiles('scripts/qemu-testbed/build-libremesh-image.sh', 'docker/qemu-builder/Dockerfile', 'scripts/qemu-testbed/libremesh-testbed.defconfig', 'testbed/images/build-inputs.hash') }}
+          path: libremesh-lab/images/
+          key: libremesh-x86-64-${{ hashFiles('libremesh-lab/bin/libremesh-lab') }}
 
       - name: Build firmware (if not cached)
         timeout-minutes: 240
         run: |
-          if [ ! -f testbed/images/*.img.gz ]; then
+          export LIBREMESH_LAB_ROOT="${{ github.workspace }}/libremesh-lab"
+          if [ ! -f libremesh-lab/images/*.img.gz ]; then
             echo "::group::Building LibreMesh firmware (2-4 hours)..."
-            bash scripts/qemu-testbed/build-libremesh-image.sh
+            bash scripts/libremesh-lab.sh build
             echo "::endgroup::"
           else
             echo "Using cached firmware image"
@@ -48,11 +55,13 @@ jobs:
 
       - name: Start test bed
         run: |
-          sudo bash scripts/qemu-testbed/start-vwifi.sh
-          sudo bash scripts/qemu-testbed/start-mesh.sh
+          export LIBREMESH_LAB_ROOT="${{ github.workspace }}/libremesh-lab"
+          bash scripts/libremesh-lab.sh start
 
       - name: Configure VMs
-        run: bash scripts/qemu-testbed/configure-vms.sh
+        run: |
+          export LIBREMESH_LAB_ROOT="${{ github.workspace }}/libremesh-lab"
+          bash scripts/libremesh-lab.sh configure
         timeout-minutes: 10
 
       - name: Run integration tests
@@ -60,19 +69,24 @@ jobs:
         timeout-minutes: 15
         env:
           CONVERGE_WAIT: "45"
+          LIBREMESH_LAB_ROOT: "${{ github.workspace }}/libremesh-lab"
 
       - name: Collect logs
         if: always()
-        run: bash scripts/qemu-testbed/collect-logs.sh
+        run: |
+          export LIBREMESH_LAB_ROOT="${{ github.workspace }}/libremesh-lab"
+          bash scripts/libremesh-lab.sh logs || true
 
       - name: Upload logs
         if: always()
         uses: actions/upload-artifact@v4
         with:
           name: qemu-test-logs
-          path: testbed/run/logs/
+          path: libremesh-lab/run/logs/
           retention-days: 7
 
       - name: Stop test bed
         if: always()
-        run: sudo bash scripts/qemu-testbed/stop-mesh.sh
+        run: |
+          export LIBREMESH_LAB_ROOT="${{ github.workspace }}/libremesh-lab"
+          bash scripts/libremesh-lab.sh stop || true

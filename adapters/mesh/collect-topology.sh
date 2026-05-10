@@ -213,7 +213,7 @@ def eui64_to_mac(ipv6):
         addr = ipaddress.IPv6Address(ipv6)
     except (ValueError, Exception):
         return None
-    if not ipv6.startswith('fe80'):
+    if not ipv6.lower().startswith('fe80'):
         return None
     iid = int(addr) & 0xFFFFFFFFFFFFFFFF
     iid_bytes = iid.to_bytes(8, 'big')
@@ -241,7 +241,7 @@ def resolve_ip(ip):
 
 def is_mesh_ip(ip):
     """Check if IP looks like an IPv4 or IPv6 link-local address."""
-    return bool(re.match(r'\d+\.\d+\.\d+\.\d+', ip) or re.match(r'fe80::', ip) or re.match(r'fe80:[0-9a-f:]+', ip))
+    return bool(re.match(r'\d+\.\d+\.\d+\.\d+', ip) or re.match(r'fe80::', ip, re.IGNORECASE) or re.match(r'fe80:[0-9a-fA-F:]+', ip, re.IGNORECASE))
 
 # --- Parse BMX7 links FIRST (to build shortId→IPv4 map for originators) ---
 # BMX7 links output is a table with header. Typical columns:
@@ -271,9 +271,22 @@ links = []
 shortid_to_ipv4 = {}  # Map shortId to resolved IPv4 for originators
 
 if link_header_found and link_col_nbLocalIp is not None:
+    # Store the actual header line so we skip it reliably regardless of
+    # which column appears first (nbLocalIp, shortId, link, etc.)
+    link_header_line_lower = None
+    for hl in link_lines:
+        hl = hl.strip()
+        if not hl:
+            continue
+        tokens_lower_hl = hl.lower().split()
+        if 'nblocalip' in tokens_lower_hl:
+            link_header_line_lower = hl.lower()
+            break
     for line in link_lines:
         line = line.strip()
-        if not line or line.lower().startswith('link') or line.lower().startswith('shortid'):
+        if not line:
+            continue
+        if link_header_line_lower is not None and line.lower() == link_header_line_lower:
             continue
         tokens = line.split()
         if len(tokens) <= link_col_nbLocalIp:
@@ -308,6 +321,8 @@ if link_header_found and link_col_nbLocalIp is not None:
             "interface": interface,
             "metric": None,
             "signal_dbm": None,
+            "rx_rate": None,
+            "tx_rate": tx_rate,
         }
         links.append(link_entry)
 else:
@@ -334,6 +349,8 @@ else:
                 "interface": interface,
                 "metric": None,
                 "signal_dbm": None,
+                "rx_rate": rx_rate,
+                "tx_rate": tx_rate,
             }
             links.append(link_entry)
 
@@ -368,9 +385,22 @@ for line in orig_lines:
 nodes = {}
 
 if orig_header_found and orig_col_primaryIp is not None:
+    # Store the actual header line so we skip it reliably regardless of
+    # which column appears first (shortId, originator, primaryIp, etc.)
+    orig_header_line_lower = None
+    for hl in orig_lines:
+        hl = hl.strip()
+        if not hl:
+            continue
+        tokens_lower_hl = hl.lower().split()
+        if 'primaryip' in tokens_lower_hl:
+            orig_header_line_lower = hl.lower()
+            break
     for line in orig_lines:
         line = line.strip()
-        if not line or line.lower().startswith('originator') or line.lower().startswith('shortid'):
+        if not line:
+            continue
+        if orig_header_line_lower is not None and line.lower() == orig_header_line_lower:
             continue
         tokens = line.split()
         if len(tokens) <= orig_col_primaryIp:
@@ -452,8 +482,8 @@ for link in links:
         nodes[peer_ip]["peers"].append({
             "peer_ip": "${GATEWAY_IP}",
             "interface": link["interface"],
-            "rx_rate": None,
-            "tx_rate": None,
+            "rx_rate": link.get("rx_rate"),
+            "tx_rate": link.get("tx_rate"),
             "signal_dbm": None,
         })
 

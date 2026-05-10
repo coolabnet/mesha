@@ -121,7 +121,7 @@ Reads the real state of the mesh network and produces normalized snapshots that 
 **Allowed to:**
 
 - SSH into routers in read-only mode (no write operations)
-- Run safe read commands: `ubus call`, `uci show`, `logread`, `iwinfo`, `ip route`, `ping`
+- Run safe read commands: `ubus call`, `uci show`, `logread`, `iwinfo`, `ip route`, `ip neigh`, `ping`
 - Read OpenWrt and LibreMesh config files
 - Access mesh adapters in `adapters/mesh/`
 - Write snapshots to `logs/` or `exports/`
