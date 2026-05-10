@@ -25,7 +25,7 @@ cleanup_validate() {
     ssh_vm "$GATEWAY" "uci set lime-community.wifi.ap_ssid='MeshaTestBed'; uci commit lime-community" 2>/dev/null || true
     # Restart BMX7 on node-2 if available
     if $BMX7_AVAILABLE; then
-        ssh_vm "$NODE2" "/etc/init.d/bmx7 start 2>/dev/null || bmx7 2>/dev/null" 2>/dev/null || true
+        restart_bmx7 "$NODE2"
     fi
 }
 trap cleanup_validate EXIT INT TERM
@@ -95,7 +95,7 @@ if $BMX7_AVAILABLE; then
         >/dev/null 2>&1 || VALIDATE_RESULT=$?
 
     # Restart BMX7
-    ssh_vm "$NODE2" "/etc/init.d/bmx7 start 2>/dev/null || bmx7 2>/dev/null" || true
+    restart_bmx7 "$NODE2"
     sleep 5
 
     # Note: validate-node might not check neighbors on other nodes, only local

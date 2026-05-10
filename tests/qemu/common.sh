@@ -87,6 +87,10 @@ wait_for_ssh() {
 
 # TCG timeout multiplier support
 TIMEOUT_MULTIPLIER="${QEMU_TIMEOUT_MULTIPLIER:-1}"
+VWIFI_SERVER_IP="${VWIFI_SERVER_IP:-10.99.0.254}"
+VWIFI_TCP_PORT="${VWIFI_TCP_PORT:-8212}"
+VWIFI_SSID="${VWIFI_SSID:-MeshaTestBed}"
+VWIFI_FREQ="${VWIFI_FREQ:-2462}"
 
 # Wait until a JSON field meets a condition (polls in a loop)
 wait_until_json_gte() {
@@ -118,6 +122,68 @@ has_bmx7() {
     ssh_vm "$host" "which bmx7 >/dev/null 2>&1 || ls /usr/sbin/bmx7 >/dev/null 2>&1" 2>/dev/null
 }
 
+# Prefer vwifi's wlan0 when present; keep br-lan as fallback for prebuilt images.
+bmx7_mesh_dev() {
+    local host="$1"
+    ssh_vm "$host" "iw dev wlan0 info >/dev/null 2>&1 && echo wlan0 || echo br-lan" 2>/dev/null || echo "br-lan"
+}
+
+# shellcheck disable=SC2140
+ensure_vwifi_client() {
+    local host="$1"
+    ssh_vm "$host" "
+        command -v vwifi-client >/dev/null 2>&1 || exit 0
+        modprobe mac80211_hwsim radios=0 2>/dev/null || true
+        if ! pidof vwifi-client >/dev/null 2>&1; then
+            mesh_mac=\$(cat /sys/class/net/br-lan/address 2>/dev/null || cat /sys/class/net/eth0/address 2>/dev/null || echo '')
+            if [ -n \"\$mesh_mac\" ]; then
+                # Record phys before vwifi-client starts
+                _before=\$(ls /sys/class/ieee80211/ 2>/dev/null)
+                vwifi-client --number 1 --mac \"\$mesh_mac\" --port ${VWIFI_TCP_PORT} '${VWIFI_SERVER_IP}' >/tmp/vwifi-client.log 2>&1 &
+                echo \$! >/var/run/vwifi-client.pid
+                sleep 2
+
+                # Find the NEW phy created by vwifi-client
+                _after=\$(ls /sys/class/ieee80211/ 2>/dev/null)
+                _new_phy=
+                for p in \$_after; do
+                    echo \"\$_before\" | grep -q \"\$p\" || _new_phy=\"\$p\"
+                done
+
+                # Create wlan0 on the vwifi-client-created PHY if not already present
+                if [ -n \"\$_new_phy\" ] && ! iw dev wlan0 info >/dev/null 2>&1; then
+                    iw phy \$_new_phy interface add wlan0 type ibss 2>/dev/null || true
+                fi
+            fi
+        fi
+        for _i in \$(seq 1 10); do
+            iw dev wlan0 info >/dev/null 2>&1 && break
+            sleep 1
+        done
+        if iw dev wlan0 info >/dev/null 2>&1; then
+            ip link set wlan0 down 2>/dev/null || true
+            iw dev wlan0 set type ibss 2>/dev/null || iw wlan0 set type ibss 2>/dev/null || true
+            ip link set wlan0 up 2>/dev/null || true
+            iw dev wlan0 ibss join '${VWIFI_SSID}' ${VWIFI_FREQ} 2>/dev/null || iw wlan0 ibss join '${VWIFI_SSID}' ${VWIFI_FREQ} 2>/dev/null || true
+        fi
+    " 2>/dev/null || true
+}
+
+restart_bmx7() {
+    local host="$1"
+    ensure_vwifi_client "$host"
+    local dev
+    dev=$(bmx7_mesh_dev "$host")
+    # Use both wlan0 and br-lan when wlan0 is available:
+    # vwifi IBSS forwards beacons but not data frames, so BMX7
+    # needs br-lan for convergence while wlan0 provides WiFi simulation
+    if [ "$dev" = "wlan0" ]; then
+        ssh_vm "$host" "killall bmx7 2>/dev/null || true; bmx7 dev=wlan0 dev=br-lan 2>/dev/null || bmx7 dev=br-lan 2>/dev/null || true" 2>/dev/null || true
+    else
+        ssh_vm "$host" "killall bmx7 2>/dev/null || true; bmx7 dev=${dev} 2>/dev/null || true" 2>/dev/null || true
+    fi
+}
+
 # Wait for BMX7 convergence on a node
 # Returns 0 if converged, 1 if timeout, 2 if bmx7 not installed
 wait_for_bmx7() {
@@ -133,6 +199,20 @@ wait_for_bmx7() {
 
     local start
     start=$(date +%s)
+
+    # If bmx7 daemon isn't running (e.g., after reboot), try to start it
+    local first_count
+    first_count=$(ssh_vm "$host" "bmx7 -c originators 2>/dev/null | tail -n +2 | wc -l" 2>/dev/null || echo "0")
+    first_count=$(echo "$first_count" | tr -d '[:space:]')
+    if [ "$first_count" -eq 0 ] 2>/dev/null; then
+        local dev
+        ensure_vwifi_client "$host"
+        dev=$(bmx7_mesh_dev "$host")
+        echo "  # bmx7 daemon not running on ${host}, starting with dev=${dev}..." >&2
+        restart_bmx7 "$host"
+        sleep 5
+    fi
+
     while true; do
         local count
         count=$(ssh_vm "$host" "bmx7 -c originators 2>/dev/null | tail -n +2 | wc -l" 2>/dev/null || echo "0")
