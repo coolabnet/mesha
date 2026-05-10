@@ -149,12 +149,19 @@ REMOTE_SCRIPT
 
 # ---------------------------------------------------------------------------
 # Parse and normalize topology data with Python 3
+# Raw data is written to a temp file to avoid unsafe string interpolation
+# into Python code (the data may contain arbitrary content from nodes).
 # ---------------------------------------------------------------------------
+RAW_FILE=$(mktemp "${TMPDIR:-/tmp}/mesh-topo-XXXXXX")
+printf '%s' "${RAW_TOPO}" > "${RAW_FILE}"
+trap 'rm -f "${RAW_FILE}"' EXIT
+
 python3 - <<PYEOF
 import json
 import re
 
-raw = """${RAW_TOPO}"""
+with open("${RAW_FILE}", "r") as f:
+    raw = f.read()
 lines = raw.splitlines()
 
 def extract_value(marker, lines):

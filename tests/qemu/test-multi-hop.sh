@@ -40,13 +40,15 @@ else
 fi
 
 # Test 2: collect-topology shows all 4 nodes with links
+# In a 4-node mesh with BMX7 running on br-lan, each node has at least
+# 3 direct peers (fully connected via the bridge), so >= 3 links is expected.
 TOPO=$(bash "${REPO_ROOT}/scripts/qemu-testbed/run-testbed-adapter.sh" \
     "${REPO_ROOT}/adapters/mesh/collect-topology.sh" "$GATEWAY" 2>/dev/null) || true
 if [ -n "$TOPO" ] && echo "$TOPO" | python3 -c "
 import sys, json
 data = json.load(sys.stdin)
 assert data.get('node_count', 0) >= 3, f'expected >= 3 nodes, got {data.get(\"node_count\", 0)}'
-assert len(data.get('links', [])) >= 2, f'expected >= 2 links, got {len(data.get(\"links\", []))}'
+assert len(data.get('links', [])) >= 3, f'expected >= 3 links, got {len(data.get(\"links\", []))}'
 " 2>/dev/null; then
     pass "test_topology_shows_mesh_links"
 else

@@ -228,11 +228,14 @@ configure_vm() {
         " || true
 
         # Run lime-config sequence
+        # vwifi-client is started first to create the PHY radio, then we wait
+        # for the PHY to appear before running wifi config (which needs the radio).
         echo "  [${hostname}] Running lime-config sequence..."
         ssh_vm "$ip" "
             service vwifi-client start 2>/dev/null || true
             killall vwifi-client 2>/dev/null || true
             vwifi-client --number ${VWIFI_RADIOS} --mac '${mac_prefix}' --port ${VWIFI_TCP_PORT} '${VWIFI_SERVER_IP}' >/tmp/vwifi-client.log 2>&1 &
+            sleep 2
             wifi config && \
             lime-config && \
             wifi down && \
@@ -313,17 +316,22 @@ configure_vm() {
         " || true
     fi
 
-    # Ensure bmx7 uses both wlan0 and br-lan when available
-    ssh_vm "$ip" "
-        if command -v bmx7 >/dev/null 2>&1; then
-            killall bmx7 2>/dev/null || true
-            if iw dev wlan0 info >/dev/null 2>&1; then
-                bmx7 dev=wlan0 dev=br-lan 2>&1 || bmx7 dev=br-lan 2>&1 || true
-            else
-                bmx7 dev=br-lan 2>&1 || true
+    # For LibreMesh: lime-config + wifi up already started bmx7 via proto-bmx7,
+    # so only ensure dual-interface mode for bare OpenWrt (where bmx7 was started
+    # in the else branch above but may not have picked up wlan0 if timing was off).
+    # For bare OpenWrt: re-verify bmx7 has both interfaces.
+    if [[ "${has_lime_config}" != *"yes"* ]]; then
+        ssh_vm "$ip" "
+            if command -v bmx7 >/dev/null 2>&1; then
+                killall bmx7 2>/dev/null || true
+                if iw dev wlan0 info >/dev/null 2>&1; then
+                    bmx7 dev=wlan0 dev=br-lan 2>&1 || bmx7 dev=br-lan 2>&1 || true
+                else
+                    bmx7 dev=br-lan 2>&1 || true
+                fi
             fi
-        fi
-    " || true
+        " || true
+    fi
 
     # Enable uhttpd
     ssh_vm "$ip" "

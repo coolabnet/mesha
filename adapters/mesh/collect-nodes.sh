@@ -171,13 +171,20 @@ REMOTE_SCRIPT
 # ---------------------------------------------------------------------------
 # Parse collected data and assemble normalized JSON
 # We use Python 3 for robust JSON construction from the raw text blocks.
+# Raw data is written to a temp file to avoid unsafe string interpolation
+# into Python code (the data may contain arbitrary content from nodes).
 # ---------------------------------------------------------------------------
+RAW_FILE=$(mktemp "${TMPDIR:-/tmp}/mesh-nodes-XXXXXX")
+printf '%s' "${RAW_DATA}" > "${RAW_FILE}"
+trap 'rm -f "${RAW_FILE}"' EXIT
+
 python3 - <<PYEOF
 import sys
 import json
 import re
 
-raw = """${RAW_DATA}"""
+with open("${RAW_FILE}", "r") as f:
+    raw = f.read()
 lines = raw.splitlines()
 
 def extract_value(marker, lines):

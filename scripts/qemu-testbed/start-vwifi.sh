@@ -65,7 +65,7 @@ fi
 
 # Launch
 echo "Starting vwifi-server (TCP mode, port ${VWIFI_PORT})..."
-nohup "${VWIFI_DIR}/vwifi-server" -u -t "${VWIFI_PORT}" >"${LOG_FILE}" 2>&1 &
+nohup "${VWIFI_DIR}/vwifi-server" -u -t "${VWIFI_PORT}" </dev/null >"${LOG_FILE}" 2>&1 &
 VWIFI_PID=$!
 echo "$VWIFI_PID" > "$PID_FILE"
 
