@@ -24,6 +24,13 @@ MAX_SSH_RETRIES=15
 # Node definitions (fallback if no topology.yaml)
 declare -a NODE_IPS=("10.99.0.11" "10.99.0.12" "10.99.0.13" "10.99.0.14")
 declare -a NODE_HOSTNAMES=("lm-testbed-node-1" "lm-testbed-node-2" "lm-testbed-node-3" "lm-testbed-tester")
+declare -a NODE_MACS=("52:54:00:00:00:01" "52:54:00:00:00:02" "52:54:00:00:00:03" "52:54:00:00:00:04")
+
+VWIFI_SERVER_IP="10.99.0.254"
+VWIFI_TCP_PORT="8212"
+VWIFI_RADIOS="1"
+VWIFI_SSID="MeshaTestBed"
+VWIFI_FREQ="2462"
 
 # ─── Parse topology ───
 parse_topology() {
@@ -33,6 +40,7 @@ parse_topology() {
     # Simplified topology parse: extract hostname/ip pairs in order
     NODE_IPS=()
     NODE_HOSTNAMES=()
+    NODE_MACS=()
     while IFS= read -r line; do
         case "$line" in
             *"hostname:"*)
@@ -41,12 +49,33 @@ parse_topology() {
             *" ip:"*)
                 NODE_IPS+=("$(echo "$line" | awk -F': ' '{print $2}' | tr -d '"')")
                 ;;
+            *"mac_mesh:"*)
+                NODE_MACS+=("$(echo "$line" | awk -F': ' '{print $2}' | tr -d '"')")
+                ;;
         esac
     done < <(awk '
         /^    - id:/ { in_node=1 }
+        /^  vwifi:/ { in_node=0 }
         in_node && /hostname:/ { print }
-        in_node && / ip:/ { print; in_node=0 }
+        in_node && / ip:/ { print }
+        in_node && /mac_mesh:/ { print }
     ' "$TOPOLOGY_FILE")
+
+    local vwifi_server_ip vwifi_tcp_port
+    vwifi_server_ip=$(awk -F': ' '/listen_address:/ {gsub(/"/, "", $2); print $2; exit}' "$TOPOLOGY_FILE")
+    vwifi_tcp_port=$(awk -F': ' '/tcp_port:/ {gsub(/"/, "", $2); print $2; exit}' "$TOPOLOGY_FILE")
+    [ -n "$vwifi_server_ip" ] && VWIFI_SERVER_IP="$vwifi_server_ip"
+    [ -n "$vwifi_tcp_port" ] && VWIFI_TCP_PORT="$vwifi_tcp_port"
+}
+
+verify_vwifi_server() {
+    if timeout 2 bash -c ":</dev/tcp/${VWIFI_SERVER_IP}/${VWIFI_TCP_PORT}" 2>/dev/null; then
+        echo "  vwifi-server reachable at ${VWIFI_SERVER_IP}:${VWIFI_TCP_PORT}"
+        return 0
+    fi
+
+    echo "  WARN: vwifi-server is not reachable at ${VWIFI_SERVER_IP}:${VWIFI_TCP_PORT}; wlan mesh may not form"
+    return 1
 }
 
 # ─── SSH helper ───
@@ -137,6 +166,7 @@ configure_vm() {
     local node_id="$1"
     local ip="$2"
     local hostname="$3"
+    local mesh_mac="$4"
     echo "  [${hostname}] Phase 1: Basic LibreMesh configuration..."
 
     # Set hostname
@@ -155,13 +185,14 @@ configure_vm() {
     # Load mac80211_hwsim (remove real radios, replaced by vwifi)
     ssh_vm "$ip" "modprobe mac80211_hwsim radios=0 2>/dev/null || true" || true
 
-    # vwifi: add virtual interfaces
-    local mac_prefix="52:54:00:00:0${node_id}"
-    ssh_vm "$ip" "vwifi-add-interfaces 2 ${mac_prefix} 2>/dev/null || true" || true
+    # vwifi-client can create mac80211_hwsim radios itself. This avoids
+    # copying the host-built vwifi-add-interfaces binary into OpenWrt.
+    local mac_prefix="${mesh_mac}"
 
     # Set vwifi UCI config (section name is 'config' per vwifi_cli_package README)
     ssh_vm "$ip" "
-        uci set vwifi.config.server_ip='10.99.0.254'
+        uci -q get vwifi.config >/dev/null 2>&1 || uci set vwifi.config='vwifi'
+        uci set vwifi.config.server_ip='${VWIFI_SERVER_IP}'
         uci set vwifi.config.mac_prefix='${mac_prefix}'
         uci set vwifi.config.enabled='1'
         uci commit vwifi
@@ -199,7 +230,9 @@ configure_vm() {
         # Run lime-config sequence
         echo "  [${hostname}] Running lime-config sequence..."
         ssh_vm "$ip" "
-            service vwifi-client start && \
+            service vwifi-client start 2>/dev/null || true
+            killall vwifi-client 2>/dev/null || true
+            vwifi-client --number ${VWIFI_RADIOS} --mac '${mac_prefix}' --port ${VWIFI_TCP_PORT} '${VWIFI_SERVER_IP}' >/tmp/vwifi-client.log 2>&1 &
             wifi config && \
             lime-config && \
             wifi down && \
@@ -209,39 +242,88 @@ configure_vm() {
     else
         echo "  [${hostname}] Bare OpenWrt detected (no lime-config), configuring bmx7 directly..."
 
-        # Start vwifi-client if vwifi is installed
-        ssh_vm "$ip" "service vwifi-client start 2>/dev/null || true" || true
-
-        # Configure wireless for adhoc mesh
+        # Start vwifi-client if vwifi is installed.
+        # vwifi-client --number N creates PHY radios via mac80211_hwsim netlink,
+        # but does NOT create wlan0 network interfaces.
+        # We must create wlan0 manually with `iw phy <phy> interface add`.
+        #
+        # IMPORTANT: OpenWrt ash does not have `nohup`. Use plain `&` instead.
+        #
+        # The PHY created by vwifi-client is the LAST one in /sys/class/ieee80211/,
+        # not phy0 (which is the placeholder from `modprobe mac80211_hwsim radios=0`).
+        # shellcheck disable=SC2140
         ssh_vm "$ip" "
-            # Enable radio0 and set to adhoc mode on channel 11
-            uci set wireless.radio0.disabled='0'
-            uci set wireless.radio0.channel='11'
-            uci set wireless.radio0.band='2g'
-            uci set wireless.radio0.htmode='HT20'
-            # Remove default AP iface and add adhoc iface for mesh
-            uci delete wireless.default_radio0 2>/dev/null || true
-            uci set wireless.mesh0=wifi-iface
-            uci set wireless.mesh0.device='radio0'
-            uci set wireless.mesh0.mode='adhoc'
-            uci set wireless.mesh0.ssid='MeshaTestBed'
-            uci set wireless.mesh0.encryption='none'
-            uci set wireless.mesh0.network='lan'
-            uci commit wireless
+            killall vwifi-client 2>/dev/null || true
+            modprobe mac80211_hwsim radios=0 2>/dev/null || true
+            if command -v vwifi-client >/dev/null 2>&1; then
+                # Record phys before vwifi-client starts
+                _before=\$(ls /sys/class/ieee80211/ 2>/dev/null)
+                vwifi-client --number ${VWIFI_RADIOS} --mac '${mac_prefix}' --port ${VWIFI_TCP_PORT} '${VWIFI_SERVER_IP}' >/tmp/vwifi-client.log 2>&1 &
+                echo \$! >/var/run/vwifi-client.pid
+                sleep 2
+
+                # Find the NEW phy(s) created by vwifi-client
+                _after=\$(ls /sys/class/ieee80211/ 2>/dev/null)
+                _new_phy=
+                for p in \$_after; do
+                    echo \"\$_before\" | grep -q \"\$p\" || _new_phy=\"\$p\"
+                done
+
+                if [ -n \"\$_new_phy\" ]; then
+                    # Create wlan0 on the vwifi-client-created PHY
+                    iw phy \$_new_phy interface add wlan0 type ibss 2>/dev/null || true
+                    # Wait for interface to appear
+                    for _i in \$(seq 1 10); do
+                        iw dev wlan0 info >/dev/null 2>&1 && break
+                        sleep 1
+                    done
+                fi
+            fi
         " || true
 
-        # Configure and start bmx7
-        # Use br-lan for bmx7 (wired mesh) because vwifi IBSS doesn't
-        # forward beacons between VMs — wireless adhoc discovery fails.
+        # Check if wlan0 was created
+        local has_wlan=false
+        ssh_vm "$ip" "iw dev wlan0 info >/dev/null 2>&1 && echo yes || echo no" 2>/dev/null | grep -q yes && has_wlan=true
+
+        if ${has_wlan}; then
+            echo "  [${hostname}] wlan0 created via vwifi, configuring IBSS mesh..."
+            # Configure IBSS adhoc mesh on wlan0
+            ssh_vm "$ip" "
+                ip link set wlan0 down 2>/dev/null || true
+                iw dev wlan0 set type ibss 2>/dev/null || true
+                ip link set wlan0 up 2>/dev/null || true
+                iw dev wlan0 ibss join '${VWIFI_SSID}' ${VWIFI_FREQ} 2>/dev/null || true
+            " || true
+        else
+            echo "  [${hostname}] WARN: wlan0 not available, using wired br-lan fallback"
+        fi
+
+        # Configure and start bmx7.
+        # Use BOTH wlan0 and br-lan when wlan0 is available:
+        #   - wlan0 provides the WiFi/IBSS simulation for adapter testing
+        #   - br-lan ensures BMX7 convergence (vwifi IBSS forwards beacons
+        #     but not data frames, so OGMs need the wired path)
         ssh_vm "$ip" "
-            # Start bmx7 on br-lan (wired interface, all VMs share the bridge)
             killall bmx7 2>/dev/null || true
-            bmx7 dev=br-lan 2>&1 || true
+            if iw dev wlan0 info >/dev/null 2>&1; then
+                bmx7 dev=wlan0 dev=br-lan 2>&1 || bmx7 dev=br-lan 2>&1 || true
+            else
+                bmx7 dev=br-lan 2>&1 || true
+            fi
         " || true
-
-        # Apply wireless config
-        ssh_vm "$ip" "wifi reload 2>/dev/null || wifi up 2>/dev/null || true" || true
     fi
+
+    # Ensure bmx7 uses both wlan0 and br-lan when available
+    ssh_vm "$ip" "
+        if command -v bmx7 >/dev/null 2>&1; then
+            killall bmx7 2>/dev/null || true
+            if iw dev wlan0 info >/dev/null 2>&1; then
+                bmx7 dev=wlan0 dev=br-lan 2>&1 || bmx7 dev=br-lan 2>&1 || true
+            else
+                bmx7 dev=br-lan 2>&1 || true
+            fi
+        fi
+    " || true
 
     # Enable uhttpd
     ssh_vm "$ip" "
@@ -353,6 +435,7 @@ main() {
     echo ""
 
     parse_topology
+    verify_vwifi_server || true
 
     # Phase 0: Wait for all VMs to be SSH-reachable
     echo "=== Phase 0: Waiting for VMs to boot ==="
@@ -379,7 +462,8 @@ main() {
     for ip in "${NODE_IPS[@]}"; do
         local hostname="${NODE_HOSTNAMES[$idx]}"
         local node_id=$((idx + 1))
-        configure_vm "$node_id" "$ip" "$hostname"
+        local mesh_mac="${NODE_MACS[$idx]:-52:54:00:00:00:0${node_id}}"
+        configure_vm "$node_id" "$ip" "$hostname" "$mesh_mac"
         idx=$((idx + 1))
     done
 
