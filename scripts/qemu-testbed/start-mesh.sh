@@ -67,7 +67,7 @@ cleanup() {
     if [ -f "$vwifi_pid_file" ]; then
         local vwifi_pid
         vwifi_pid=$(cat "$vwifi_pid_file")
-        if kill -0 "$vwifi_pid" 2>/dev/null; then
+        if kill -0 "$vwifi_pid" 2>/dev/null && ps -p "$vwifi_pid" -o comm= 2>/dev/null | grep -qx "vwifi-server"; then
             echo "  Stopping vwifi-server PID $vwifi_pid..."
             kill "$vwifi_pid" 2>/dev/null || true
         fi

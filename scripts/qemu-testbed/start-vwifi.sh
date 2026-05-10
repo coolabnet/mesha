@@ -10,29 +10,43 @@ REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 VWIFI_DIR="${REPO_ROOT}/testbed/bin"
 VWIFI_SRC="${REPO_ROOT}/testbed/src/vwifi"
 PID_FILE="${REPO_ROOT}/testbed/run/vwifi-server.pid"
+LOG_FILE="${REPO_ROOT}/testbed/run/logs/vwifi-server.log"
 VWIFI_PORT="${VWIFI_PORT:-8212}"  # TCP primary port
 
-mkdir -p "${VWIFI_DIR}" "${REPO_ROOT}/testbed/run"
+mkdir -p "${VWIFI_DIR}" "${REPO_ROOT}/testbed/run" "${REPO_ROOT}/testbed/run/logs"
 
-# ─── Cleanup handler ────────────────────────────────────────────────────────────
-cleanup_vwifi() {
+pid_is_vwifi_server() {
+    local pid="$1"
+    [ -n "$pid" ] || return 1
+    kill -0 "$pid" 2>/dev/null || return 1
+    ps -p "$pid" -o comm= 2>/dev/null | grep -qx "vwifi-server"
+}
+
+# Check and clean up stale processes holding vwifi ports
+clean_stale_vwifi() {
+    # First check if PID file points to a live vwifi-server
     if [ -f "$PID_FILE" ]; then
-        local pid
-        pid=$(cat "$PID_FILE")
-        if kill -0 "$pid" 2>/dev/null; then
-            echo "Cleaning up vwifi-server (PID $pid)..."
-            kill "$pid" 2>/dev/null || true
+        existing_pid=$(cat "$PID_FILE")
+        if pid_is_vwifi_server "$existing_pid"; then
+            echo "vwifi-server already running (PID ${existing_pid})"
+            exit 0
         fi
         rm -f "$PID_FILE"
     fi
-}
-trap cleanup_vwifi EXIT INT TERM HUP
 
-# Check if already running
-if [ -f "$PID_FILE" ] && kill -0 "$(cat "$PID_FILE")" 2>/dev/null; then
-    echo "vwifi-server already running (PID $(cat "$PID_FILE"))"
-    exit 0
-fi
+    # Check if any process is holding the vwifi TCP port
+    if ss -tlnp 2>/dev/null | grep -q ":${VWIFI_PORT} "; then
+        local stale_pid
+        stale_pid=$(ss -tlnp 2>/dev/null | grep ":${VWIFI_PORT} " | grep -oP 'pid=\K[0-9]+' | head -1)
+        if [ -n "$stale_pid" ] && pid_is_vwifi_server "$stale_pid"; then
+            echo "Killing stale vwifi-server (PID ${stale_pid}) holding port ${VWIFI_PORT}"
+            kill -9 "$stale_pid" 2>/dev/null || true
+            sleep 1
+        fi
+    fi
+}
+
+clean_stale_vwifi
 
 # Compile if needed
 if [ ! -x "${VWIFI_DIR}/vwifi-server" ]; then
@@ -46,11 +60,12 @@ if [ ! -x "${VWIFI_DIR}/vwifi-server" ]; then
     make -j"$(nproc)"
     cp vwifi-server "${VWIFI_DIR}/vwifi-server"
     cp vwifi-ctrl "${VWIFI_DIR}/vwifi-ctrl" 2>/dev/null || true
+    cp vwifi-add-interfaces "${VWIFI_DIR}/vwifi-add-interfaces" 2>/dev/null || true
 fi
 
 # Launch
 echo "Starting vwifi-server (TCP mode, port ${VWIFI_PORT})..."
-"${VWIFI_DIR}/vwifi-server" -u -t "${VWIFI_PORT}" &
+nohup "${VWIFI_DIR}/vwifi-server" -u -t "${VWIFI_PORT}" >"${LOG_FILE}" 2>&1 &
 VWIFI_PID=$!
 echo "$VWIFI_PID" > "$PID_FILE"
 
@@ -58,6 +73,8 @@ echo "$VWIFI_PID" > "$PID_FILE"
 sleep 1
 if kill -0 "$VWIFI_PID" 2>/dev/null; then
     echo "vwifi-server started (PID $VWIFI_PID)"
+    echo "vwifi-server log: ${LOG_FILE}"
+    echo "vwifi-server will be stopped by stop-mesh.sh or start-mesh.sh cleanup."
 else
     echo "ERROR: vwifi-server failed to start"
     rm -f "$PID_FILE"
