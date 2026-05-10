@@ -1,3 +1,5 @@
+# Line topology: node-1 → node-2 → node-3 (with tester)
+# Tests multi-hop routing
 mesh:
   nodes:
     - id: 1
@@ -45,3 +47,11 @@ mesh:
     management_subnet: "10.99.0.0/16"
     tap_prefix: "mesha-tap"
     thisnode_alias: "lm-testbed-node-1"
+  topology:
+    type: line
+    description: "node-1 → node-2 → node-3 (multi-hop)"
+  links:
+    - from: 1
+      to: 2
+    - from: 2
+      to: 3

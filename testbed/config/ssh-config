@@ -31,6 +31,7 @@ Host lm-testbed-tester
   LogLevel ERROR
 
 Host *
+  IdentitiesOnly yes
   ServerAliveInterval 10
   ServerAliveCountMax 3
   ConnectTimeout 30
