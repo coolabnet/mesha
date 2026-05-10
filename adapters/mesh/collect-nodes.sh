@@ -138,6 +138,11 @@ BMX7_LINKS=$(bmx7 -c --links 2>/dev/null | head -60 || echo '')
 # Also try babeld if bmx7 is not available or returns empty
 BABEL_NEIGHBORS=$(echo 'dump neighbours' | nc -q1 localhost 33123 2>/dev/null | head -40 || echo '')
 
+# --- Neighbor/ARP table for IPv6->IPv4 resolution ---
+# BMX7 on br-lan uses IPv6 link-local addresses; we need the ARP table
+# to resolve those to IPv4 (via MAC address correlation).
+NEIGHBOR_TABLE=$(ip neigh show 2>/dev/null || echo '')
+
 # --- Output everything as a simple key=value blob for parsing ---
 cat <<EOF
 __HOSTNAME__${HOSTNAME}
@@ -153,6 +158,9 @@ __RADIOS_END__
 __BMX7_START__
 ${BMX7_LINKS}
 __BMX7_END__
+__NEIGHBOR_START__
+${NEIGHBOR_TABLE}
+__NEIGHBOR_END__
 __BABEL_START__
 ${BABEL_NEIGHBORS}
 __BABEL_END__
@@ -236,19 +244,111 @@ for section, props in radio_dict.items():
             "band": props.get("band") or props.get("hwmode"),
         })
 
+# Build IPv6->IPv4 lookup from neighbor/ARP table
+# Neighbor entries look like:
+#   10.99.0.12 dev br-lan lladdr 52:54:00:00:00:02 REACHABLE
+#   fe80::5054:ff:fe00:2 dev br-lan lladdr 52:54:00:00:00:02 REACHABLE
+# We use MAC as the join key: IPv6->MAC->IPv4
+neighbor_raw = extract_block("__NEIGHBOR_START__", "__NEIGHBOR_END__", lines)
+mac_to_ipv4 = {}
+for line in neighbor_raw.splitlines():
+    parts = line.strip().split()
+    if len(parts) >= 4:
+        ip_addr = parts[0]
+        mac = None
+        for i, p in enumerate(parts):
+            if p == "lladdr" and i + 1 < len(parts):
+                mac = parts[i + 1].lower()
+                break
+        if mac and '.' in ip_addr:
+            mac_to_ipv4[mac] = ip_addr
+
+def eui64_to_mac(ipv6):
+    """Derive MAC address from EUI-64 IPv6 link-local address."""
+    try:
+        import ipaddress
+        addr = ipaddress.IPv6Address(ipv6)
+    except (ValueError, Exception):
+        return None
+    if not ipv6.startswith('fe80'):
+        return None
+    iid = int(addr) & 0xFFFFFFFFFFFFFFFF
+    iid_bytes = iid.to_bytes(8, 'big')
+    if iid_bytes[3] != 0xff or iid_bytes[4] != 0xfe:
+        return None
+    mac_bytes = [
+        iid_bytes[0] ^ 0x02,
+        iid_bytes[1],
+        iid_bytes[2],
+        iid_bytes[5],
+        iid_bytes[6],
+        iid_bytes[7],
+    ]
+    return ':'.join(f'{b:02x}' for b in mac_bytes)
+
+def resolve_neighbor_ip(ip):
+    """Resolve IPv6 link-local to IPv4 via EUI-64 MAC derivation and ARP lookup."""
+    if '.' in ip:
+        return ip
+    mac = eui64_to_mac(ip)
+    if mac and mac in mac_to_ipv4:
+        return mac_to_ipv4[mac]
+    return ip
+
 # Parse BMX7 neighbor links
+# BMX7 links output has a header row with column names. Detect columns from header.
 bmx7_raw = extract_block("__BMX7_START__", "__BMX7_END__", lines)
 neighbors = []
-for line in bmx7_raw.splitlines():
-    # BMX7 link line format varies by version; look for IP-like tokens
-    tokens = line.strip().split()
-    if len(tokens) >= 3 and "." in tokens[0]:
+bmx7_lines = bmx7_raw.splitlines()
+
+# Detect column indices from header
+link_col_nbLocalIp = None
+link_col_dev = None
+link_col_shortId = None
+link_header_found = False
+for line in bmx7_lines:
+    line = line.strip()
+    if not line:
+        continue
+    tokens_lower = line.lower().split()
+    if 'nblocalip' in tokens_lower:
+        link_col_nbLocalIp = tokens_lower.index('nblocalip')
+        link_col_dev = tokens_lower.index('dev') if 'dev' in tokens_lower else None
+        link_col_shortId = tokens_lower.index('shortid') if 'shortid' in tokens_lower else None
+        link_header_found = True
+        break
+
+if link_header_found and link_col_nbLocalIp is not None:
+    for line in bmx7_lines:
+        line = line.strip()
+        if not line or line.lower().startswith('link') or line.lower().startswith('shortid'):
+            continue
+        tokens = line.split()
+        if len(tokens) <= link_col_nbLocalIp:
+            continue
+        raw_ip = tokens[link_col_nbLocalIp]
+        iface_name = tokens[link_col_dev] if link_col_dev is not None and len(tokens) > link_col_dev else None
+        resolved_ip = resolve_neighbor_ip(raw_ip)
         neighbors.append({
             "protocol": "bmx7",
-            "ip": tokens[0],
-            "interface": tokens[1] if len(tokens) > 1 else None,
-            "metric": tokens[2] if len(tokens) > 2 else None,
+            "ip": resolved_ip,
+            "interface": iface_name,
+            "metric": None,
         })
+else:
+    # Old-style fallback: first token is IP
+    for line in bmx7_lines:
+        tokens = line.strip().split()
+        if len(tokens) >= 3 and ("." in tokens[0] or ":" in tokens[0]):
+            raw_ip = tokens[0]
+            iface_name = tokens[1] if len(tokens) > 1 else None
+            resolved_ip = resolve_neighbor_ip(raw_ip)
+            neighbors.append({
+                "protocol": "bmx7",
+                "ip": resolved_ip,
+                "interface": iface_name,
+                "metric": tokens[2] if len(tokens) > 2 else None,
+            })
 
 # Parse Babel neighbors as fallback
 if not neighbors:
